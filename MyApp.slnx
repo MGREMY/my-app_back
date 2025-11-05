@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src\MyApp.AppHost\MyApp.AppHost.csproj" Type="Classic C#" />
+    <Project Path="src\MyApp.Core\MyApp.Core.csproj" Type="Classic C#" />
+    <Project Path="src\MyApp.ServiceDefaults\MyApp.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/src/domain/">
+    <Project Path="src\domain\MyApp.Domain.Model\MyApp.Domain.Model.csproj" Type="Classic C#" />
+    <Project Path="src\domain\MyApp.Domain.Service.Contract\MyApp.Domain.Service.Contract.csproj" Type="Classic C#" />
+    <Project Path="src\domain\MyApp.Domain.Service\MyApp.Domain.Service.csproj" Type="Classic C#" />
+  </Folder>
+  <Folder Name="/src/host/">
+    <Project Path="src\host\MyApp.Host.Api\MyApp.Host.Api.csproj" Type="Classic C#" />
+  </Folder>
+</Solution>
