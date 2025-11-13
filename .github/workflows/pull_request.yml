@@ -23,8 +23,8 @@ jobs:
       - name: Install dependencies
         run: dotnet restore
 
-      - name: Build
+      - name: Build the code
         run: dotnet build --no-restore
         
-      - name: Test
+      - name: Test the code
         run: dotnet test --no-build
