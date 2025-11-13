@@ -7,7 +7,7 @@ concurrency: ${{ github.ref }}
 
 jobs:
   main:
-    name: Lint & build the code
+    name: Build & test the code
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
