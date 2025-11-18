@@ -26,6 +26,7 @@ public class UserGetService
     {
         return await _db.Users
             .AsNoTracking()
+            .ApplySorting(query.SortServiceRequest)
             .ApplyPagination<User, string>(query.PageNumber, query.PageSize)
             .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)
             .ToPagedResponseAsync(query.PageNumber, query.PageSize, _db.Users.CountAsync, ct);

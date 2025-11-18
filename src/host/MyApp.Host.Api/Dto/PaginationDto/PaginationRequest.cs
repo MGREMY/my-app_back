@@ -4,35 +4,33 @@ using MyApp.Domain.Service.Contract.Dto.PaginationDto;
 
 namespace MyApp.Host.Api.Dto.PaginationDto;
 
-public record PaginationRequest(int PageNumber = 1, int PageSize = 15)
+public record SortRequest(string PropertyName, bool IsDescending)
 {
-    public static bool TryParse(string? input, out PaginationRequest? output)
+    public SortServiceRequest ToServiceRequest()
     {
-        output = null;
-
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            return false;
-        }
-
-        var parts = input.Split(',');
-
-        if (
-            !int.TryParse(parts[0], out var pageNumber) ||
-            !int.TryParse(parts[1], out var pageSize)
-        )
-        {
-            return false;
-        }
-
-        output = new PaginationRequest(pageNumber, pageSize);
-
-        return true;
+        return new SortServiceRequest(PropertyName, IsDescending);
     }
 
+    public class Validator : Validator<SortRequest>
+    {
+        public Validator()
+        {
+            RuleFor(x => x.PropertyName)
+                .NotEmpty();
+            RuleFor(x => x.IsDescending)
+                .NotNull();
+        }
+    }
+}
+
+public record PaginationRequest(int PageNumber = 1, int PageSize = 15, IEnumerable<SortRequest>? SortRequests = null)
+{
     public PaginationServiceRequest ToServiceRequest()
     {
-        return new PaginationServiceRequest(PageNumber, PageSize);
+        return new PaginationServiceRequest(
+            PageNumber,
+            PageSize,
+            SortServiceRequest: SortRequests?.Select(x => x.ToServiceRequest()) ?? []);
     }
 
     public class Validator : Validator<PaginationRequest>
@@ -43,6 +41,10 @@ public record PaginationRequest(int PageNumber = 1, int PageSize = 15)
                 .GreaterThan(0);
             RuleFor(x => x.PageSize)
                 .GreaterThan(0);
+
+            RuleFor(x => x.SortRequests)
+                .NotEmpty()
+                .When(x => x.SortRequests is not null);
         }
     }
 }

@@ -1,3 +1,5 @@
 namespace MyApp.Domain.Service.Contract.Dto.PaginationDto;
 
-public record PaginationServiceRequest(int PageNumber, int PageSize);
+public record SortServiceRequest(string PropertyName, bool IsDescending);
+
+public record PaginationServiceRequest(int PageNumber, int PageSize, params IEnumerable<SortServiceRequest> SortServiceRequest);
