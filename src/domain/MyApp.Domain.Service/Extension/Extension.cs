@@ -12,56 +12,54 @@ namespace MyApp.Domain.Service.Extension;
 
 public static class Extension
 {
-    public static IServiceCollection AddMyAppServices(
-        this IServiceCollection services,
-        string postgresConnectionString,
-        string redisConnectionString)
+    extension(IServiceCollection services)
     {
-        return services
-            .AddLocalization()
-            .AddDatabase(postgresConnectionString)
-            .AddCache(redisConnectionString)
-            .AddServices();
-    }
-
-    private static IServiceCollection AddDatabase(
-        this IServiceCollection services,
-        string postgresConnectionString)
-    {
-        services.AddDbContextPool<AppDbContext>(options =>
+        public IServiceCollection AddMyAppServices(
+            string postgresConnectionString,
+            string redisConnectionString)
         {
-            options.UseLazyLoadingProxies();
-            options.UseNpgsql(postgresConnectionString,
-                npgOptions => { npgOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName); });
-        });
+            return services
+                .AddLocalization()
+                .AddDatabase(postgresConnectionString)
+                .AddCache(redisConnectionString)
+                .AddServices();
+        }
 
-        return services;
-    }
-
-    private static IServiceCollection AddCache(
-        this IServiceCollection services,
-        string redisConnectionString)
-    {
-        services.AddHybridCache(options =>
+        private IServiceCollection AddDatabase(string postgresConnectionString)
         {
-            options.ReportTagMetrics = true;
-            options.DefaultEntryOptions = new HybridCacheEntryOptions
+            services.AddDbContextPool<AppDbContext>(options =>
             {
-                Expiration = TimeSpan.FromMinutes(5),
-                LocalCacheExpiration = TimeSpan.FromMinutes(5),
-            };
-        }).Services.AddStackExchangeRedisCache(options => { options.Configuration = redisConnectionString; });
+                options.UseLazyLoadingProxies();
+                options.UseNpgsql(postgresConnectionString,
+                    npgOptions => { npgOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName); });
+            });
 
-        return services;
-    }
+            return services;
+        }
 
-    private static IServiceCollection AddServices(this IServiceCollection services)
-    {
-        return services
-            .AddHttpClient()
-            .AddScoped<ICacheService, CacheService>()
-            .AddScoped<IAuthSyncUserService, AuthSyncUserService>()
-            .AddScoped<IUserGetService, UserGetService>()
-            .AddScoped<IUserGetByIdService, UserGetByIdService>();
+        private IServiceCollection AddCache(string redisConnectionString)
+        {
+            services.AddHybridCache(options =>
+            {
+                options.ReportTagMetrics = true;
+                options.DefaultEntryOptions = new HybridCacheEntryOptions
+                {
+                    Expiration = TimeSpan.FromMinutes(5),
+                    LocalCacheExpiration = TimeSpan.FromMinutes(5),
+                };
+            }).Services.AddStackExchangeRedisCache(options => { options.Configuration = redisConnectionString; });
+
+            return services;
+        }
+
+        private IServiceCollection AddServices()
+        {
+            return services
+                .AddHttpClient()
+                .AddScoped<ICacheService, CacheService>()
+                .AddScoped<IAuthSyncUserService, AuthSyncUserService>()
+                .AddScoped<IUserGetService, UserGetService>()
+                .AddScoped<IUserGetByIdService, UserGetByIdService>();
+        }
     }
 }

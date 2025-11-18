@@ -6,13 +6,15 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class HealthCheckConfiguration
 {
-    public static TBuilder ConfigureHealthCheck<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
+    extension<TBuilder>(TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        builder.Services
-            .AddHealthChecks()
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+        public TBuilder ConfigureHealthCheck()
+        {
+            builder.Services
+                .AddHealthChecks()
+                .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
 
-        return builder;
+            return builder;
+        }
     }
 }

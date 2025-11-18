@@ -9,54 +9,54 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class OpenTelemetryConfiguration
 {
-    public static TBuilder ConfigureOpenTelemetry<TBuilder>(
-        this TBuilder builder,
-        string healthEndpointPath,
-        string aliveEndpointPath)
-        where TBuilder : IHostApplicationBuilder
+    extension<TBuilder>(TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        builder.Logging.AddOpenTelemetry(options =>
+        public TBuilder ConfigureOpenTelemetry(
+            string healthEndpointPath,
+            string aliveEndpointPath)
         {
-            options.IncludeFormattedMessage = true;
-            options.IncludeScopes = true;
-        });
-
-        builder.Services
-            .AddOpenTelemetry()
-            .WithMetrics(options =>
+            builder.Logging.AddOpenTelemetry(options =>
             {
-                options.AddAspNetCoreInstrumentation();
-                options.AddHttpClientInstrumentation();
-                options.AddRuntimeInstrumentation();
-            })
-            .WithTracing(options =>
-            {
-                options.AddSource(builder.Environment.ApplicationName)
-                    // ReSharper disable once VariableHidesOuterVariable
-                    .AddAspNetCoreInstrumentation(options =>
-                    {
-                        options.Filter = context =>
-                            !context.Request.Path.StartsWithSegments(aliveEndpointPath)
-                            && !context.Request.Path.StartsWithSegments(healthEndpointPath);
-                    })
-                    .AddHttpClientInstrumentation();
+                options.IncludeFormattedMessage = true;
+                options.IncludeScopes = true;
             });
 
-        builder.AddOpenTelemetryExporters();
+            builder.Services
+                .AddOpenTelemetry()
+                .WithMetrics(options =>
+                {
+                    options.AddAspNetCoreInstrumentation();
+                    options.AddHttpClientInstrumentation();
+                    options.AddRuntimeInstrumentation();
+                })
+                .WithTracing(options =>
+                {
+                    options.AddSource(builder.Environment.ApplicationName)
+                        // ReSharper disable once VariableHidesOuterVariable
+                        .AddAspNetCoreInstrumentation(options =>
+                        {
+                            options.Filter = context =>
+                                !context.Request.Path.StartsWithSegments(aliveEndpointPath)
+                                && !context.Request.Path.StartsWithSegments(healthEndpointPath);
+                        })
+                        .AddHttpClientInstrumentation();
+                });
 
-        return builder;
-    }
+            builder.AddOpenTelemetryExporters();
 
-    private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
-        var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-        if (useOtlpExporter)
-        {
-            builder.Services.AddOpenTelemetry().UseOtlpExporter();
+            return builder;
         }
 
-        return builder;
+        private TBuilder AddOpenTelemetryExporters()
+        {
+            var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+
+            if (useOtlpExporter)
+            {
+                builder.Services.AddOpenTelemetry().UseOtlpExporter();
+            }
+
+            return builder;
+        }
     }
 }

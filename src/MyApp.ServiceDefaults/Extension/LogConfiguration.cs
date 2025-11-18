@@ -8,51 +8,55 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class LogConfiguration
 {
-    public static TBuilder ConfigureLog<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    extension<TBuilder>(TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        const string outputTemplate = "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}";
-
-        var loggerConfiguration = new LoggerConfiguration()
-            .Enrich.FromLogContext()
-            .Enrich.WithProperty("ApplicationName", builder.Environment.ApplicationName)
-            .WriteTo.Console(
-                theme: SystemConsoleTheme.Colored,
-                outputTemplate: outputTemplate
-            )
-            .WriteTo.File(
-                "logs/log.txt",
-                outputTemplate: outputTemplate,
-                rollOnFileSizeLimit: true,
-                rollingInterval: RollingInterval.Day,
-                retainedFileTimeLimit: TimeSpan.FromDays(7)
-            );
-
-        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+        public TBuilder ConfigureLog()
         {
-            loggerConfiguration
-                .WriteTo.OpenTelemetry(options =>
-                {
-                    options.Endpoint = otlpEndpoint;
-                    options.Protocol = OtlpProtocol.Grpc;
-                    options.IncludedData =
-                        IncludedData.TraceIdField |
-                        IncludedData.SpanIdField |
-                        IncludedData.MessageTemplateTextAttribute |
-                        IncludedData.SpecRequiredResourceAttributes;
+            const string outputTemplate = "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}";
 
-                    options.ResourceAttributes = new Dictionary<string, object>
+            var loggerConfiguration = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .Enrich.WithProperty("ApplicationName", builder.Environment.ApplicationName)
+                .WriteTo.Console(
+                    theme: SystemConsoleTheme.Colored,
+                    outputTemplate: outputTemplate
+                )
+                .WriteTo.File(
+                    "logs/log.txt",
+                    outputTemplate: outputTemplate,
+                    rollOnFileSizeLimit: true,
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileTimeLimit: TimeSpan.FromDays(7)
+                );
+
+            var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+            {
+                loggerConfiguration
+                    .WriteTo.OpenTelemetry(options =>
                     {
-                        ["service.name"] = builder.Environment.ApplicationName,
-                        ["service.version"] = typeof(LogConfiguration).Assembly.GetName().Version?.ToString() ?? "1.0.0",
-                        ["deployment.environment"] = builder.Environment.EnvironmentName,
-                    };
-                });
+                        options.Endpoint = otlpEndpoint;
+                        options.Protocol = OtlpProtocol.Grpc;
+                        options.IncludedData =
+                            IncludedData.TraceIdField |
+                            IncludedData.SpanIdField |
+                            IncludedData.MessageTemplateTextAttribute |
+                            IncludedData.SpecRequiredResourceAttributes;
+
+                        options.ResourceAttributes = new Dictionary<string, object>
+                        {
+                            ["service.name"] = builder.Environment.ApplicationName,
+                            ["service.version"] = typeof(LogConfiguration).Assembly.GetName().Version?.ToString()
+                                                  ?? "1.0.0",
+                            ["deployment.environment"] = builder.Environment.EnvironmentName,
+                        };
+                    });
+            }
+
+            builder.Logging.ClearProviders();
+            builder.Logging.AddSerilog(loggerConfiguration.CreateLogger());
+
+            return builder;
         }
-
-        builder.Logging.ClearProviders();
-        builder.Logging.AddSerilog(loggerConfiguration.CreateLogger());
-
-        return builder;
     }
 }
