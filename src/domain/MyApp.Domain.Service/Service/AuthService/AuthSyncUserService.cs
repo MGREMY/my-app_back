@@ -40,13 +40,13 @@ public class AuthSyncUserService
 
         var exists = await _db.Users
             .AsNoTracking()
-            .AnyAsync(user => user.Id == query.Id, ct);
+            .AnyAsync(user => user.AuthId == query.Id, ct);
 
         if (!exists)
         {
             var newUser = new User
             {
-                Id = query.Id,
+                AuthId = query.Id,
             }
                 .SetCreatedAtData();
 

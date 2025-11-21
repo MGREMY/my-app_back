@@ -5,9 +5,10 @@ using MyApp.Domain.Model.Model.Interface;
 namespace MyApp.Domain.Model.Model;
 
 [EntityTypeConfiguration<UserEntityConfiguration, User>]
-public class User : IBaseEntity<string>, ICreatedAt, ISoftDeletable
+public class User : BaseEntity, ICreatedAt, ISoftDeletable
 {
-    public string Id { get; set; } = string.Empty;
+    public string AuthId { get; set; } = string.Empty;
+    
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public bool HasBeenModified { get; set; }
@@ -21,15 +22,13 @@ internal sealed class UserEntityConfiguration : IEntityTypeConfiguration<User>
     {
         builder
             .ToTable("user")
+            .AddBaseEntity()
             .AddCreatedAt()
             .AddSoftDeletion();
 
         builder
-            .HasKey(x => x.Id);
-
-        builder
-            .Property(x => x.Id)
-            .HasColumnName("id")
+            .Property(x => x.AuthId)
+            .HasColumnName("auth_id")
             .HasMaxLength(200)
             .ValueGeneratedNever()
             .IsRequired();

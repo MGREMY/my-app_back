@@ -15,7 +15,8 @@ namespace MyApp.Domain.Model.Migrations
                 name: "user",
                 columns: table => new
                 {
-                    id = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    auth_id = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     created_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     updated_at_utc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     has_been_modified = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),

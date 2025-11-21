@@ -3,7 +3,7 @@ using FluentValidation;
 
 namespace MyApp.Host.Api.Dto.UserDto.UserGetByIdDto;
 
-public record UserGetByIdRequest(string Id)
+public record UserGetByIdRequest(Guid Id)
 {
     public class Validator : Validator<UserGetByIdRequest>
     {

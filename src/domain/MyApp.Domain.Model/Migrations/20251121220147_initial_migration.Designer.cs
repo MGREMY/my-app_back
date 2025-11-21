@@ -4,15 +4,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using MyApp.Domain.Model;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace MyApp.Domain.Model.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251105190356_initial_migration")]
+    [Migration("20251121220147_initial_migration")]
     partial class initial_migration
     {
         /// <inheritdoc />
@@ -30,10 +30,16 @@ namespace MyApp.Domain.Model.Migrations
 
             modelBuilder.Entity("MyApp.Domain.Model.Model.User", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AuthId")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
-                        .HasColumnName("id");
+                        .HasColumnName("auth_id");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
