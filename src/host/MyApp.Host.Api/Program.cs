@@ -2,6 +2,7 @@ using MyApp.Host.Api.Extension;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Domain.Model;
+using MyApp.Domain.Model.Extension;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,7 +58,7 @@ if (app.Environment.IsDevelopment())
     {
         await using (var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>())
         {
-            await dbContext.Database.MigrateAsync();
+            await dbContext.MigrateAndExecSqlScriptAsync(scope.ServiceProvider.GetRequiredService<ILoggerFactory>());
         }
     }
 }

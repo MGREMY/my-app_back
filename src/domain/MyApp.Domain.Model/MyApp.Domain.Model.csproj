@@ -15,4 +15,14 @@
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <None Update="SqlScript\**">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="SqlScript\" />
+    </ItemGroup>
+
 </Project>
