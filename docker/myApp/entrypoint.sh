@@ -4,4 +4,4 @@
 export ASPNETCORE_HTTP_PORTS=8080
 
 # Start dotnet
-exec dotnet MyApp.Host.Api.dll
+exec dotnet Host.Api.dll

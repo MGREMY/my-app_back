@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Domain.Model</AssemblyName>
+        <RootNamespace>Domain.Model</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="SqlScript\**">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="Migrations\" />
+      <Folder Include="SqlScript\" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,52 @@
+using Core.Service;
+using Domain.Model;
+using Domain.Service.Contract;
+using Domain.Service.Contract.Dto.UserDto;
+using Domain.Service.Contract.Dto.UserDto.UserGetByIdDto;
+using Domain.Service.Contract.Service.UserService;
+using Domain.Service.Resource;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using static Domain.Service.ServiceConstant.Error;
+
+namespace Domain.Service.Service.UserService;
+
+public class UserGetByIdService
+    : AbstractServiceAsync<UserGetByIdServiceRequest, UserServiceResponse>,
+        IUserGetByIdService
+{
+    private readonly AppDbContext _db;
+    private readonly IStringLocalizer<SharedResource> _localizer;
+
+    public UserGetByIdService(
+        AppDbContext db,
+        IStringLocalizer<SharedResource> localizer)
+    {
+        _db = db;
+        _localizer = localizer;
+    }
+
+    protected override async Task PreExecuteAsync(
+        UserGetByIdServiceRequest query,
+        CancellationToken ct = default)
+    {
+        var exists = await _db.Users
+            .AnyAsync(user => user.Id == query.Id, ct);
+
+        if (!exists)
+        {
+            throw new DomainException(_localizer.GetString(user_not_found), 404);
+        }
+    }
+
+    protected override async Task<UserServiceResponse> HandleAsync(
+        UserGetByIdServiceRequest query,
+        CancellationToken ct = default)
+    {
+        return await _db.Users
+            .AsNoTracking()
+            .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
+            .AsSplitQuery()
+            .FirstAsync(ct);
+    }
+}

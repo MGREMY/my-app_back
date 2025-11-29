@@ -1,15 +1,15 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src\MyApp.AppHost\MyApp.AppHost.csproj" Type="Classic C#" />
-    <Project Path="src\MyApp.Core\MyApp.Core.csproj" Type="Classic C#" />
-    <Project Path="src\MyApp.ServiceDefaults\MyApp.ServiceDefaults.csproj" />
+    <Project Path="src\AppHost\AppHost.csproj" Type="C#" />
+    <Project Path="src\Core\Core.csproj" Type="C#" />
+    <Project Path="src\ServiceDefaults\ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/domain/">
-    <Project Path="src\domain\MyApp.Domain.Model\MyApp.Domain.Model.csproj" Type="Classic C#" />
-    <Project Path="src\domain\MyApp.Domain.Service.Contract\MyApp.Domain.Service.Contract.csproj" Type="Classic C#" />
-    <Project Path="src\domain\MyApp.Domain.Service\MyApp.Domain.Service.csproj" Type="Classic C#" />
+    <Project Path="src\domain\Domain.Model\Domain.Model.csproj" Type="C#" />
+    <Project Path="src\domain\Domain.Service.Contract\Domain.Service.Contract.csproj" Type="C#" />
+    <Project Path="src\domain\Domain.Service\Domain.Service.csproj" Type="C#" />
   </Folder>
   <Folder Name="/src/host/">
-    <Project Path="src\host\MyApp.Host.Api\MyApp.Host.Api.csproj" Type="Classic C#" />
+    <Project Path="src\host\Host.Api\Host.Api.csproj" Type="C#" />
   </Folder>
 </Solution>

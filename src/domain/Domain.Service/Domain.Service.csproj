@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>Domain.Service</AssemblyName>
+        <RootNamespace>Domain.Service</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Domain.Model\Domain.Model.csproj" />
+        <ProjectReference Include="..\Domain.Service.Contract\Domain.Service.Contract.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Humanizer.Core" Version="3.0.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.0" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Update="Resource\SharedResource.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>SharedResource.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+      <EmbeddedResource Update="Resource\SharedResource.fr.resx">
+        <Generator>PublicResXFileCodeGenerator</Generator>
+        <LastGenOutput>SharedResource.fr.Designer.cs</LastGenOutput>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="Resource\SharedResource.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>SharedResource.resx</DependentUpon>
+      </Compile>
+      <Compile Update="Resource\SharedResource.fr.Designer.cs">
+        <DesignTime>True</DesignTime>
+        <AutoGen>True</AutoGen>
+        <DependentUpon>SharedResource.fr.resx</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+</Project>
