@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Model;
 using Domain.Service.Contract.Service.AuthService;
 using Domain.Service.Contract.Service.UserService;
@@ -10,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Domain.Service.Extension;
 
+[ExcludeFromCodeCoverage]
 public static class Extension
 {
     extension(IServiceCollection services)
