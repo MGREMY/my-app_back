@@ -39,11 +39,11 @@ public class UserGetByIdService
         }
     }
 
-    protected override async Task<UserServiceResponse> HandleAsync(
+    protected override Task<UserServiceResponse> HandleAsync(
         UserGetByIdServiceRequest query,
         CancellationToken ct = default)
     {
-        return await _db.Users
+        return _db.Users
             .AsNoTracking()
             .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
             .AsSplitQuery()

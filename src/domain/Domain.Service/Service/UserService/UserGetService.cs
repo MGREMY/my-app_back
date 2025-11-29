@@ -20,14 +20,15 @@ public class UserGetService
         _db = db;
     }
 
-    protected override async Task<PaginationServiceResponse<MinimalUserServiceResponse>> HandleAsync(
+    protected override Task<PaginationServiceResponse<MinimalUserServiceResponse>> HandleAsync(
         PaginationServiceRequest query,
         CancellationToken ct = default)
     {
-        return await Queryable.Select(_db.Users
-                .AsNoTracking()
-                .ApplySorting(query.SortServiceRequest)
-                .ApplyPagination<User, Guid>(query.PageNumber, query.PageSize), ServiceProjection.UserProjection.ToMinimalUserResponse)
+        return _db.Users
+            .AsNoTracking()
+            .ApplySorting(query.SortServiceRequest)
+            .ApplyPagination<User, Guid>(query.PageNumber, query.PageSize)
+            .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)
             .ToPagedResponseAsync(query.PageNumber, query.PageSize, _db.Users.CountAsync, ct);
     }
 }
