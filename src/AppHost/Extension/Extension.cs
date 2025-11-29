@@ -7,7 +7,7 @@ public static class Extension
         public IResourceBuilder<PostgresDatabaseResource> AddPostgresContainer()
         {
             return builder.AddPostgres(
-                    name: "postgresServer",
+                    name: "myAppPostgresServer",
                     userName: builder.AddParameterFromConfiguration(
                         name: "Z-PARAM-POSTGRES-USER",
                         configurationKey: "api_config:postgres:user",
@@ -27,7 +27,7 @@ public static class Extension
         public IResourceBuilder<RedisResource> AddRedisContainer()
         {
             return builder.AddRedis(
-                name: "redis",
+                name: "myAppRedis",
                 password: builder.AddParameterFromConfiguration(
                     name: "Z-PARAM-REDIS-PASSWORD",
                     configurationKey: "api_config:redis:password",
@@ -41,7 +41,7 @@ public static class Extension
         public IResourceBuilder<KeycloakResource> AddKeycloakContainer()
         {
             return builder.AddKeycloak(
-                    name: "keycloak",
+                    name: "myAppKeycloak",
                     adminUsername: builder.AddParameterFromConfiguration(
                         name: "Z-PARAM-KEYCLOAK-ADMIN-USERNAME",
                         configurationKey: "api_config:keycloak:admin_username",
