@@ -29,13 +29,14 @@ public class UserGetByIdServiceTest
         // Arrange
         var id = Guid.NewGuid();
         _dbContextMock.Setup(x => x.Users).ReturnsDbSet([new User { Id = id }]);
+        var req = new UserGetByIdServiceRequest(id);
 
         // Act
         var service = new UserGetByIdService(
             _dbContextMock.Object,
             _stringLocalizerMock.Object);
         var result = await service.ExecuteAsync(
-            new UserGetByIdServiceRequest(id),
+            req,
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -54,6 +55,7 @@ public class UserGetByIdServiceTest
         _dbContextMock
             .Setup(x => x.Users)
             .ReturnsDbSet([]);
+        var req = new UserGetByIdServiceRequest(id);
 
         // Act
         var service = new UserGetByIdService(
@@ -62,7 +64,7 @@ public class UserGetByIdServiceTest
 
         // Assert
         await Assert.ThrowsAsync<DomainException>(() => service.ExecuteAsync(
-            new UserGetByIdServiceRequest(id),
+            req,
             TestContext.Current.CancellationToken)
         );
     }

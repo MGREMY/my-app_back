@@ -16,5 +16,4 @@
   <Folder Name="/tests/domain/">
     <Project Path="tests/domain/Domain.Service.Test/Domain.Service.Test.csproj" />
   </Folder>
-  <Folder Name="/tests/host/" />
 </Solution>

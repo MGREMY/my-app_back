@@ -24,10 +24,13 @@ public class CacheServiceTest
         _cacheMock
             .Setup(x => x.GetAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(0, JsonSerializerOptions.Default)));
+        var req = string.Empty;
 
         // Act
         var service = new CacheService(_cacheMock.Object);
-        var result = await service.GetAsync<int>(string.Empty, TestContext.Current.CancellationToken);
+        var result = await service.GetAsync<int>(
+            req,
+            TestContext.Current.CancellationToken);
 
         // Assert
         Assert.Equal(0, result);

@@ -29,20 +29,21 @@ public class AuthSyncUserTest
         _dbContextMock
             .Setup(x => x.Users)
             .ReturnsDbSet([]);
+        var req = new AuthSyncUserServiceRequest(string.Empty);
 
         // Act
         var service = new AuthSyncUserService(
             _dbContextMock.Object,
             _cacheServiceMock.Object);
         var result = service.ExecuteAsync(
-            new AuthSyncUserServiceRequest(string.Empty),
+            req,
             TestContext.Current.CancellationToken);
         await result;
 
         // Assert
         Assert.True(result.IsCompletedSuccessfully);
     }
-    
+
     [Fact]
     public async Task Should_ReturnTask_WhenNotSynced()
     {
@@ -53,13 +54,14 @@ public class AuthSyncUserTest
         _dbContextMock
             .Setup(x => x.Users)
             .ReturnsDbSet([]);
+        var req = new AuthSyncUserServiceRequest(string.Empty);
 
         // Act
         var service = new AuthSyncUserService(
             _dbContextMock.Object,
             _cacheServiceMock.Object);
         var result = service.ExecuteAsync(
-            new AuthSyncUserServiceRequest(string.Empty),
+            req,
             TestContext.Current.CancellationToken);
         await result;
 

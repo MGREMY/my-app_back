@@ -25,11 +25,12 @@ public class UserGetServiceTest
         _dbContextMock
             .Setup(x => x.Users)
             .ReturnsDbSet(TestData.Users());
+        var req = new PaginationServiceRequest(pageNumber, pageSize);
 
         // Act
         var service = new UserGetService(_dbContextMock.Object);
         var result = await service.ExecuteAsync(
-            new PaginationServiceRequest(pageNumber, pageSize),
+            req,
             TestContext.Current.CancellationToken);
 
         // Assert
