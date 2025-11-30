@@ -9,6 +9,10 @@ jobs:
   main:
     name: Build & test the code
     runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,6 +29,18 @@ jobs:
 
       - name: Build the code
         run: dotnet build --no-restore
-        
+
       - name: Test the code
-        run: dotnet test --no-build
+        run: dotnet test --no-build --coverage --coverage-output-format cobertura --coverage-output cobertura.coverage.xml --report-xunit-trx
+
+      - name: Comment unit test results
+        uses: bibipkins/dotnet-test-reporter@v1.6.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-title: 'Unit Test Results'
+          results-path: "**/TestResults/*.trx"
+          coverage-path: "**/TestResults/*.coverage.xml"
+          coverage-type: 'cobertura'
+          coverage-threshold: 50
+          allow-failed-tests: true
+          pull-request-check: true

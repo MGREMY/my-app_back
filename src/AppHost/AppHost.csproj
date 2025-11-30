@@ -14,16 +14,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting.AppHost" Version="13.0.1" />
-        <PackageReference Include="Aspire.Hosting.Keycloak" Version="9.5.2-preview.1.25522.3" />
-        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.0.1" />
-        <PackageReference Include="Aspire.Hosting.Redis" Version="13.0.1" />
-        <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
+        <AssemblyAttribute Include="System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\host\Host.Api\Host.Api.csproj" />
+        <PackageReference Include="Aspire.Hosting.AppHost" Version="13.0.1"/>
+        <PackageReference Include="Aspire.Hosting.Keycloak" Version="9.5.2-preview.1.25522.3"/>
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.0.1"/>
+        <PackageReference Include="Aspire.Hosting.Redis" Version="13.0.1"/>
+        <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\host\Host.Api\Host.Api.csproj"/>
     </ItemGroup>
 
 </Project>

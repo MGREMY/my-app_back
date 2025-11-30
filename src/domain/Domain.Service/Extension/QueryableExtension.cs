@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Domain.Model.Model.Interface;
 using Domain.Service.Contract.Dto.PaginationDto;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Service.Extension;
 
+[ExcludeFromCodeCoverage]
 public static class QueryableExtension
 {
     extension<T, TKey>(IQueryable<T> query) where T : class, IBaseEntity<TKey>
