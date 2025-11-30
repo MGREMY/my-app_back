@@ -51,7 +51,9 @@ public class UserGetByIdServiceTest
     {
         // Arrange
         var id = Guid.NewGuid();
-        _dbContextMock.Setup(x => x.Users).ReturnsDbSet([]);
+        _dbContextMock
+            .Setup(x => x.Users)
+            .ReturnsDbSet([]);
 
         // Act
         var service = new UserGetByIdService(

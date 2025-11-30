@@ -22,7 +22,9 @@ public class UserGetServiceTest
     public async Task Should_ReturnCorrectCount_ForPagination(int pageNumber, int pageSize)
     {
         // Arrange
-        _dbContextMock.Setup(x => x.Users).ReturnsDbSet(TestData.Users());
+        _dbContextMock
+            .Setup(x => x.Users)
+            .ReturnsDbSet(TestData.Users());
 
         // Act
         var service = new UserGetService(_dbContextMock.Object);
