@@ -19,8 +19,8 @@ builder.AddProject<Host_Api>(name: "MyApp")
     .WithReference(postgres)
     .WithReference(keycloak)
     .WithReference(mailPit)
-    .WithEnvironment(name: "auth_domain", value: $"{builder.Configuration["api_config:auth:domain"]}/realms/myApp")
-    .WithEnvironment(name: "auth_audience", value: builder.Configuration["api_config:auth:audience"])
-    .WithEnvironment(name: "auth_origins", value: builder.Configuration["api_config:auth:origins"]);
+    .WithEnvironment(name: "AuthDomain", value: $"{builder.Configuration["api_config:auth:domain"]}/realms/myApp")
+    .WithEnvironment(name: "AuthAudience", value: builder.Configuration["api_config:auth:audience"])
+    .WithEnvironment(name: "AuthOrigins", value: builder.Configuration["api_config:auth:origins"]);
 
 builder.Build().Run();

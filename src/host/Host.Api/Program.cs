@@ -11,12 +11,12 @@ builder
     .AddServiceDefaults()
     .AddApiAuthentication(options =>
     {
-        options.Domain = builder.Configuration["auth_domain"] ?? string.Empty;
-        options.Audience = builder.Configuration["auth_audience"] ?? string.Empty;
+        options.Domain = builder.Configuration["AuthDomain"] ?? string.Empty;
+        options.Audience = builder.Configuration["AuthAudience"] ?? string.Empty;
     })
     .AddApiAuthorization(options =>
     {
-        options.Origins = builder.Configuration["auth_origins"]?.Split(';') ?? [];
+        options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? [];
     })
     .AddMyAppApiService();
 #pragma warning restore format // @formatter:on
