@@ -55,7 +55,7 @@ public class AuthSyncUserService
         }
 
         var ids = await _db.Users
-            .Select(user => user.Id)
+            .Select(user => user.AuthId)
             .ToListAsync(ct);
 
         await _cacheService.SaveAsync(CacheKey, ids, ct);
