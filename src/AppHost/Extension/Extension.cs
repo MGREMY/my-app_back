@@ -26,7 +26,7 @@ public static class Extension
 
         public IResourceBuilder<RedisResource> AddRedisContainer()
         {
-            return builder.AddRedis(
+            var redis = builder.AddRedis(
                 name: "myAppRedis",
                 password: builder.AddParameterFromConfiguration(
                     name: "Z-PARAM-REDIS-PASSWORD",
@@ -36,6 +36,13 @@ public static class Extension
                     ? port
                     : throw new NullReferenceException(nameof(port))
             );
+
+            // Remove TLS certificate as Aspire is used only for development
+#pragma warning disable ASPIRECERTIFICATES001
+            redis.WithoutHttpsCertificate();
+#pragma warning restore ASPIRECERTIFICATES001
+            
+            return redis;
         }
 
         public IResourceBuilder<KeycloakResource> AddKeycloakContainer()
