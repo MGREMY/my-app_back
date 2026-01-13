@@ -14,22 +14,29 @@ builder
         options.Domain = builder.Configuration["AuthDomain"] ?? string.Empty;
         options.Audience = builder.Configuration["AuthAudience"] ?? string.Empty;
     })
-    .AddApiAuthorization(options =>
-    {
-        options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? [];
-    })
     .AddMyAppApiService();
 #pragma warning restore format // @formatter:on
 
-builder.Services.AddFastEndpoints();
+builder.Services
+    .AddCors()
+    .AddAuthorization()
+    .AddFastEndpoints();
 
 builder
     .AddApiHealthChecks()
     .AddApiOpenApi();
 
 var app = builder.Build();
+
+app.UseRouting();
+
 app
-    .UseApiAuthorization()
+    .UseApiCors(options =>
+    {
+        options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? [];
+    })
+    .UseAuthentication()
+    .UseAuthorization()
     .UseDomainExceptionHandler()
     .UseFastEndpoints(options =>
     {
@@ -41,8 +48,6 @@ app
 app
     .MapApiOpenApiEndpoints()
     .MapDefaultEndpoint(ServiceDefaultConstant.HealthEndpointPath, ServiceDefaultConstant.AliveEndpointPath)
-    .UseAuthentication()
-    .UseAuthorization()
     .UseRequestLocalization(options =>
     {
         string[] supportedCultures = ["en", "fr"];

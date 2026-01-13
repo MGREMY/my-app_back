@@ -26,7 +26,7 @@ public class GetById_V1 : Ep.Req<UserGetByIdRequest>.Res<Results<Ok<UserResponse
         UserGetByIdRequest req,
         CancellationToken ct)
     {
-        var result = await _service.ExecuteAsync(new UserGetByIdServiceRequest(req.Id), ct);
+        var result = await _service.ExecuteAsync(req.ToServiceRequest(), ct);
 
         return TypedResults.Ok(new UserResponse(result));
     }

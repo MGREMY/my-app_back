@@ -1,3 +1,4 @@
+using Domain.Service.Contract.Dto.UserDto.UserGetByIdDto;
 using FastEndpoints;
 using FluentValidation;
 
@@ -12,5 +13,10 @@ public record UserGetByIdRequest(Guid Id)
             RuleFor(x => x.Id)
                 .NotEmpty();
         }
+    }
+
+    public UserGetByIdServiceRequest ToServiceRequest()
+    {
+        return new UserGetByIdServiceRequest(Id);
     }
 }

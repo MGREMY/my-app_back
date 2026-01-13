@@ -59,9 +59,12 @@ public static class Extension
             return services
                 .AddHttpClient()
                 .AddScoped<ICacheService, CacheService>()
+                // Auth
                 .AddScoped<IAuthSyncUserService, AuthSyncUserService>()
+                // User
                 .AddScoped<IUserGetService, UserGetService>()
-                .AddScoped<IUserGetByIdService, UserGetByIdService>();
+                .AddScoped<IUserGetByIdService, UserGetByIdService>()
+                .AddScoped<IUserDeleteService, UserDeleteService>();
         }
     }
 }
