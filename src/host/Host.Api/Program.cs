@@ -9,6 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 #pragma warning disable format // @formatter:off
 builder
     .AddServiceDefaults()
+    .AddApiAuthorization()
     .AddApiAuthentication(options =>
     {
         options.Domain = builder.Configuration["AuthDomain"] ?? string.Empty;
@@ -19,7 +20,6 @@ builder
 
 builder.Services
     .AddCors()
-    .AddAuthorization()
     .AddFastEndpoints();
 
 builder

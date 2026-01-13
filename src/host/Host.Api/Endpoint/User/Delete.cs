@@ -18,9 +18,12 @@ public class Delete_V1 : Ep.Req<UserDeleteRequest>.Res<Results<NoContent, NotFou
     {
         Delete("/users/{id}");
         Version(1);
+        Policies(ApiConstant.AuthorizationPolicies.Admin);
     }
 
-    public override async Task<Results<NoContent, NotFound>> ExecuteAsync(UserDeleteRequest req, CancellationToken ct)
+    public override async Task<Results<NoContent, NotFound>> ExecuteAsync(
+        UserDeleteRequest req,
+        CancellationToken ct)
     {
         await _service.ExecuteAsync(req.ToServiceRequest(), ct);
 

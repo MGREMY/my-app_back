@@ -2,10 +2,13 @@ namespace Host.Api;
 
 public class ApiConstant
 {
+    public static class AuthorizationPolicies
+    {
+        public const string Admin = nameof(Admin);
+    }
+
     public static class Role
     {
-        // ReSharper disable InconsistentNaming
-        public const string admin = "admin";
-        // ReSharper restore InconsistentNaming
+        public const string Admin = nameof(Admin);
     }
 }
