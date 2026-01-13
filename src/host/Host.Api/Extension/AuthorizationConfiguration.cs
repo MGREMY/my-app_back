@@ -9,7 +9,6 @@ public static class AuthorizationConfiguration
             .AddAuthorizationBuilder()
             .AddPolicy(ApiConstant.AuthorizationPolicies.Admin, policy =>
             {
-                policy.RequireAuthenticatedUser();
                 policy.RequireRole(ApiConstant.Role.Admin);
             });
 

@@ -20,7 +20,15 @@ builder
 
 builder.Services
     .AddCors()
-    .AddFastEndpoints();
+    .AddFastEndpoints()
+    .AddAntiforgery(options =>
+    {
+        options.HeaderName = "X-XSRF-TOKEN";
+        options.Cookie.Name = "XSRF-TOKEN";
+        options.Cookie.HttpOnly = false;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+    });
 
 builder
     .AddApiHealthChecks()
@@ -38,6 +46,7 @@ app
     .UseAuthentication()
     .UseAuthorization()
     .UseDomainExceptionHandler()
+    .UseAntiforgeryFE()
     .UseFastEndpoints(options =>
     {
         options.Versioning.Prefix = "v";
