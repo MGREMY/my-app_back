@@ -12,14 +12,10 @@ public interface ISoftDeletable
 
 public static partial class EntityTypeBuilderExtensions
 {
-    public static EntityTypeBuilder<T> AddSoftDeletion<T>(
-        this EntityTypeBuilder<T> builder,
-        Expression<Func<T, bool>>? filter = null)
+    public static EntityTypeBuilder<T> AddSoftDeletion<T>(this EntityTypeBuilder<T> builder)
         where T : class, ISoftDeletable
     {
-        filter ??= p => !p.IsDeleted;
-
-        builder.HasQueryFilter(filter);
+        builder.HasQueryFilter(ModelConstant.SoftDeletionFilter, p => !p.IsDeleted);
 
         builder
             .Property(x => x.IsDeleted)

@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Domain.Service.Contract.Dto.AuthDto.AuthSyncUserDto;
 using Domain.Service.Contract.Service.AuthService;
 using FastEndpoints;
+using Host.Api.Extension;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Host.Api.Endpoint.Auth;
@@ -24,7 +24,7 @@ public class SyncUser_V1 : Ep.NoReq.Res<NoContent>
     public override async Task<NoContent> ExecuteAsync(CancellationToken ct)
     {
         await _service.ExecuteAsync(
-            new AuthSyncUserServiceRequest(User.Claims.First(c => c.Type == ClaimTypes.NameIdentifier).Value),
+            new AuthSyncUserServiceRequest(User.CurrentId, User.CurrentUserName, User.CurrentEmail),
             ct);
 
         return TypedResults.NoContent();

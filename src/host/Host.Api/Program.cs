@@ -1,7 +1,8 @@
+using System.Net.Mime;
 using Domain.Model;
 using Domain.Model.Extension;
 using FastEndpoints;
-using Host.Api.Extension;
+using Host.Api.Extension.Configuration;
 using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,10 +40,7 @@ var app = builder.Build();
 app.UseRouting();
 
 app
-    .UseApiCors(options =>
-    {
-        options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? [];
-    })
+    .UseApiCors(options => { options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? []; })
     .UseAuthentication()
     .UseAuthorization()
     .UseDomainExceptionHandler()

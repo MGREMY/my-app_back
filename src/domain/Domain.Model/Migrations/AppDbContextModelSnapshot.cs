@@ -4,12 +4,11 @@ using Domain.Model;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MyApp.Domain.Model;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace MyApp.Domain.Model.Migrations
+namespace Domain.Model.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
@@ -18,7 +17,7 @@ namespace MyApp.Domain.Model.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Proxies:ChangeTracking", false)
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
@@ -47,6 +46,12 @@ namespace MyApp.Domain.Model.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("deleted_at_utc");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("email");
+
                     b.Property<bool>("HasBeenModified")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -63,7 +68,16 @@ namespace MyApp.Domain.Model.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at_utc");
 
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("user_name");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AuthId")
+                        .IsUnique();
 
                     b.HasIndex("IsDeleted");
 

@@ -21,4 +21,7 @@
     <data name="user_not_found" xml:space="preserve">
         <value>User not found</value>
     </data>
+    <data name="user_already_deleted" xml:space="preserve">
+        <value>User already deleted</value>
+    </data>
 </root>

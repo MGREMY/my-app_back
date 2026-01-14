@@ -7,7 +7,6 @@ using Domain.Service.Contract.Service.UserService;
 using Domain.Service.Resource;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
-using static Domain.Service.ServiceConstant.Error;
 
 namespace Domain.Service.Service.UserService;
 
@@ -30,12 +29,9 @@ public class UserGetByIdService
         UserGetByIdServiceRequest query,
         CancellationToken ct = default)
     {
-        var exists = await _db.Users
-            .AnyAsync(user => user.Id == query.Id, ct);
-
-        if (!exists)
+        if (!await _db.Users.AnyAsync(user => user.Id == query.Id, ct))
         {
-            throw new DomainException(_localizer.GetString(user_not_found), 404);
+            throw new DomainException(_localizer.GetString(ServiceConstant.Error.user_not_found), 404);
         }
     }
 

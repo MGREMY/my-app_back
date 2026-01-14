@@ -4,7 +4,7 @@ using Domain.Service.Contract;
 using FastEndpoints;
 using Microsoft.AspNetCore.Diagnostics;
 
-namespace Host.Api.Extension;
+namespace Host.Api.Extension.Configuration;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 internal class ExceptionHandler;

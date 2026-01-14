@@ -8,7 +8,9 @@ namespace Domain.Model.Model;
 public class User : BaseEntity, ICreatedAt, ISoftDeletable
 {
     public string AuthId { get; set; } = string.Empty;
-    
+    public string UserName { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public bool HasBeenModified { get; set; }
@@ -32,5 +34,21 @@ internal sealed class UserEntityConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(200)
             .ValueGeneratedNever()
             .IsRequired();
+
+        builder
+            .Property(x => x.UserName)
+            .HasColumnName("user_name")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder
+            .Property(x => x.Email)
+            .HasColumnName("email")
+            .HasMaxLength(255)
+            .IsRequired();
+
+        builder
+            .HasIndex(x => x.AuthId)
+            .IsUnique();
     }
 }

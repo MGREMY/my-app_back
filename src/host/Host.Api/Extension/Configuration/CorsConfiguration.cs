@@ -1,4 +1,4 @@
-namespace Host.Api.Extension;
+namespace Host.Api.Extension.Configuration;
 
 public static class CorsConfiguration
 {
@@ -18,8 +18,10 @@ public static class CorsConfiguration
         {
             options
                 .WithOrigins(apiConfiguration.Origins.ToArray())
+                .AllowAnyMethod()
                 .AllowAnyHeader()
-                .AllowCredentials();
+                .AllowCredentials()
+                .WithExposedHeaders("Content-Disposition");
         });
 
         return app;

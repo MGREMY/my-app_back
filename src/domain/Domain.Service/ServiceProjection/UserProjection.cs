@@ -11,6 +11,8 @@ internal static class UserProjection
         {
             Id = user.Id,
             CreatedAtUtc = user.CreatedAtUtc,
+            UserName = user.UserName,
+            Email = user.Email,
         };
 
     internal static readonly Expression<Func<User, UserServiceResponse>> ToUserServiceResponse = user =>
@@ -18,5 +20,7 @@ internal static class UserProjection
         {
             Id = user.Id,
             CreatedAtUtc = user.CreatedAtUtc,
+            UserName = user.UserName,
+            Email = user.Email,
         };
 }

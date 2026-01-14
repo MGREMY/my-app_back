@@ -1,7 +1,7 @@
 using FastEndpoints.Swagger;
 using Scalar.AspNetCore;
 
-namespace Host.Api.Extension;
+namespace Host.Api.Extension.Configuration;
 
 public static class OpenApiConfiguration
 {

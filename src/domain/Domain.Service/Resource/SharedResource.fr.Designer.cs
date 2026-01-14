@@ -8,6 +8,9 @@
 //------------------------------------------------------------------------------
 
 namespace Domain.Service.Resource {
+    using System;
+    
+    
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "4.0.0.0")]
     [System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -45,6 +48,12 @@ namespace Domain.Service.Resource {
         public static string user_not_found {
             get {
                 return ResourceManager.GetString("user_not_found", resourceCulture);
+            }
+        }
+        
+        public static string user_already_deleted {
+            get {
+                return ResourceManager.GetString("user_already_deleted", resourceCulture);
             }
         }
     }
