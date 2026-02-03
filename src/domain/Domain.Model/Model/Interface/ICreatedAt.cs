@@ -5,8 +5,8 @@ namespace Domain.Model.Model.Interface;
 
 public interface ICreatedAt
 {
-    public DateTime CreatedAtUtc { get; set; }
-    public DateTime? UpdatedAtUtc { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
     public bool HasBeenModified { get; set; }
 }
 
@@ -41,14 +41,14 @@ public static class CreatedAtExtensions
 {
     public static T SetCreatedAtData<T>(this T entity) where T : class, ICreatedAt
     {
-        entity.CreatedAtUtc = DateTime.UtcNow;
+        entity.CreatedAtUtc = DateTimeOffset.UtcNow;
 
         return entity;
     }
 
     public static T SetUpdatedAtData<T>(this T entity) where T : class, ICreatedAt
     {
-        entity.UpdatedAtUtc = DateTime.UtcNow;
+        entity.UpdatedAtUtc = DateTimeOffset.UtcNow;
         entity.HasBeenModified = true;
 
         return entity;

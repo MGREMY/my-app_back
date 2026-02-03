@@ -11,11 +11,11 @@ public class User : BaseEntity, ICreatedAt, ISoftDeletable
     public string UserName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
 
-    public DateTime CreatedAtUtc { get; set; }
-    public DateTime? UpdatedAtUtc { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
     public bool HasBeenModified { get; set; }
     public bool IsDeleted { get; set; }
-    public DateTime? DeletedAtUtc { get; set; }
+    public DateTimeOffset? DeletedAtUtc { get; set; }
 }
 
 internal sealed class UserEntityConfiguration : IEntityTypeConfiguration<User>
