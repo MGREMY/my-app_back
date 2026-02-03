@@ -43,6 +43,6 @@ public class UserGetByIdService
             .AsNoTracking()
             .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
             .AsSplitQuery()
-            .FirstAsync(ct);
+            .FirstAsync(user => user.Id == query.Id, ct);
     }
 }
