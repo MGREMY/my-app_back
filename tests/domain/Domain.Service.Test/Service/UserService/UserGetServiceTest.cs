@@ -25,7 +25,7 @@ public class UserGetServiceTest
         _dbContextMock
             .Setup(x => x.Users)
             .ReturnsDbSet(TestData.Users());
-        var req = new PaginationServiceRequest(pageNumber, pageSize);
+        var req = new PaginationServiceRequest(pageNumber, pageSize, [], []);
 
         // Act
         var service = new UserGetService(_dbContextMock.Object);

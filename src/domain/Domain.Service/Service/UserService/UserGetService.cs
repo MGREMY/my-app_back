@@ -26,6 +26,7 @@ public class UserGetService
     {
         return _db.Users
             .AsNoTracking()
+            .ApplyFiltering(query.FilterServiceRequests)
             .ApplySorting(query.SortServiceRequest)
             .ApplyPagination<User, Guid>(query.PageNumber, query.PageSize)
             .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)

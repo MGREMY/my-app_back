@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Domain.Model.Model.Interface;
@@ -94,6 +95,108 @@ public static class QueryableExtension
             }
 
             return query;
+        }
+
+        public IQueryable<T> ApplyFiltering(params IEnumerable<FilterServiceRequest> filterRequests)
+        {
+            var parameter = Expression.Parameter(typeof(T), "x");
+            var expressionTreeResult = BuildExpressionTree(filterRequests, parameter);
+
+            if (expressionTreeResult is not null)
+            {
+                query = query.Where(Expression.Lambda<Func<T, bool>>(expressionTreeResult, parameter));
+            }
+
+            return query;
+
+            // ReSharper disable once VariableHidesOuterVariable
+            Expression? BuildExpressionTree(IEnumerable<FilterServiceRequest> filterRequests, ParameterExpression param)
+            {
+                Expression? expression = null;
+
+                foreach (var filterRequest in filterRequests)
+                {
+                    var expressionResult = BuildExpression(filterRequest, param);
+                    // ReSharper disable once VariableHidesOuterVariable
+                    var expressionTreeResult = BuildExpressionTree(filterRequest.Filters, param);
+
+                    if (expression is null)
+                    {
+                        expression = expressionResult;
+                    }
+                    else
+                    {
+                        expression = filterRequest.FilterLogic switch
+                        {
+                            FilterServiceRequest.Logic.And => Expression.AndAlso(expression, expressionResult),
+                            FilterServiceRequest.Logic.Or => Expression.OrElse(expression, expressionResult),
+                            _ => throw new ArgumentOutOfRangeException(),
+                        };
+                    }
+
+                    if (expressionTreeResult is not null)
+                    {
+                        expression = filterRequest.FilterLogic switch
+                        {
+                            FilterServiceRequest.Logic.And => Expression.AndAlso(expression, expressionTreeResult),
+                            FilterServiceRequest.Logic.Or => Expression.OrElse(expression, expressionTreeResult),
+                            _ => throw new ArgumentOutOfRangeException(),
+                        };
+                    }
+                }
+
+                return expression;
+
+                Expression BuildExpression(FilterServiceRequest filterRequest, ParameterExpression param)
+                {
+                    var property = Expression.Property(param, filterRequest.PropertyName.Dehumanize());
+                    var targetType = property.Type;
+                    var typedValue = TypeDescriptor.GetConverter(targetType)
+                        .ConvertFromInvariantString(filterRequest.Value);
+                    var constant = Expression.Constant(typedValue, targetType);
+
+                    var toLowerMethod = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!;
+
+                    return filterRequest.FilterOperator switch
+                    {
+                        FilterServiceRequest.Operator.Equal => Expression.Equal(
+                            property,
+                            constant),
+                        FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(
+                            property,
+                            constant),
+                        FilterServiceRequest.Operator.Contains => Expression.Call(
+                            Expression.Call(property, toLowerMethod),
+                            typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!,
+                            Expression.Call(constant, toLowerMethod)),
+                        FilterServiceRequest.Operator.NotContains => Expression.Not(Expression.Call(
+                            Expression.Call(property, toLowerMethod),
+                            typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!,
+                            Expression.Call(constant, toLowerMethod))),
+                        FilterServiceRequest.Operator.StartWith => Expression.Call(
+                            Expression.Call(property, toLowerMethod),
+                            typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!,
+                            Expression.Call(constant, toLowerMethod)),
+                        FilterServiceRequest.Operator.EndWith => Expression.Call(
+                            Expression.Call(property, toLowerMethod),
+                            typeof(string).GetMethod(nameof(string.EndsWith), [typeof(string)])!,
+                            Expression.Call(constant, toLowerMethod)),
+                        FilterServiceRequest.Operator.GreaterThan => Expression.GreaterThan(
+                            property,
+                            constant),
+                        FilterServiceRequest.Operator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(
+                            property,
+                            constant),
+                        FilterServiceRequest.Operator.LessThan => Expression.LessThan(
+                            property,
+                            constant),
+                        FilterServiceRequest.Operator.LessThanOrEqual => Expression.LessThanOrEqual(
+                            property,
+                            constant),
+                        _ => throw new ArgumentOutOfRangeException(),
+                    };
+                }
+            }
         }
     }
 }
