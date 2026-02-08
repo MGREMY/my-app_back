@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Host.Api.Endpoint.User;
 
-public class GetById_V1 : Ep.Req<UserGetByIdRequest>.Res<Results<Ok<UserResponse>, NotFound>>
+public sealed class GetById_V1 : Ep.Req<UserGetByIdRequest>.Res<Results<Ok<UserResponse>, NotFound>>
 {
     private readonly IUserGetByIdService _service;
 

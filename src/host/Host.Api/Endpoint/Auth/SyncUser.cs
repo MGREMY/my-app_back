@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Host.Api.Endpoint.Auth;
 
-public class SyncUser_V1 : Ep.NoReq.Res<NoContent>
+public sealed class SyncUser_V1 : Ep.NoReq.Res<NoContent>
 {
     private readonly IAuthSyncUserService _service;
 

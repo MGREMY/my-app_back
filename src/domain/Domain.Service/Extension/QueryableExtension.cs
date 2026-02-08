@@ -149,12 +149,22 @@ public static class QueryableExtension
 
                 Expression BuildExpression(FilterServiceRequest filterRequest, ParameterExpression param)
                 {
+                    object? typedValue;
+                    
                     var property = Expression.Property(param, filterRequest.PropertyName.Dehumanize());
                     var targetType = property.Type;
-                    var typedValue = TypeDescriptor.GetConverter(targetType)
-                        .ConvertFromInvariantString(filterRequest.Value);
-                    var constant = Expression.Constant(typedValue, targetType);
 
+                    try
+                    {
+                        typedValue = TypeDescriptor.GetConverter(targetType)
+                            .ConvertFromInvariantString(filterRequest.Value);
+                    }
+                    catch
+                    {
+                        typedValue = Activator.CreateInstance(targetType);
+                    }
+                    
+                    var constant = Expression.Constant(typedValue, targetType);
                     var toLowerMethod = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!;
 
                     return filterRequest.FilterOperator switch

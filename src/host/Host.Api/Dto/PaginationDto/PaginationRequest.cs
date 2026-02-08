@@ -109,7 +109,7 @@ public record PaginationRequest(
             
             RuleFor(x => x.FilterRequests)
                 .NotEmpty()
-                .When(x => x.SortRequests is not null);
+                .When(x => x.FilterRequests is not null);
         }
     }
 }

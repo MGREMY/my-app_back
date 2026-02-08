@@ -1,6 +1,6 @@
 namespace Domain.Service.Contract.Dto.UserDto;
 
-public class MinimalUserServiceResponse
+public sealed class MinimalUserServiceResponse
 {
     public required Guid Id { get; set; }
     public required DateTimeOffset CreatedAtUtc { get; set; }

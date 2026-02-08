@@ -1,6 +1,6 @@
 namespace Domain.Service.Contract;
 
-public class DomainException : Exception
+public sealed class DomainException : Exception
 {
     public int StatusCode { get; set; }
 

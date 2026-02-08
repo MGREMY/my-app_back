@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Host.Api.Endpoint.User;
 
-public class Get_V1 : Ep.Req<PaginationRequest>.Res<Ok<PaginationResponse<MinimalUserResponse>>>
+public sealed class Get_V1 : Ep.Req<PaginationRequest>.Res<Ok<PaginationResponse<MinimalUserResponse>>>
 {
     private readonly IUserGetService _service;
 

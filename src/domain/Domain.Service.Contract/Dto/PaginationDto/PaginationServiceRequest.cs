@@ -1,6 +1,6 @@
 namespace Domain.Service.Contract.Dto.PaginationDto;
 
-public record FilterServiceRequest(
+public sealed record FilterServiceRequest(
     string PropertyName,
     FilterServiceRequest.Operator FilterOperator,
     string Value,
@@ -28,9 +28,9 @@ public record FilterServiceRequest(
     }
 }
 
-public record SortServiceRequest(string PropertyName, bool IsDescending);
+public sealed record SortServiceRequest(string PropertyName, bool IsDescending);
 
-public record PaginationServiceRequest(
+public sealed record PaginationServiceRequest(
     int PageNumber,
     int PageSize,
     IEnumerable<SortServiceRequest> SortServiceRequest,

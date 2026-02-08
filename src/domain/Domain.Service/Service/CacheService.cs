@@ -12,7 +12,7 @@ public interface ICacheService
     Task DeleteAsync(string key, CancellationToken ct = default);
 }
 
-public class CacheService : ICacheService
+public sealed class CacheService : ICacheService
 {
     private readonly IDistributedCache _cache;
 

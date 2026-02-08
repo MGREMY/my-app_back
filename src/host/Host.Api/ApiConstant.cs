@@ -1,6 +1,6 @@
 namespace Host.Api;
 
-public class ApiConstant
+public static class ApiConstant
 {
     public static class AuthorizationPolicies
     {

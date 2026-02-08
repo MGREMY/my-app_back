@@ -10,7 +10,7 @@ using Microsoft.Extensions.Localization;
 
 namespace Domain.Service.Service.UserService;
 
-public class UserGetByIdService
+public sealed class UserGetByIdService
     : AbstractServiceAsync<UserGetByIdServiceRequest, UserServiceResponse>,
         IUserGetByIdService
 {

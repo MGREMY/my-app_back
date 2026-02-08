@@ -10,7 +10,7 @@ using Microsoft.Extensions.Localization;
 
 namespace Domain.Service.Service.UserService;
 
-public class UserDeleteService
+public sealed class UserDeleteService
     : AbstractServiceAsync<UserDeleteServiceRequest>,
         IUserDeleteService
 {

@@ -9,7 +9,7 @@ public class PaginationServiceResponse
     public required int TotalPages { get; set; }
 }
 
-public class PaginationServiceResponse<T> : PaginationServiceResponse
+public sealed class PaginationServiceResponse<T> : PaginationServiceResponse
 {
     public required IEnumerable<T> Data { get; set; }
 }

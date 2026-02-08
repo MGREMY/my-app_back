@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Host.Api.Endpoint.User;
 
-public class Delete_V1 : Ep.Req<UserDeleteRequest>.Res<Results<NoContent, NotFound>>
+public sealed class Delete_V1 : Ep.Req<UserDeleteRequest>.Res<Results<NoContent, NotFound>>
 {
     private readonly IUserDeleteService _service;
 

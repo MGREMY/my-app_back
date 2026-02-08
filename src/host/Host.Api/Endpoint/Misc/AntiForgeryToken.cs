@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Antiforgery;
 
 namespace Host.Api.Endpoint.Misc;
 
-public class AntiForgeryToken_V1 : Ep.NoReq.NoRes
+public sealed class AntiForgeryToken_V1 : Ep.NoReq.NoRes
 {
     private readonly IAntiforgery _antiForgery;
 

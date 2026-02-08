@@ -11,7 +11,7 @@ using Microsoft.Extensions.Localization;
 
 namespace Domain.Service.Service.AuthService;
 
-public class AuthSyncUserService
+public sealed class AuthSyncUserService
     : AbstractServiceAsync<AuthSyncUserServiceRequest>, IAuthSyncUserService
 {
     private readonly AppDbContext _db;
