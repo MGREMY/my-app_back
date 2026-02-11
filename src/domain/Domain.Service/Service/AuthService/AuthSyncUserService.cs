@@ -2,6 +2,7 @@ using Core.Service;
 using Domain.Model;
 using Domain.Model.Model;
 using Domain.Model.Model.Interface;
+using Domain.Service.CachedDto;
 using Domain.Service.Contract;
 using Domain.Service.Contract.Dto.AuthDto.AuthSyncUserDto;
 using Domain.Service.Contract.Service.AuthService;
@@ -34,7 +35,7 @@ public sealed class AuthSyncUserService
     {
         var cacheKey = $"{ServiceConstant.Auth.SyncCacheKey}:{query.AuthId}";
 
-        if (await _cacheService.GetAsync<User>(cacheKey, ct) is { } cacheUser)
+        if (await _cacheService.GetAsync<CachedUser>(cacheKey, ct) is { } cacheUser)
         {
             if (!cacheUser.IsDeleted)
             {
@@ -63,7 +64,18 @@ public sealed class AuthSyncUserService
             await _db.SaveChangesAsync(ct);
         }
 
-        await _cacheService.SaveAsync(cacheKey, user, ct);
+        await _cacheService.SaveAsync(cacheKey, new CachedUser
+        {
+            Id = user.Id,
+            AuthId = user.AuthId,
+            UserName = user.UserName,
+            Email = user.Email,
+            CreatedAtUtc = user.CreatedAtUtc,
+            UpdatedAtUtc =  user.UpdatedAtUtc,
+            HasBeenModified = user.HasBeenModified,
+            IsDeleted = user.IsDeleted,
+            DeletedAtUtc = user.DeletedAtUtc,
+        }, ct);
 
         if (user.IsDeleted)
         {
