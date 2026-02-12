@@ -11,22 +11,19 @@ namespace Domain.Service.Extension;
 [ExcludeFromCodeCoverage]
 public static class QueryableExtension
 {
-    extension<T, TKey>(IQueryable<T> query) where T : class, IBaseEntity<TKey>
+    extension<T>(IQueryable<T> query)
     {
+        public IQueryable<T> ProcessPaginationRequest(PaginationServiceRequest request)
+        {
+            return query
+                .ApplyFiltering(request.FilterServiceRequests)
+                .ApplySorting(request.SortServiceRequest)
+                .ApplyPagination(request.PageNumber, request.PageSize);
+        }
+
         public IQueryable<T> ApplyPagination(
             int pageNumber,
             int pageSize)
-        {
-            return query.ApplyPagination(pageNumber, pageSize, x => x.Id);
-        }
-    }
-
-    extension<T>(IQueryable<T> query)
-    {
-        public IQueryable<T> ApplyPagination<TKey>(
-            int pageNumber,
-            int pageSize,
-            Expression<Func<T, TKey>> keySelector)
         {
             return query
                 .Skip((pageNumber - 1) * pageSize)

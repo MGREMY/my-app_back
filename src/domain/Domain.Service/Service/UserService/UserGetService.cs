@@ -26,9 +26,7 @@ public sealed class UserGetService
     {
         return _db.Users
             .AsNoTracking()
-            .ApplyFiltering(query.FilterServiceRequests)
-            .ApplySorting(query.SortServiceRequest)
-            .ApplyPagination<User, Guid>(query.PageNumber, query.PageSize)
+            .ProcessPaginationRequest(query)
             .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)
             .ToPagedResponseAsync(query.PageNumber, query.PageSize, _db.Users.CountAsync, ct);
     }
