@@ -1,4 +1,3 @@
-using System.Net.Mime;
 using Domain.Model;
 using Domain.Model.Extension;
 using FastEndpoints;

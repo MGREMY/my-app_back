@@ -23,7 +23,7 @@ internal static class LogConfiguration
                     outputTemplate: outputTemplate
                 )
                 .WriteTo.File(
-                    "logs/log.txt",
+                    "logs/log.log",
                     outputTemplate: outputTemplate,
                     rollOnFileSizeLimit: true,
                     rollingInterval: RollingInterval.Day,
