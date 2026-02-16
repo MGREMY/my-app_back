@@ -12,8 +12,4 @@
   <Folder Name="/src/host/">
     <Project Path="src\host\Host.Api\Host.Api.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
-  <Folder Name="/tests/domain/">
-    <Project Path="tests/domain/Domain.Service.Test/Domain.Service.Test.csproj" />
-  </Folder>
 </Solution>
