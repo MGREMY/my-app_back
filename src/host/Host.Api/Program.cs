@@ -2,6 +2,7 @@ using System.Net.Mime;
 using Domain.Model;
 using Domain.Model.Extension;
 using FastEndpoints;
+using Host.Api;
 using Host.Api.Extension.Configuration;
 using ServiceDefaults;
 
@@ -21,7 +22,10 @@ builder
 
 builder.Services
     .AddCors()
-    .AddFastEndpoints()
+    .AddFastEndpoints(options =>
+    {
+        options.SourceGeneratorDiscoveredTypes = DiscoveredTypes.All;
+    })
     .AddAntiforgery(options =>
     {
         options.HeaderName = "X-XSRF-TOKEN";

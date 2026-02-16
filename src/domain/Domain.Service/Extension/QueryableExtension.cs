@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using Domain.Model.Model.Interface;
 using Domain.Service.Contract.Dto.PaginationDto;
 using Humanizer;
 using Microsoft.EntityFrameworkCore;
@@ -19,15 +18,6 @@ public static class QueryableExtension
                 .ApplyFiltering(request.FilterServiceRequests)
                 .ApplySorting(request.SortServiceRequest)
                 .ApplyPagination(request.PageNumber, request.PageSize);
-        }
-
-        public IQueryable<T> ApplyPagination(
-            int pageNumber,
-            int pageSize)
-        {
-            return query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize);
         }
 
         public PaginationServiceResponse<T> ToPagedResponse(
@@ -67,7 +57,16 @@ public static class QueryableExtension
             };
         }
 
-        public IQueryable<T> ApplySorting(params IEnumerable<SortServiceRequest> sortRequests)
+        private IQueryable<T> ApplyPagination(
+            int pageNumber,
+            int pageSize)
+        {
+            return query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize);
+        }
+
+        private IQueryable<T> ApplySorting(params IEnumerable<SortServiceRequest> sortRequests)
         {
             var hasFirstSort = false;
 
@@ -94,7 +93,7 @@ public static class QueryableExtension
             return query;
         }
 
-        public IQueryable<T> ApplyFiltering(params IEnumerable<FilterServiceRequest> filterRequests)
+        private IQueryable<T> ApplyFiltering(params IEnumerable<FilterServiceRequest> filterRequests)
         {
             var parameter = Expression.Parameter(typeof(T), "x");
             var expressionTreeResult = BuildExpressionTree(filterRequests, parameter);
