@@ -209,7 +209,7 @@ public static class QueryableExtensions
 
             if (nestedCombined is not null)
             {
-                comparision = CombineExpressions(comparision, nestedCombined, request.FilterLogic);
+                comparision = CombineExpressions(comparision, nestedCombined, request.Filters.First().FilterLogic);
             }
 
             return comparision;
