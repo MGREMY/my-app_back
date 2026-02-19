@@ -1,15 +1,16 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src\AppHost\AppHost.csproj" />
-    <Project Path="src\Core\Core.csproj" />
-    <Project Path="src\ServiceDefaults\ServiceDefaults.csproj" />
+    <Project Path="src/AppHost/AppHost.csproj" />
+    <Project Path="src/Core/Core.csproj" />
+    <Project Path="src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/src/domain/">
-    <Project Path="src\domain\Domain.Model\Domain.Model.csproj" />
-    <Project Path="src\domain\Domain.Service.Contract\Domain.Service.Contract.csproj" />
-    <Project Path="src\domain\Domain.Service\Domain.Service.csproj" />
+    <Project Path="src/domain/Domain.Service.Generator/Domain.Service.Generator.csproj" />
+    <Project Path="src/domain/Domain.Model/Domain.Model.csproj" />
+    <Project Path="src/domain/Domain.Service.Contract/Domain.Service.Contract.csproj" />
+    <Project Path="src/domain/Domain.Service/Domain.Service.csproj" />
   </Folder>
   <Folder Name="/src/host/">
-    <Project Path="src\host\Host.Api\Host.Api.csproj" />
+    <Project Path="src/host/Host.Api/Host.Api.csproj" />
   </Folder>
 </Solution>

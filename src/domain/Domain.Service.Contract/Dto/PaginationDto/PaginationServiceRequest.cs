@@ -33,5 +33,5 @@ public sealed record SortServiceRequest(string PropertyName, bool IsDescending);
 public sealed record PaginationServiceRequest(
     int PageNumber,
     int PageSize,
-    IEnumerable<SortServiceRequest> SortServiceRequest,
+    IEnumerable<SortServiceRequest> SortServiceRequests,
     IEnumerable<FilterServiceRequest> FilterServiceRequests);

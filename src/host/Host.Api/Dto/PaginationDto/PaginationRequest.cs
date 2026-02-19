@@ -90,7 +90,7 @@ public record PaginationRequest(
         return new PaginationServiceRequest(
             PageNumber,
             PageSize,
-            SortServiceRequest: SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
+            SortServiceRequests: SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
             FilterServiceRequests: FilterRequests?.Select(x => x.ToServiceRequest()) ?? []);
     }
 

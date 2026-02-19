@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Service.Service.UserService;
 
+[PaginationHandlerFor<User>]
 public sealed class UserGetService
     : AbstractServiceAsync<PaginationServiceRequest, PaginationServiceResponse<MinimalUserServiceResponse>>,
         IUserGetService
