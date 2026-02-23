@@ -3,15 +3,16 @@ name: PR check
 on:
   pull_request:
 
+permissions:
+  contents: read
+  packages: write
+
 concurrency: ${{ github.ref }}
 
 jobs:
   main:
     name: Build & test the code
     runs-on: ubuntu-latest
-
-    permissions:
-      pull-requests: write
 
     steps:
       - name: Checkout
