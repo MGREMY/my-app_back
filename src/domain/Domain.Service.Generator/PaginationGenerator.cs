@@ -95,17 +95,17 @@ namespace {{@namespace}};
 
 public static class QueryableExtensions
 {
-    public static IQueryable<t1> ProcessPaginationRequest(this IQueryable<t1> query, PaginationServiceRequest request)
+    public static IQueryable<t1> ProcessPaginationRequest(this IQueryable<t1> query, PaginationServiceRequest request, out Func<CancellationToken, Task<int>> countAsync)
     {
         return query
-            .ApplyFiltering(request.FilterServiceRequests)
+            .ApplyFiltering(request.FilterServiceRequests, out countAsync)
             .ApplySorting(request.SortServiceRequests)
             .ApplyPagination(request.PageNumber, request.PageSize);
     }
 
     private static IQueryable<t1> ApplyPagination(this IQueryable<t1> query, int pageNumber, int pageSize) => query.Skip((pageNumber - 1) * pageSize).Take(pageSize);
 
-    private static IQueryable<t1> ApplySorting(this IQueryable<t1> query, params IEnumerable<SortServiceRequest> requests)
+    private static IQueryable<t1> ApplySorting(this IQueryable<t1> query, IEnumerable<SortServiceRequest> requests)
     {
         bool hasFirstSort = false;
 
@@ -154,7 +154,7 @@ public static class QueryableExtensions
         return query;
     }
 
-    private static IQueryable<t1> ApplyFiltering(this IQueryable<t1> query, params IEnumerable<FilterServiceRequest> requests)
+    private static IQueryable<t1> ApplyFiltering(this IQueryable<t1> query, IEnumerable<FilterServiceRequest> requests, out Func<CancellationToken, Task<int>> countAsync)
     {
         var param = Expression.Parameter(typeof(t1), "x");
         Expression? combined = null;
@@ -168,9 +168,13 @@ public static class QueryableExtensions
                 : CombineExpressions(combined, filterExpression, request.FilterLogic);
         }
 
-        return combined is null
+        query = combined is null
             ? query
             : query.Where(Expression.Lambda<Func<t1, bool>>(combined, param));
+            
+        countAsync = query.CountAsync;
+
+        return query;
 
         Expression BuildFilterExpression(FilterServiceRequest request, ParameterExpression param)
         {

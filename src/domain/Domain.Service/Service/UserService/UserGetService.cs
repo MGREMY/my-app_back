@@ -27,8 +27,8 @@ public sealed class UserGetService
     {
         return _db.Users
             .AsNoTracking()
-            .ProcessPaginationRequest(query)
+            .ProcessPaginationRequest(query, out var countAsync)
             .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)
-            .ToPagedResponseAsync(query.PageNumber, query.PageSize, _db.Users.CountAsync, ct);
+            .ToPagedResponseAsync(query.PageNumber, query.PageSize, countAsync, ct);
     }
 }

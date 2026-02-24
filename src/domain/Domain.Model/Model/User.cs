@@ -7,9 +7,9 @@ namespace Domain.Model.Model;
 [EntityTypeConfiguration<UserEntityConfiguration, User>]
 public class User : BaseEntity, ICreatedAt, ISoftDeletable
 {
-    public string AuthId { get; set; } = string.Empty;
-    public string UserName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    public required string AuthId { get; set; }
+    public required string UserName { get; set; }
+    public required string Email { get; set; }
 
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset? UpdatedAtUtc { get; set; }
