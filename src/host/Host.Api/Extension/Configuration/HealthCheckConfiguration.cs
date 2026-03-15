@@ -2,7 +2,8 @@ namespace Host.Api.Extension.Configuration;
 
 public static class HealthCheckConfiguration
 {
-    public static TBuilder AddApiHealthChecks<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    public static TBuilder AddAppHealthChecks<TBuilder>(this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
     {
         var postgresConnectionString = builder.Configuration.GetConnectionString("postgres");
         var redisConnectionString = builder.Configuration.GetConnectionString("redis");

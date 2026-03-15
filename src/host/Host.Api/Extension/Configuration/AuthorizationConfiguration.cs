@@ -2,7 +2,7 @@ namespace Host.Api.Extension.Configuration;
 
 public static class AuthorizationConfiguration
 {
-    public static TBuilder AddApiAuthorization<TBuilder>(this TBuilder builder)
+    public static TBuilder AddAppAuthorization<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
         builder.Services
@@ -13,5 +13,12 @@ public static class AuthorizationConfiguration
             });
 
         return builder;
+    }
+
+    public static WebApplication UseAppAuthorization(this WebApplication app)
+    {
+        app.UseAuthorization();
+
+        return app;
     }
 }

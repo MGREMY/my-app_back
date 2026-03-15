@@ -11,7 +11,7 @@ public static class AuthenticationConfiguration
         public string Audience { get; set; } = string.Empty;
     }
 
-    public static TBuilder AddApiAuthentication<TBuilder>(
+    public static TBuilder AddAppAuthentication<TBuilder>(
         this TBuilder builder,
         Action<ApiAuthenticationOptions> configure)
         where TBuilder : IHostApplicationBuilder
@@ -38,5 +38,12 @@ public static class AuthenticationConfiguration
             });
 
         return builder;
+    }
+
+    public static WebApplication UseAppAuthentication(this WebApplication app)
+    {
+        app.UseAuthentication();
+
+        return app;
     }
 }

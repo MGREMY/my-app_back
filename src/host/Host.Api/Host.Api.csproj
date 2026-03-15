@@ -4,34 +4,28 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <NoDefaultLaunchSettingsFile>True</NoDefaultLaunchSettingsFile>
         <AssemblyName>Host.Api</AssemblyName>
         <RootNamespace>Host.Api</RootNamespace>
+        <Company>Host.Api</Company>
+        <Product>Host.Api</Product>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0"/>
-        <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0"/>
-        <PackageReference Include="AspNetCore.HealthChecks.System" Version="9.0.0"/>
-        <PackageReference Include="FastEndpoints" Version="7.1.1" />
-        <PackageReference Include="FastEndpoints.Generator" Version="7.1.1" />
-        <PackageReference Include="FastEndpoints.Security" Version="7.1.1" />
-        <PackageReference Include="FastEndpoints.Swagger" Version="7.1.1" />
-        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2" />
-        <PackageReference Include="Scalar.AspNetCore" Version="2.11.10" />
-        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
+      <ProjectReference Include="..\..\domain\Domain.Service\Domain.Service.csproj" />
+      <ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\domain\Domain.Service\Domain.Service.csproj" />
-        <ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj" />
+      <PackageReference Include="Asp.Versioning.Http" Version="8.1.1" />
+      <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.1" />
+      <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+      <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
+      <PackageReference Include="AspNetCore.HealthChecks.System" Version="9.0.0" />
+      <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+      <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
+      <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+      <PackageReference Include="Scalar.AspNetCore" Version="2.13.8" />
     </ItemGroup>
 
 </Project>

@@ -7,7 +7,15 @@ public static class CorsConfiguration
         public IEnumerable<string> Origins { get; set; } = [];
     }
 
-    public static WebApplication UseApiCors(
+    public static TBuilder AddAppCors<TBuilder>(this TBuilder builder)
+        where TBuilder : IHostApplicationBuilder
+    {
+        builder.Services.AddCors();
+
+        return builder;
+    }
+
+    public static WebApplication UseAppCors(
         this WebApplication app,
         Action<ApiCorsConfiguration> configure)
     {

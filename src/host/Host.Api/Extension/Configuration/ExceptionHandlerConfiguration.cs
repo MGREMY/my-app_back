@@ -1,7 +1,8 @@
 using System.Net.Mime;
 using System.Text.Json;
 using Domain.Service.Contract;
-using FastEndpoints;
+using FluentValidation;
+using Host.Api.Dto;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace Host.Api.Extension.Configuration;
@@ -41,8 +42,8 @@ public static partial class ExceptionHandlerConfiguration
     /// <param name="logger">an optional logger instance</param>
     /// <param name="logStructuredException">set to true if you'd like to log the error in a structured manner</param>
     /// <param name="useGenericReason">set to true if you don't want to expose the actual exception reason in the JSON response sent to the client</param>
-    public static IApplicationBuilder UseDomainExceptionHandler(
-        this IApplicationBuilder app,
+    public static WebApplication UseAppDomainExceptionHandler(
+        this WebApplication app,
         ILogger? logger = null,
         bool logStructuredException = false,
         bool useGenericReason = false)
@@ -55,46 +56,60 @@ public static partial class ExceptionHandlerConfiguration
 
                 if (exHandlerFeature is not null)
                 {
-                    if (exHandlerFeature.Error is DomainException domainException)
+                    switch (exHandlerFeature.Error)
                     {
-                        ctx.Response.StatusCode = domainException.StatusCode;
-                        await WriteToResponse(new ErrorResponse
+                        case ValidationException validationException:
+                            ctx.Response.StatusCode = 400;
+                            await WriteToResponse(new ErrorResponse
+                            {
+                                StatusCode = 400,
+                                Errors = validationException.Errors.GroupBy(x => x.PropertyName).ToDictionary(
+                                    x => x.Key,
+                                    x => x.Select(y => y.ErrorMessage).ToArray()
+                                ),
+                            });
+                            break;
+                        case DomainException domainException:
+                            ctx.Response.StatusCode = domainException.StatusCode;
+                            await WriteToResponse(new ErrorResponse
+                            {
+                                StatusCode = domainException.StatusCode,
+                                Message = domainException.Message,
+                            });
+                            break;
+                        default:
                         {
-                            StatusCode = domainException.StatusCode,
-                            Message = domainException.Message,
-                        });
-                    }
-                    else
-                    {
-                        logger ??= ctx.Resolve<ILogger<ExceptionHandler>>();
-                        var reason = exHandlerFeature.Error.Message;
+                            logger ??= ctx.RequestServices.GetRequiredService<ILogger<ExceptionHandler>>();
+                            var reason = exHandlerFeature.Error.Message;
 
-                        if (logStructuredException)
-                        {
-                            logger.LogStructuredException(
-                                exHandlerFeature.Error,
-                                exHandlerFeature.Error.GetType().Name,
-                                exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
-                                reason);
-                        }
-                        else
-                        {
-                            //this branch is only meant for unstructured textual logging
-                            logger.LogUnStructuredException(
-                                exHandlerFeature.Error.GetType().Name,
-                                exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
-                                reason,
-                                exHandlerFeature.Error.StackTrace);
-                        }
+                            if (logStructuredException)
+                            {
+                                logger.LogStructuredException(
+                                    exHandlerFeature.Error,
+                                    exHandlerFeature.Error.GetType().Name,
+                                    exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
+                                    reason);
+                            }
+                            else
+                            {
+                                //this branch is only meant for unstructured textual logging
+                                logger.LogUnStructuredException(
+                                    exHandlerFeature.Error.GetType().Name,
+                                    exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
+                                    reason,
+                                    exHandlerFeature.Error.StackTrace);
+                            }
 
-                        ctx.Response.StatusCode = 500;
-                        await WriteToResponse(new InternalErrorResponse
-                        {
-                            Status = "Internal Server Error!",
-                            Code = ctx.Response.StatusCode,
-                            Reason = useGenericReason ? "An unexpected error has occurred." : reason,
-                            Note = "See application log for stack trace."
-                        });
+                            ctx.Response.StatusCode = 500;
+                            await WriteToResponse(new InternalErrorResponse
+                            {
+                                Status = "Internal Server Error!",
+                                Code = ctx.Response.StatusCode,
+                                Reason = useGenericReason ? "An unexpected error has occurred." : reason,
+                                Note = "See application log for stack trace."
+                            });
+                            break;
+                        }
                     }
 
                     Task WriteToResponse<TValue>(TValue value)

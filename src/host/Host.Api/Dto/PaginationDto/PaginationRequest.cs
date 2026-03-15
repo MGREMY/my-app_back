@@ -1,5 +1,6 @@
+using System.Reflection;
+using System.Text.Json;
 using Domain.Service.Contract.Dto.PaginationDto;
-using FastEndpoints;
 using FluentValidation;
 
 namespace Host.Api.Dto.PaginationDto;
@@ -40,24 +41,6 @@ public record FilterRequest(
             (FilterServiceRequest.Logic)FilterLogic,
             Filters?.Select(x => x.ToServiceRequest()) ?? []);
     }
-
-    public class Validator : Validator<FilterRequest>
-    {
-        public Validator()
-        {
-            RuleFor(x => x.PropertyName)
-                .NotEmpty();
-            RuleFor(x => x.FilterOperator)
-                .NotNull();
-            RuleFor(x => x.Value)
-                .NotNull();
-            RuleFor(x => x.FilterLogic)
-                .NotNull();
-            RuleFor(x => x.Filters)
-                .NotEmpty()
-                .When(x => x.Filters is not null);
-        }
-    }
 }
 
 public record SortRequest(string PropertyName, bool IsDescending)
@@ -66,17 +49,6 @@ public record SortRequest(string PropertyName, bool IsDescending)
     {
         return new SortServiceRequest(PropertyName, IsDescending);
     }
-
-    public class Validator : Validator<SortRequest>
-    {
-        public Validator()
-        {
-            RuleFor(x => x.PropertyName)
-                .NotEmpty();
-            RuleFor(x => x.IsDescending)
-                .NotNull();
-        }
-    }
 }
 
 public record PaginationRequest(
@@ -84,6 +56,7 @@ public record PaginationRequest(
     int PageSize = 15,
     IEnumerable<SortRequest>? SortRequests = null,
     IEnumerable<FilterRequest>? FilterRequests = null)
+    : IBindableFromHttpContext<PaginationRequest>
 {
     public PaginationServiceRequest ToServiceRequest()
     {
@@ -94,7 +67,29 @@ public record PaginationRequest(
             FilterServiceRequests: FilterRequests?.Select(x => x.ToServiceRequest()) ?? []);
     }
 
-    public class Validator : Validator<PaginationRequest>
+    public static ValueTask<PaginationRequest?> BindAsync(HttpContext context, ParameterInfo _)
+    {
+        var pageNumber = int.TryParse(context.Request.Query["pageNumber"].FirstOrDefault(), out var pn) ? pn : 1;
+        var pageSize = int.TryParse(context.Request.Query["pageSize"].FirstOrDefault(), out var ps) ? ps : 15;
+        var sortRequestJson = context.Request.Query["sortRequests"].FirstOrDefault();
+        var filterRequestJson = context.Request.Query["filterRequests"].FirstOrDefault();
+
+        var sortRequest = string.IsNullOrWhiteSpace(sortRequestJson)
+            ? null
+            : JsonSerializer.Deserialize<SortRequest[]>(sortRequestJson, JsonSerializerOptions.Web);
+        var filterRequest = string.IsNullOrWhiteSpace(filterRequestJson)
+            ? null
+            : JsonSerializer.Deserialize<FilterRequest[]>(filterRequestJson, JsonSerializerOptions.Web);
+
+        return ValueTask.FromResult<PaginationRequest?>(new PaginationRequest(
+            pageNumber,
+            pageSize,
+            sortRequest,
+            filterRequest
+        ));
+    }
+
+    public class Validator : AbstractValidator<PaginationRequest>
     {
         public Validator()
         {
@@ -104,12 +99,29 @@ public record PaginationRequest(
                 .GreaterThan(0);
 
             RuleFor(x => x.SortRequests)
-                .NotEmpty()
-                .When(x => x.SortRequests is not null);
-            
+                .ForEach(sortRequests => sortRequests.ChildRules(sort =>
+                {
+                    sort.RuleFor(x => x.PropertyName)
+                        .NotEmpty();
+                    sort.RuleFor(x => x.IsDescending)
+                        .NotNull();
+                }))
+                .When(x => x.SortRequests?.Any() ?? false);
+
             RuleFor(x => x.FilterRequests)
                 .NotEmpty()
-                .When(x => x.FilterRequests is not null);
+                .ForEach(filterRequests => filterRequests.ChildRules(filter =>
+                {
+                    filter.RuleFor(x => x.PropertyName)
+                        .NotEmpty();
+                    filter.RuleFor(x => x.FilterOperator)
+                        .NotNull();
+                    filter.RuleFor(x => x.Value)
+                        .NotNull();
+                    filter.RuleFor(x => x.FilterLogic)
+                        .NotNull();
+                }))
+                .When(x => x.FilterRequests?.Any() ?? false);
         }
     }
 }
