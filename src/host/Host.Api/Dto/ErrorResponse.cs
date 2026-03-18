@@ -1,5 +1,3 @@
-using FluentValidation.Results;
-
 namespace Host.Api.Dto;
 
 public class ErrorResponse

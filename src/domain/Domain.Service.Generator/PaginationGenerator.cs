@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using Domain.Service.Generator.Extensions;
+using Domain.Service.Generator.Parser;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -73,9 +74,10 @@ public sealed class PaginationGenerator
                     var @namespace = target.Class.ContainingNamespace.ToDisplayString();
                     var @className = target.Class.Name;
                     var @entityFullName = target.Entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                    var @entityProperties = Enumerable.GroupBy([.._entityMembers, .._entityInterfacesMembers], x => x.Name)
-                            .Select(x => x.First())
-                            .ToArray();
+                    var @entityProperties = Enumerable
+                        .GroupBy([.._entityMembers, .._entityInterfacesMembers], x => x.Name)
+                        .Select(x => x.First())
+                        .ToArray();
 
 #pragma warning disable format // @formatter:off
                     var source =
@@ -252,7 +254,8 @@ public static class QueryableExtensions
         /// <returns></returns>
         private string SwitchCaseSelectorForEntityProperty(IPropertySymbol propertySymbol)
         {
-            return string.Join("\n", GetAllFormatForString(propertySymbol.Name).Distinct().Select(x => $"case \"{x}\":"));
+            return string.Join("\n",
+                GetAllFormatForString(propertySymbol.Name).Distinct().Select(x => $"case \"{x}\":"));
         }
 
         /// <summary>
@@ -282,173 +285,14 @@ public static class QueryableExtensions
 
             return typeName switch
             {
-                nameof(Guid) => BuildValueParserAndComparerForGuidProperty(propertySymbol, isNullable),
-                nameof(DateTime) => BuildValueParserAndComparerForDateTimeProperty(propertySymbol, isNullable),
-                nameof(DateTimeOffset) => BuildValueParserAndComparerForDateTimeOffsetProperty(propertySymbol, isNullable),
-                nameof(Int32) => BuildValueParserAndComparerForInt32Property(propertySymbol, isNullable),
-                nameof(Boolean) => BuildValueParserAndComparerForBooleanProperty(propertySymbol, isNullable),
-                nameof(String) => BuildValueParserAndComparerForStringProperty(propertySymbol, isNullable),
+                nameof(Guid) => GuidPropertyParser.Parse(propertySymbol, isNullable),
+                nameof(DateTime) => DateTimePropertyParser.Parse(propertySymbol, isNullable),
+                nameof(DateTimeOffset) => DateTimeOffsetPropertyParser.Parse(propertySymbol, isNullable),
+                nameof(Int32) => Int32PropertyParser.Parse(propertySymbol, isNullable),
+                nameof(Boolean) => BooleanPropertyParser.Parse(propertySymbol, isNullable),
+                nameof(String) => StringPropertyParser.Parse(propertySymbol, isNullable),
                 _ => string.Empty,
             };
-        }
-
-        private static string BuildValueParserAndComparerForGuidProperty(
-            IPropertySymbol propertySymbol,
-            bool nullable = false)
-        {
-            var exceptionContent = !nullable ? "throw new InvalidCastException($\"Can't cast {request.Value} to type {typeof(Guid)})\");" : string.Empty;
-
-            return $$"""
-            MemberExpression property = Expression.Property(param, nameof(t1.{{propertySymbol.Name}}));
-
-            if (!Guid.TryParse(request.Value, out var parsedValue))
-            {
-                {{exceptionContent}}
-            }
-
-            comparision = request.FilterOperator switch
-            {
-                FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
-                _ => throw new NotImplementedException(),
-            };
-            """;
-        }
-
-        private static string BuildValueParserAndComparerForDateTimeProperty(
-            IPropertySymbol propertySymbol,
-            bool nullable = false)
-        {
-            var exceptionContent = !nullable ? "throw new InvalidCastException($\"Can't cast {request.Value} to type {typeof(DateTime)})\");" : string.Empty;
-
-            return $$"""
-            MemberExpression property = Expression.Property(param, nameof(t1.{{propertySymbol.Name}}));
-
-            if (!DateTime.TryParse(request.Value, out var parsedValue))
-            {
-                {{exceptionContent}}
-            }
-
-            comparision = request.FilterOperator switch
-            {
-                FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.GreaterThan => Expression.GreaterThan(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.LessThan => Expression.LessThan(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.LessThanOrEqual => Expression.LessThanOrEqual(property, Expression.Constant(parsedValue)),
-                _ => throw new NotImplementedException(),
-            };
-            """;
-        }
-
-        private static string BuildValueParserAndComparerForDateTimeOffsetProperty(
-            IPropertySymbol propertySymbol,
-            bool nullable = false)
-        {
-            var exceptionContent = !nullable ? "throw new InvalidCastException($\"Can't cast {request.Value} to type {typeof(DateTimeOffset)})\");" : string.Empty;
-
-            return $$"""
-            MemberExpression property = Expression.Property(param, nameof(t1.{{propertySymbol.Name}}));
-
-            if (!DateTimeOffset.TryParse(request.Value, out var parsedValue))
-            {
-                {{exceptionContent}}
-            }
-
-            comparision = request.FilterOperator switch
-            {
-                FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.GreaterThan => Expression.GreaterThan(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.LessThan => Expression.LessThan(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.LessThanOrEqual => Expression.LessThanOrEqual(property, Expression.Constant(parsedValue)),
-                _ => throw new NotImplementedException(),
-            };
-            """;
-        }
-
-        private static string BuildValueParserAndComparerForInt32Property(
-            IPropertySymbol propertySymbol,
-            bool nullable = false)
-        {
-            var exceptionContent = !nullable ? "throw new InvalidCastException($\"Can't cast {request.Value} to type {typeof(Int32)})\");" : string.Empty;
-
-            return $$"""
-            MemberExpression property = Expression.Property(param, nameof(t1.{{propertySymbol.Name}}));
-
-            if (!int.TryParse(request.Value, out var parsedValue))
-            {
-                {{exceptionContent}}
-            }
-
-            comparision = request.FilterOperator switch
-            {
-                FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.GreaterThan => Expression.GreaterThan(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.LessThan => Expression.LessThan(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.LessThanOrEqual => Expression.LessThanOrEqual(property, Expression.Constant(parsedValue)),
-                _ => throw new NotImplementedException(),
-            };
-            """;
-        }
-
-        private static string BuildValueParserAndComparerForBooleanProperty(
-            IPropertySymbol propertySymbol,
-            bool nullable = false)
-        {
-            var exceptionContent = !nullable ? "throw new InvalidCastException($\"Can't cast {request.Value} to type {typeof(Boolean)})\");" : string.Empty;
-
-            return $$"""
-            MemberExpression property = Expression.Property(param, nameof(t1.{{propertySymbol.Name}}));
-
-            if (!bool.TryParse(request.Value, out var parsedValue))
-            {
-                {{exceptionContent}}
-            }
-
-            comparision = request.FilterOperator switch
-            {
-                FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
-                FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
-                _ => throw new NotImplementedException(),
-            };
-            """;
-        }
-
-        private static string BuildValueParserAndComparerForStringProperty(
-            IPropertySymbol propertySymbol,
-            bool nullable = false)
-        {
-            var exceptionContent = !nullable ? "throw new InvalidCastException($\"Can't cast {request.Value} to type {typeof(String)})\");" : string.Empty;
-
-            return $$"""
-            MemberExpression property = Expression.Property(param, nameof(t1.{{propertySymbol.Name}}));
-
-            if (request.Value is null)
-            {
-                {{exceptionContent}}
-            }
-
-            var toLowerMethod = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!;
-            var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
-            var startsWithMethod = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
-            var endsWithMethod = typeof(string).GetMethod(nameof(string.EndsWith), [typeof(string)])!;
-
-            comparision = request.FilterOperator switch
-            {
-                FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(request.Value)),
-                FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(request.Value)),
-                FilterServiceRequest.Operator.Contains => Expression.Call(Expression.Call(property, toLowerMethod), containsMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod)),
-                FilterServiceRequest.Operator.NotContains => Expression.Not(Expression.Call(Expression.Call(property, toLowerMethod), containsMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod))),
-                FilterServiceRequest.Operator.StartWith => Expression.Call(Expression.Call(property, toLowerMethod), startsWithMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod)),
-                FilterServiceRequest.Operator.EndWith => Expression.Call(Expression.Call(property, toLowerMethod), endsWithMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod)),
-                _ => throw new NotImplementedException(),
-            };
-            """;
         }
     }
 }

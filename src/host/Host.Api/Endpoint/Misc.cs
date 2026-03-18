@@ -14,7 +14,9 @@ public static class Misc
         return g;
     }
 
-    private static NoContent HandleGetAntiForgeryTokenV1(IAntiforgery antiForgery, HttpContext context)
+    private static NoContent HandleGetAntiForgeryTokenV1(
+        IAntiforgery antiForgery,
+        HttpContext context)
     {
         antiForgery.GetAndStoreTokens(context);
 

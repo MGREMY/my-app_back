@@ -56,15 +56,33 @@ public static class Extension
 
         private IServiceCollection AddServices()
         {
+            const string skipInterfaceNameContaining = "dto";
+
+            var definedServiceTypes = typeof(Extension).Assembly.DefinedTypes
+                .Where(x => x is { IsClass: true, IsAbstract: false })
+                .ToArray();
+
+            var definedServiceInterfaces = typeof(Contract.DomainException).Assembly.DefinedTypes
+                .Where(x =>
+                    x is { IsInterface: true }
+                    && !x.FullName!.Contains(skipInterfaceNameContaining, StringComparison.InvariantCultureIgnoreCase)
+                )
+                .ToArray();
+
+            foreach (var serviceInterface in definedServiceInterfaces)
+            {
+                foreach (var definedServiceType in definedServiceTypes)
+                {
+                    if (!definedServiceType.ImplementedInterfaces.Contains(serviceInterface)) continue;
+
+                    services.AddScoped(serviceInterface, definedServiceType);
+                    break;
+                }
+            }
+
             return services
                 .AddHttpClient()
-                .AddScoped<ICacheService, CacheService>()
-                // Auth
-                .AddScoped<IAuthSyncUserService, AuthSyncUserService>()
-                // User
-                .AddScoped<IUserGetService, UserGetService>()
-                .AddScoped<IUserGetByIdService, UserGetByIdService>()
-                .AddScoped<IUserDeleteService, UserDeleteService>();
+                .AddScoped<ICacheService, CacheService>();
         }
     }
 }

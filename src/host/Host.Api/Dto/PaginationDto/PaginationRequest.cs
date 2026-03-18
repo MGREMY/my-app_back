@@ -10,7 +10,7 @@ public record FilterRequest(
     FilterRequest.Operator FilterOperator,
     string Value,
     FilterRequest.Logic FilterLogic,
-    IEnumerable<FilterRequest>? Filters)
+    IEnumerable<FilterRequest>? Filters = null)
 {
     public enum Operator
     {
