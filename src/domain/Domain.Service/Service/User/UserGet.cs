@@ -8,13 +8,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Domain.Service.Service.User;
 
 [PaginationHandlerFor<Model.Model.User>]
-public sealed class UserGetService
+public sealed class UserGet
     : AbstractServiceAsync<PaginationRequest, PaginationResponse<MinimalUserResponse>>,
         IUserGet
 {
     private readonly AppDbContext _db;
 
-    public UserGetService(AppDbContext db)
+    public UserGet(AppDbContext db)
     {
         _db = db;
     }
