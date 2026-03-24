@@ -41,6 +41,7 @@ app
     .UseAppCors(options => { options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? []; })
     .MapDefaultEndpoint(ServiceDefaultConstant.HealthEndpointPath, ServiceDefaultConstant.AliveEndpointPath)
     .UseAppEndpoints()
+    .UseAntiforgery()
     .UseRequestLocalization(options =>
     {
         string[] supportedCultures = ["en", "fr"];
