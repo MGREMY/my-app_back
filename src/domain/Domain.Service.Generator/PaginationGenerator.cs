@@ -86,7 +86,7 @@ $$"""
 #nullable enable
 
 using System;
-using Domain.Service.Contract.Dto.PaginationDto;
+using Domain.Service.Contract.Dto;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
 using System.Linq.Expressions;
@@ -97,17 +97,17 @@ namespace {{@namespace}};
 
 public static class QueryableExtensions
 {
-    public static IQueryable<t1> ProcessPaginationRequest(this IQueryable<t1> query, PaginationServiceRequest request, out Func<CancellationToken, Task<int>> countAsync)
+    public static IQueryable<t1> ProcessPaginationRequest(this IQueryable<t1> query, PaginationRequest request, out Func<CancellationToken, Task<int>> countAsync)
     {
         return query
-            .ApplyFiltering(request.FilterServiceRequests, out countAsync)
-            .ApplySorting(request.SortServiceRequests)
+            .ApplyFiltering(request.FilterRequests, out countAsync)
+            .ApplySorting(request.SortRequests)
             .ApplyPagination(request.PageNumber, request.PageSize);
     }
 
     private static IQueryable<t1> ApplyPagination(this IQueryable<t1> query, int pageNumber, int pageSize) => query.Skip((pageNumber - 1) * pageSize).Take(pageSize);
 
-    private static IQueryable<t1> ApplySorting(this IQueryable<t1> query, IEnumerable<SortServiceRequest> requests)
+    private static IQueryable<t1> ApplySorting(this IQueryable<t1> query, IEnumerable<SortRequest> requests)
     {
         bool hasFirstSort = false;
 
@@ -156,7 +156,7 @@ public static class QueryableExtensions
         return query;
     }
 
-    private static IQueryable<t1> ApplyFiltering(this IQueryable<t1> query, IEnumerable<FilterServiceRequest> requests, out Func<CancellationToken, Task<int>> countAsync)
+    private static IQueryable<t1> ApplyFiltering(this IQueryable<t1> query, IEnumerable<FilterRequest> requests, out Func<CancellationToken, Task<int>> countAsync)
     {
         var param = Expression.Parameter(typeof(t1), "x");
         Expression? combined = null;
@@ -178,7 +178,7 @@ public static class QueryableExtensions
 
         return query;
 
-        Expression BuildFilterExpression(FilterServiceRequest request, ParameterExpression param)
+        Expression BuildFilterExpression(FilterRequest request, ParameterExpression param)
         {
             Expression comparision = null!;
 
@@ -222,11 +222,11 @@ public static class QueryableExtensions
         }
     }
 
-    private static Expression CombineExpressions(Expression left, Expression right, FilterServiceRequest.Logic logic) =>
+    private static Expression CombineExpressions(Expression left, Expression right, FilterRequest.Logic logic) =>
         logic switch
         {
-            FilterServiceRequest.Logic.And => Expression.AndAlso(left, right),
-            FilterServiceRequest.Logic.Or => Expression.OrElse(left, right),
+            FilterRequest.Logic.And => Expression.AndAlso(left, right),
+            FilterRequest.Logic.Or => Expression.OrElse(left, right),
             _ => throw new ArgumentOutOfRangeException(),
         };
 }

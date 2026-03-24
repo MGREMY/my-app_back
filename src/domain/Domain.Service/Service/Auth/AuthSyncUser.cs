@@ -1,25 +1,24 @@
 using Core.Service;
 using Domain.Model;
-using Domain.Model.Model;
 using Domain.Model.Model.Interface;
 using Domain.Service.CachedDto;
 using Domain.Service.Contract;
-using Domain.Service.Contract.Dto.AuthDto.AuthSyncUserDto;
-using Domain.Service.Contract.Service.AuthService;
+using Domain.Service.Contract.Dto.Auth;
+using Domain.Service.Contract.Service.Auth;
 using Domain.Service.Resource;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
-namespace Domain.Service.Service.AuthService;
+namespace Domain.Service.Service.Auth;
 
-public sealed class AuthSyncUserService
-    : AbstractServiceAsync<AuthSyncUserServiceRequest>, IAuthSyncUserService
+public sealed class AuthSyncUser
+    : AbstractServiceAsync<AuthSyncUserRequest>, IAuthSyncUserService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly ICacheService _cacheService;
 
-    public AuthSyncUserService(
+    public AuthSyncUser(
         AppDbContext db,
         IStringLocalizer<SharedResource> localizer,
         ICacheService cacheService)
@@ -30,7 +29,7 @@ public sealed class AuthSyncUserService
     }
 
     protected override async Task HandleAsync(
-        AuthSyncUserServiceRequest query,
+        AuthSyncUserRequest query,
         CancellationToken ct = default)
     {
         var cacheKey = $"{ServiceConstant.Auth.SyncCacheKey}:{query.AuthId}";
@@ -52,7 +51,7 @@ public sealed class AuthSyncUserService
 
         if (user is null)
         {
-            user = new User
+            user = new Model.Model.User
                 {
                     AuthId = query.AuthId,
                     UserName = query.UserName,

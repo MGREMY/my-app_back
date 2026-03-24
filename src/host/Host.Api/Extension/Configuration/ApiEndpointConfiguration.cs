@@ -37,7 +37,7 @@ public static class ApiEndpointConfiguration
         var group = app.MapGroup("/api/v{version:apiVersion}")
             .WithTags("api")
             .WithApiVersionSet(apiVersionSet)
-            .RequireAuthorization();
+            /*.RequireAuthorization()*/;
 
         group
             .UseAuthApi()

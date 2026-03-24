@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Domain.Service.Contract.Service.AuthService;
+using Domain.Service.Contract.Service.Auth;
 using Host.Api.Extension;
 using Microsoft.AspNetCore.Http.HttpResults;
 

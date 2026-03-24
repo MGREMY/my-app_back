@@ -1,18 +1,16 @@
 using Core.Service;
 using Domain.Model;
-using Domain.Model.Model;
-using Domain.Service.Contract.Dto.PaginationDto;
-using Domain.Service.Contract.Dto.UserDto;
-using Domain.Service.Contract.Service.UserService;
+using Domain.Service.Contract.Dto;
+using Domain.Service.Contract.Service.User;
 using Domain.Service.Extension;
 using Microsoft.EntityFrameworkCore;
 
-namespace Domain.Service.Service.UserService;
+namespace Domain.Service.Service.User;
 
-[PaginationHandlerFor<User>]
+[PaginationHandlerFor<Model.Model.User>]
 public sealed class UserGetService
-    : AbstractServiceAsync<PaginationServiceRequest, PaginationServiceResponse<MinimalUserServiceResponse>>,
-        IUserGetService
+    : AbstractServiceAsync<PaginationRequest, PaginationResponse<MinimalUserResponse>>,
+        IUserGet
 {
     private readonly AppDbContext _db;
 
@@ -21,8 +19,8 @@ public sealed class UserGetService
         _db = db;
     }
 
-    protected override Task<PaginationServiceResponse<MinimalUserServiceResponse>> HandleAsync(
-        PaginationServiceRequest query,
+    protected override Task<PaginationResponse<MinimalUserResponse>> HandleAsync(
+        PaginationRequest query,
         CancellationToken ct = default)
     {
         return _db.Users

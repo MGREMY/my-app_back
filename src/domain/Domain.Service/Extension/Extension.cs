@@ -1,10 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Domain.Model;
-using Domain.Service.Contract.Service.AuthService;
-using Domain.Service.Contract.Service.UserService;
 using Domain.Service.Service;
-using Domain.Service.Service.AuthService;
-using Domain.Service.Service.UserService;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,13 +14,20 @@ public static class Extension
     {
         public IServiceCollection AddMyAppServices(
             string postgresConnectionString,
-            string redisConnectionString)
+            string redisConnectionString,
+            Action<ServiceOption> options)
         {
             return services
                 .AddLocalization()
+                .AddServiceOption(options)
                 .AddDatabase(postgresConnectionString)
                 .AddCache(redisConnectionString)
                 .AddServices();
+        }
+
+        private IServiceCollection AddServiceOption(Action<ServiceOption> options)
+        {
+            return services.Configure(options);
         }
 
         private IServiceCollection AddDatabase(string postgresConnectionString)

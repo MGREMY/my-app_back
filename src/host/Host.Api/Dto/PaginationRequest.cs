@@ -1,11 +1,10 @@
 using System.Reflection;
 using System.Text.Json;
-using Domain.Service.Contract.Dto.PaginationDto;
 using FluentValidation;
 
-namespace Host.Api.Dto.PaginationDto;
+namespace Host.Api.Dto;
 
-public record FilterRequest(
+public sealed record FilterRequest(
     string PropertyName,
     FilterRequest.Operator FilterOperator,
     string Value,
@@ -32,39 +31,39 @@ public record FilterRequest(
         Or = 1,
     }
 
-    public FilterServiceRequest ToServiceRequest()
+    public ServiceDto.FilterRequest ToServiceRequest()
     {
-        return new FilterServiceRequest(
+        return new ServiceDto.FilterRequest(
             PropertyName,
-            (FilterServiceRequest.Operator)FilterOperator,
+            (ServiceDto.FilterRequest.Operator)FilterOperator,
             Value,
-            (FilterServiceRequest.Logic)FilterLogic,
+            (ServiceDto.FilterRequest.Logic)FilterLogic,
             Filters?.Select(x => x.ToServiceRequest()) ?? []);
     }
 }
 
-public record SortRequest(string PropertyName, bool IsDescending)
+public sealed record SortRequest(string PropertyName, bool IsDescending)
 {
-    public SortServiceRequest ToServiceRequest()
+    public ServiceDto.SortRequest ToServiceRequest()
     {
-        return new SortServiceRequest(PropertyName, IsDescending);
+        return new ServiceDto.SortRequest(PropertyName, IsDescending);
     }
 }
 
-public record PaginationRequest(
+public sealed record PaginationRequest(
     int PageNumber = 1,
     int PageSize = 15,
     IEnumerable<SortRequest>? SortRequests = null,
     IEnumerable<FilterRequest>? FilterRequests = null)
     : IBindableFromHttpContext<PaginationRequest>
 {
-    public PaginationServiceRequest ToServiceRequest()
+    public ServiceDto.PaginationRequest ToServiceRequest()
     {
-        return new PaginationServiceRequest(
+        return new ServiceDto.PaginationRequest(
             PageNumber,
             PageSize,
-            SortServiceRequests: SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
-            FilterServiceRequests: FilterRequests?.Select(x => x.ToServiceRequest()) ?? []);
+            SortRequests: SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
+            FilterRequests: FilterRequests?.Select(x => x.ToServiceRequest()) ?? []);
     }
 
     public static ValueTask<PaginationRequest?> BindAsync(HttpContext context, ParameterInfo _)
@@ -89,7 +88,7 @@ public record PaginationRequest(
         ));
     }
 
-    public class Validator : AbstractValidator<PaginationRequest>
+    public sealed class Validator : AbstractValidator<PaginationRequest>
     {
         public Validator()
         {
@@ -123,5 +122,26 @@ public record PaginationRequest(
                 }))
                 .When(x => x.FilterRequests?.Any() ?? false);
         }
+    }
+}
+
+public sealed record PaginationResponse<T>(
+    int PageNumber,
+    int PageSize,
+    bool HasNextPage,
+    bool HasPreviousPage,
+    int TotalPages,
+    IEnumerable<T> Data
+)
+{
+    public PaginationResponse(ServiceDto.PaginationResponse value)
+        : this(
+            value.PageNumber,
+            value.PageSize,
+            value.HasNextPage,
+            value.HasPreviousPage,
+            value.TotalPages,
+            [])
+    {
     }
 }

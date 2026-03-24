@@ -20,12 +20,12 @@ public static class Int32PropertyParser
 
                  comparision = request.FilterOperator switch
                  {
-                     FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
-                     FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
-                     FilterServiceRequest.Operator.GreaterThan => Expression.GreaterThan(property, Expression.Constant(parsedValue)),
-                     FilterServiceRequest.Operator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(property, Expression.Constant(parsedValue)),
-                     FilterServiceRequest.Operator.LessThan => Expression.LessThan(property, Expression.Constant(parsedValue)),
-                     FilterServiceRequest.Operator.LessThanOrEqual => Expression.LessThanOrEqual(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.GreaterThan => Expression.GreaterThan(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.GreaterThanOrEqual => Expression.GreaterThanOrEqual(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.LessThan => Expression.LessThan(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.LessThanOrEqual => Expression.LessThanOrEqual(property, Expression.Constant(parsedValue)),
                      _ => throw new NotImplementedException(),
                  };
                  """;

@@ -2,17 +2,16 @@ using Core.Service;
 using Domain.Model;
 using Domain.Model.Model.Interface;
 using Domain.Service.Contract;
-using Domain.Service.Contract.Dto.UserDto.UserDeleteDto;
-using Domain.Service.Contract.Service.UserService;
+using Domain.Service.Contract.Service.User;
 using Domain.Service.Resource;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
-namespace Domain.Service.Service.UserService;
+namespace Domain.Service.Service.User;
 
 public sealed class UserDeleteService
-    : AbstractServiceAsync<UserDeleteServiceRequest>,
-        IUserDeleteService
+    : AbstractServiceAsync<Guid>,
+        IUserDelete
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
@@ -29,20 +28,20 @@ public sealed class UserDeleteService
     }
 
     protected override async Task PreExecuteAsync(
-        UserDeleteServiceRequest query,
+        Guid id,
         CancellationToken ct = default)
     {
-        if (!await _db.Users.AnyAsync(user => user.Id == query.Id, ct))
+        if (!await _db.Users.AnyAsync(user => user.Id == id, ct))
         {
             throw new DomainException(_localizer.GetString(ServiceConstant.Error.user_not_found), 404);
         }
     }
 
     protected override async Task HandleAsync(
-        UserDeleteServiceRequest query,
+        Guid id,
         CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstAsync(user => user.Id == query.Id, ct);
+        var user = await _db.Users.FirstAsync(user => user.Id == id, ct);
 
         user.SetSoftDeletableData();
         await _db.SaveChangesAsync(ct);

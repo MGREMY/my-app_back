@@ -1,8 +1,6 @@
-using Domain.Service.Contract.Service.UserService;
+using Domain.Service.Contract.Service.User;
 using FluentValidation;
 using Host.Api.Dto;
-using Host.Api.Dto.PaginationDto;
-using Host.Api.Dto.UserDto;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Host.Api.Endpoint;
@@ -25,7 +23,7 @@ public static class User
         HandleGetUsersV1(
             PaginationRequest req,
             IValidator<PaginationRequest> validator,
-            IUserGetService service,
+            IUserGet service,
             CancellationToken ct = default)
     {
         await validator.ValidateAndThrowAsync(req, ct);
@@ -40,20 +38,20 @@ public static class User
 
     private static async Task<Results<Ok<UserResponse>, NotFound>> HandleGetUserByIdV1(
         Guid id,
-        IUserGetByIdService service,
+        IUserGetById service,
         CancellationToken ct = default)
     {
-        var result = await service.ExecuteAsync(new(id), ct);
+        var result = await service.ExecuteAsync(id, ct);
 
         return TypedResults.Ok(new UserResponse(result));
     }
 
     private static async Task<Results<NoContent, NotFound>> HandleDeleteUserByIdV1(
         Guid id,
-        IUserDeleteService service,
+        IUserDelete service,
         CancellationToken ct = default)
     {
-        await service.ExecuteAsync(new(id), ct);
+        await service.ExecuteAsync(id, ct);
 
         return TypedResults.NoContent();
     }

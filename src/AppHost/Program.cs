@@ -21,6 +21,7 @@ builder.AddProject<Host_Api>(name: "MyApp")
     .WithReference(mailPit)
     .WithEnvironment(name: "AuthDomain", value: $"{builder.Configuration["api_config:auth:domain"]}/realms/myApp")
     .WithEnvironment(name: "AuthAudience", value: builder.Configuration["api_config:auth:audience"])
-    .WithEnvironment(name: "AuthOrigins", value: builder.Configuration["api_config:auth:origins"]);
+    .WithEnvironment(name: "AuthOrigins", value: builder.Configuration["api_config:auth:origins"])
+    .WithEnvironment(name: "DataPath", value: builder.Configuration["api_config:data_path"]);
 
 builder.Build().Run();

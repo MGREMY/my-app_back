@@ -20,8 +20,8 @@ public static class GuidPropertyParser
 
                  comparision = request.FilterOperator switch
                  {
-                     FilterServiceRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
-                     FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(parsedValue)),
+                     FilterRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(parsedValue)),
                      _ => throw new NotImplementedException(),
                  };
                  """;
