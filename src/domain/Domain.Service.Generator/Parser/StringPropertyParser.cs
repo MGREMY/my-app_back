@@ -18,19 +18,14 @@ public static class StringPropertyParser
                      {{exceptionContent}}
                  }
 
-                 var toLowerMethod = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!;
-                 var containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
-                 var startsWithMethod = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
-                 var endsWithMethod = typeof(string).GetMethod(nameof(string.EndsWith), [typeof(string)])!;
-
                  comparision = request.FilterOperator switch
                  {
                      FilterRequest.Operator.Equal => Expression.Equal(property, Expression.Constant(request.Value)),
                      FilterRequest.Operator.NotEqual => Expression.NotEqual(property, Expression.Constant(request.Value)),
-                     FilterRequest.Operator.Contains => Expression.Call(Expression.Call(property, toLowerMethod), containsMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod)),
-                     FilterRequest.Operator.NotContains => Expression.Not(Expression.Call(Expression.Call(property, toLowerMethod), containsMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod))),
-                     FilterRequest.Operator.StartWith => Expression.Call(Expression.Call(property, toLowerMethod), startsWithMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod)),
-                     FilterRequest.Operator.EndWith => Expression.Call(Expression.Call(property, toLowerMethod), endsWithMethod, Expression.Call(Expression.Constant(request.Value), toLowerMethod)),
+                     FilterRequest.Operator.Contains => Expression.Call(Expression.Call(property, _string_toLowerMethod), _string_containsMethod, Expression.Call(Expression.Constant(request.Value), _string_toLowerMethod)),
+                     FilterRequest.Operator.NotContains => Expression.Not(Expression.Call(Expression.Call(property, _string_toLowerMethod), _string_containsMethod, Expression.Call(Expression.Constant(request.Value), _string_toLowerMethod))),
+                     FilterRequest.Operator.StartWith => Expression.Call(Expression.Call(property, _string_toLowerMethod), _string_startsWithMethod, Expression.Call(Expression.Constant(request.Value), _string_toLowerMethod)),
+                     FilterRequest.Operator.EndWith => Expression.Call(Expression.Call(property, _string_toLowerMethod), _string_endsWithMethod, Expression.Call(Expression.Constant(request.Value), _string_toLowerMethod)),
                      _ => throw new NotImplementedException(),
                  };
                  """;
