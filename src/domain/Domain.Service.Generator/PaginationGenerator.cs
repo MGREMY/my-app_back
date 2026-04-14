@@ -97,6 +97,13 @@ namespace {{@namespace}};
 
 public static class QueryableExtensions
 {
+#pragma warning disable CS0414
+    private static readonly System.Reflection.MethodInfo _string_toLowerMethod = typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!;
+    private static readonly System.Reflection.MethodInfo _string_containsMethod = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
+    private static readonly System.Reflection.MethodInfo _string_startsWithMethod = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
+    private static readonly System.Reflection.MethodInfo _string_endsWithMethod = typeof(string).GetMethod(nameof(string.EndsWith), [typeof(string)])!;
+#pragma warning restore CS0414
+
     public static IQueryable<t1> ProcessPaginationRequest(this IQueryable<t1> query, PaginationRequest request, out Func<CancellationToken, Task<int>> countAsync)
     {
         return query
