@@ -10,7 +10,7 @@ namespace Domain.Service.Service.User;
 [PaginationHandlerFor<Model.Model.User>]
 public sealed class UserGet
     : AbstractServiceAsync<PaginationRequest, PaginationResponse<MinimalUserResponse>>,
-        IUserGet
+        IGetService
 {
     private readonly AppDbContext _db;
 

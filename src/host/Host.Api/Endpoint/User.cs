@@ -11,19 +11,22 @@ public static class User
     {
         var group = g.MapGroup("/users").WithTags("users");
 
-        group.MapGet(string.Empty, HandleGetUsersV1).MapToApiVersion(1);
-        group.MapGet("{id:guid}", HandleGetUserByIdV1).MapToApiVersion(1);
-        group.MapDelete("{id:guid}", HandleDeleteUserByIdV1).MapToApiVersion(1)
+        group.MapGet(string.Empty, UserHandler.HandleGetUsersV1).MapToApiVersion(1);
+        group.MapGet("{id:guid}", UserHandler.HandleGetUserByIdV1).MapToApiVersion(1);
+        group.MapDelete("{id:guid}", UserHandler.HandleDeleteUserByIdV1).MapToApiVersion(1)
             .RequireAuthorization(ApiConstant.AuthorizationPolicies.Admin);
 
         return g;
     }
+}
 
-    private static async Task<Results<Ok<PaginationResponse<MinimalUserResponse>>, BadRequest<ErrorResponse>>>
+public static class UserHandler
+{
+    public static async Task<Results<Ok<PaginationResponse<MinimalUserResponse>>, BadRequest<ErrorResponse>>>
         HandleGetUsersV1(
             PaginationRequest req,
             IValidator<PaginationRequest> validator,
-            IUserGet service,
+            IGetService service,
             CancellationToken ct = default)
     {
         await validator.ValidateAndThrowAsync(req, ct);
@@ -36,9 +39,9 @@ public static class User
         });
     }
 
-    private static async Task<Results<Ok<UserResponse>, NotFound>> HandleGetUserByIdV1(
+    public static async Task<Results<Ok<UserResponse>, NotFound>> HandleGetUserByIdV1(
         Guid id,
-        IUserGetById service,
+        IGetByIdService service,
         CancellationToken ct = default)
     {
         var result = await service.ExecuteAsync(id, ct);
@@ -46,9 +49,9 @@ public static class User
         return TypedResults.Ok(new UserResponse(result));
     }
 
-    private static async Task<Results<NoContent, NotFound>> HandleDeleteUserByIdV1(
+    public static async Task<Results<NoContent, NotFound>> HandleDeleteUserByIdV1(
         Guid id,
-        IUserDelete service,
+        IDeleteService service,
         CancellationToken ct = default)
     {
         await service.ExecuteAsync(id, ct);

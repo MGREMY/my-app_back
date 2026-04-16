@@ -3,5 +3,5 @@ using Domain.Service.Contract.Dto;
 
 namespace Domain.Service.Contract.Service.User;
 
-public interface IUserGet
+public interface IGetService
     : IServiceAsync<PaginationRequest, PaginationResponse<MinimalUserResponse>>;

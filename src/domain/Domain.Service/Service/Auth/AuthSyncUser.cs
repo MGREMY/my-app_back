@@ -3,7 +3,6 @@ using Domain.Model;
 using Domain.Model.Model.Interface;
 using Domain.Service.CachedDto;
 using Domain.Service.Contract;
-using Domain.Service.Contract.Dto.Auth;
 using Domain.Service.Contract.Service.Auth;
 using Domain.Service.Resource;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +11,7 @@ using Microsoft.Extensions.Localization;
 namespace Domain.Service.Service.Auth;
 
 public sealed class AuthSyncUser
-    : AbstractServiceAsync<AuthSyncUserRequest>, IAuthSyncUserService
+    : AbstractServiceAsync<ISyncUserService.Request>, ISyncUserService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
@@ -29,7 +28,7 @@ public sealed class AuthSyncUser
     }
 
     protected override async Task HandleAsync(
-        AuthSyncUserRequest query,
+        ISyncUserService.Request query,
         CancellationToken ct = default)
     {
         var cacheKey = $"{ServiceConstant.Auth.SyncCacheKey}:{query.AuthId}";

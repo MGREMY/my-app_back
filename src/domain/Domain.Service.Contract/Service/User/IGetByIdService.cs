@@ -3,5 +3,5 @@ using Domain.Service.Contract.Dto;
 
 namespace Domain.Service.Contract.Service.User;
 
-public interface IUserGetById
+public interface IGetByIdService
     : IServiceAsync<Guid, UserResponse>;
