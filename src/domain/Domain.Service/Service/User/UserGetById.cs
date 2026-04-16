@@ -11,7 +11,7 @@ namespace Domain.Service.Service.User;
 
 public sealed class UserGetById
     : AbstractServiceAsync<Guid, UserResponse>,
-        IUserGetById
+        IGetByIdService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;

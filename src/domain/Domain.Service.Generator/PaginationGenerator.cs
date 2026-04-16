@@ -56,7 +56,9 @@ public sealed class PaginationGenerator
 
             context.RegisterImplementationSourceOutput(classProvider, (spc, targets) =>
             {
-                foreach (var target in targets)
+                foreach (var target in targets
+                             .GroupBy(x => x.Entity.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat))
+                             .Select(x => x.First()))
                 {
                     // ReSharper disable once InconsistentNaming
                     var _entityMembers = target.Entity
@@ -74,6 +76,7 @@ public sealed class PaginationGenerator
                     var @namespace = target.Class.ContainingNamespace.ToDisplayString();
                     var @className = target.Class.Name;
                     var @entityFullName = target.Entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    var @entityName = target.Entity.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
                     var @entityProperties = Enumerable
                         .GroupBy([.._entityMembers, .._entityInterfacesMembers], x => x.Name)
                         .Select(x => x.First())
@@ -240,7 +243,7 @@ public static class QueryableExtensions
 """;
 #pragma warning restore format // @formatter:on
 
-                    spc.AddSource($"{className}.paginationHandler.g.cs", source);
+                    spc.AddSource($"{@entityName}.paginationHandler.g.cs", source);
                 }
             });
         }

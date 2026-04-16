@@ -9,12 +9,15 @@ public static class Misc
     {
         var group = g.MapGroup("/misc").WithTags("misc");
 
-        group.MapGet("anti-forgery-token", HandleGetAntiForgeryTokenV1).MapToApiVersion(1).AllowAnonymous();
+        group.MapGet("anti-forgery-token", MiscHandler.HandleGetAntiForgeryTokenV1).MapToApiVersion(1).AllowAnonymous();
 
         return g;
     }
+}
 
-    private static NoContent HandleGetAntiForgeryTokenV1(
+public static class MiscHandler
+{
+    public static NoContent HandleGetAntiForgeryTokenV1(
         IAntiforgery antiForgery,
         HttpContext context)
     {

@@ -2,5 +2,5 @@ using Core.Service;
 
 namespace Domain.Service.Contract.Service.User;
 
-public interface IUserDelete
+public interface IDeleteService
     : IServiceAsync<Guid>;

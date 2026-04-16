@@ -29,7 +29,7 @@ public class FileStorageService : IFileStorageService
 
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        return Task.FromResult(File.OpenRead(filePath));
+        return Task.FromResult(System.IO.File.OpenRead(filePath));
     }
 
     public Task<string> CreateAsync(CancellationToken ct = default)
@@ -39,7 +39,7 @@ public class FileStorageService : IFileStorageService
         var fileName = Guid.NewGuid().ToString();
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        using var _ = File.Create(filePath);
+        using var _ = System.IO.File.Create(filePath);
 
         return Task.FromResult(filePath);
     }
@@ -83,7 +83,7 @@ public class FileStorageService : IFileStorageService
 
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        return Task.FromResult(File.Exists(filePath));
+        return Task.FromResult(System.IO.File.Exists(filePath));
     }
 
     public Task DeleteAsync(string fileName, CancellationToken ct = default)
@@ -92,7 +92,7 @@ public class FileStorageService : IFileStorageService
 
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        File.Delete(filePath);
+        System.IO.File.Delete(filePath);
 
         return Task.CompletedTask;
     }

@@ -11,12 +11,15 @@ public static class Auth
     {
         var group = g.MapGroup("/auth").WithTags("auth");
 
-        group.MapPost("sync-user", HandleGetSyncUserV1).MapToApiVersion(1);
+        group.MapPost("sync-user", AuthHandler.HandlePostSyncUserV1).MapToApiVersion(1);
 
         return g;
     }
+}
 
-    private static async Task<NoContent> HandleGetSyncUserV1(IAuthSyncUserService service,
+public static class AuthHandler
+{
+    public static async Task<NoContent> HandlePostSyncUserV1(ISyncUserService service,
         ClaimsPrincipal user,
         CancellationToken ct = default)
     {

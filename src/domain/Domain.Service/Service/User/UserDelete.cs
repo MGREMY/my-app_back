@@ -11,7 +11,7 @@ namespace Domain.Service.Service.User;
 
 public sealed class UserDelete
     : AbstractServiceAsync<Guid>,
-        IUserDelete
+        IDeleteService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
