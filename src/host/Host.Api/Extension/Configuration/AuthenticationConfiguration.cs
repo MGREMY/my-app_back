@@ -11,39 +11,43 @@ public static class AuthenticationConfiguration
         public string Audience { get; set; } = string.Empty;
     }
 
-    public static TBuilder AddAppAuthentication<TBuilder>(
-        this TBuilder builder,
-        Action<ApiAuthenticationOptions> configure)
+    extension<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        ApiAuthenticationOptions apiConfiguration = new();
-        configure(apiConfiguration);
+        public TBuilder AddAppAuthentication(Action<ApiAuthenticationOptions> configure)
+        {
+            ApiAuthenticationOptions apiConfiguration = new();
+            configure(apiConfiguration);
 
-        builder.Services
-            .AddAuthentication(options =>
-            {
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-            {
-                options.IncludeErrorDetails = true;
-                options.Authority = apiConfiguration.Domain;
-                options.TokenValidationParameters = new TokenValidationParameters
+            builder.Services
+                .AddAuthentication(options =>
                 {
-                    ValidAudience = apiConfiguration.Audience,
-                    ValidIssuer = apiConfiguration.Domain,
-                };
-                options.RequireHttpsMetadata = false;
-            });
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+                {
+                    options.IncludeErrorDetails = true;
+                    options.Authority = apiConfiguration.Domain;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidAudience = apiConfiguration.Audience,
+                        ValidIssuer = apiConfiguration.Domain,
+                    };
+                    options.RequireHttpsMetadata = false;
+                });
 
-        return builder;
+            return builder;
+        }
     }
 
-    public static WebApplication UseAppAuthentication(this WebApplication app)
+    extension(WebApplication app)
     {
-        app.UseAuthentication();
+        public WebApplication UseAppAuthentication()
+        {
+            app.UseAuthentication();
 
-        return app;
+            return app;
+        }
     }
 }

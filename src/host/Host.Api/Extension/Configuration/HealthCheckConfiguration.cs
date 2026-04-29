@@ -2,21 +2,24 @@ namespace Host.Api.Extension.Configuration;
 
 public static class HealthCheckConfiguration
 {
-    public static TBuilder AddAppHealthChecks<TBuilder>(this TBuilder builder)
+    extension<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        var postgresConnectionString = builder.Configuration.GetConnectionString("postgres");
-        var redisConnectionString = builder.Configuration.GetConnectionString("redis");
+        public TBuilder AddAppHealthChecks()
+        {
+            var postgresConnectionString = builder.Configuration.GetConnectionString("postgres");
+            var redisConnectionString = builder.Configuration.GetConnectionString("redis");
 
-        ArgumentNullException.ThrowIfNull(postgresConnectionString);
-        ArgumentNullException.ThrowIfNull(redisConnectionString);
+            ArgumentNullException.ThrowIfNull(postgresConnectionString);
+            ArgumentNullException.ThrowIfNull(redisConnectionString);
 
-        builder.Services
-            .AddHealthChecks()
-            .AddDiskStorageHealthCheck(options => { options.CheckAllDrives = true; }, name: "system:diskStorage")
-            .AddNpgSql(postgresConnectionString, name: "services:PostgresSQL")
-            .AddRedis(redisConnectionString, name: "services:Redis");
+            builder.Services
+                .AddHealthChecks()
+                .AddDiskStorageHealthCheck(options => { options.CheckAllDrives = true; }, name: "system:diskStorage")
+                .AddNpgSql(postgresConnectionString, name: "services:PostgresSQL")
+                .AddRedis(redisConnectionString, name: "services:Redis");
 
-        return builder;
+            return builder;
+        }
     }
 }

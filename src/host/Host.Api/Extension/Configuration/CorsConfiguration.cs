@@ -7,31 +7,35 @@ public static class CorsConfiguration
         public IEnumerable<string> Origins { get; set; } = [];
     }
 
-    public static TBuilder AddAppCors<TBuilder>(this TBuilder builder)
+    extension<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        builder.Services.AddCors();
+        public TBuilder AddAppCors()
+        {
+            builder.Services.AddCors();
 
-        return builder;
+            return builder;
+        }
     }
 
-    public static WebApplication UseAppCors(
-        this WebApplication app,
-        Action<ApiCorsConfiguration> configure)
+    extension(WebApplication app)
     {
-        ApiCorsConfiguration apiConfiguration = new();
-        configure(apiConfiguration);
-
-        app.UseCors(options =>
+        public WebApplication UseAppCors(Action<ApiCorsConfiguration> configure)
         {
-            options
-                .WithOrigins(apiConfiguration.Origins.ToArray())
-                .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials()
-                .WithExposedHeaders("Content-Disposition");
-        });
+            ApiCorsConfiguration apiConfiguration = new();
+            configure(apiConfiguration);
 
-        return app;
+            app.UseCors(options =>
+            {
+                options
+                    .WithOrigins(apiConfiguration.Origins.ToArray())
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials()
+                    .WithExposedHeaders("Content-Disposition");
+            });
+
+            return app;
+        }
     }
 }

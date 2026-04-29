@@ -8,48 +8,54 @@ namespace ServiceDefaults;
 
 public static class Extensions
 {
-    /// <summary>
-    /// Add OpenTelemetry, self Health Check and Serilog to the application
-    /// </summary>
-    /// <param name="builder"></param>
-    /// <typeparam name="TBuilder"><see cref="IHostApplicationBuilder"/></typeparam>
-    /// <returns><see cref="IHostApplicationBuilder"/></returns>
-    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
+    extension<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        builder
-            .ConfigureOpenTelemetry(ServiceDefaultConstant.HealthEndpointPath, ServiceDefaultConstant.AliveEndpointPath)
-            .ConfigureHealthCheck()
-            .ConfigureLog();
+        /// <summary>
+        /// Add OpenTelemetry, self Health Check and Serilog to the application
+        /// </summary>
+        /// <param name="builder"></param>
+        /// <typeparam name="TBuilder"><see cref="IHostApplicationBuilder"/></typeparam>
+        /// <returns><see cref="IHostApplicationBuilder"/></returns>
+        public TBuilder AddServiceDefaults()
+        {
+            builder
+                .ConfigureOpenTelemetry(ServiceDefaultConstant.HealthEndpointPath,
+                    ServiceDefaultConstant.AliveEndpointPath)
+                .ConfigureHealthCheck()
+                .ConfigureLog();
 
-        return builder;
+            return builder;
+        }
     }
 
-    /// <summary>
-    /// Map Health and Alive endpoint to the Application
-    /// </summary>
-    /// <param name="application"><see cref="WebApplication"/></param>
-    /// <param name="healthEndpointPath">Endpoint for Health Check</param>
-    /// <param name="aliveEndpointPath">Endpoint for Alive Check</param>
-    /// <returns><see cref="WebApplication"/></returns>
-    public static WebApplication MapDefaultEndpoint(
-        this WebApplication application,
-        string healthEndpointPath,
-        string aliveEndpointPath)
+    extension(WebApplication application)
     {
-        if (application.Environment.IsDevelopment())
+        /// <summary>
+        /// Map Health and Alive endpoint to the Application
+        /// </summary>
+        /// <param name="application"><see cref="WebApplication"/></param>
+        /// <param name="healthEndpointPath">Endpoint for Health Check</param>
+        /// <param name="aliveEndpointPath">Endpoint for Alive Check</param>
+        /// <returns><see cref="WebApplication"/></returns>
+        public WebApplication MapDefaultEndpoint(
+            string healthEndpointPath,
+            string aliveEndpointPath)
         {
-            application.MapHealthChecks(healthEndpointPath, new HealthCheckOptions
+            if (application.Environment.IsDevelopment())
             {
-                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse,
-            });
+                application.MapHealthChecks(healthEndpointPath, new HealthCheckOptions
+                {
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse,
+                });
 
-            application.MapHealthChecks(aliveEndpointPath, new HealthCheckOptions
-            {
-                Predicate = r => r.Tags.Contains("self")
-            });
+                application.MapHealthChecks(aliveEndpointPath, new HealthCheckOptions
+                {
+                    Predicate = r => r.Tags.Contains("self")
+                });
+            }
+
+            return application;
         }
-
-        return application;
     }
 }
