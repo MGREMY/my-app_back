@@ -9,15 +9,15 @@ using Microsoft.Extensions.Localization;
 
 namespace Domain.Service.Service.Admin.User;
 
-public sealed class UserDelete
+public sealed class UserByIdDelete
     : AbstractServiceAsync<Guid>,
-        IDeleteUserService
+        IDeleteUserByIdService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly ICacheService _cacheService;
 
-    public UserDelete(
+    public UserByIdDelete(
         AppDbContext db,
         IStringLocalizer<SharedResource> localizer,
         ICacheService cacheService)

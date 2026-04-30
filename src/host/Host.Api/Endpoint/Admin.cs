@@ -54,10 +54,10 @@ public static class AdminHandler
 
         public static async Task<Results<NoContent, NotFound>> HandleDeleteUserByIdV1(
             Guid id,
-            IDeleteUserService service,
+            IDeleteUserByIdService byIdService,
             CancellationToken ct = default)
         {
-            await service.ExecuteAsync(id, ct);
+            await byIdService.ExecuteAsync(id, ct);
 
             return TypedResults.NoContent();
         }
