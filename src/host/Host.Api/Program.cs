@@ -34,11 +34,11 @@ builder.Services
 var app = builder.Build();
 
 app
+    .UseAppCors(options => { options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? []; })
     .UseAppAuthentication()
     .UseAppAuthorization()
     .UseAppDomainExceptionHandler()
     .UseAppOpenApi()
-    .UseAppCors(options => { options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? []; })
     .MapDefaultEndpoint(ServiceDefaultConstant.HealthEndpointPath, ServiceDefaultConstant.AliveEndpointPath)
     .UseAppEndpoints()
     .UseAntiforgery()
