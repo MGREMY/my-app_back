@@ -5,7 +5,7 @@ A backend API.
 ## Tech Stack
 
 - **Framework**: ASP.NET Core
-- **API**: FastEndpoints
+- **API**: MinimalAPI
 - **Database**: PostgreSQL (via Entity Framework Core)
 - **Cache**: Redis
 - **Authentication**: JWT-based
