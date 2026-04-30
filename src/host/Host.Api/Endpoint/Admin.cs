@@ -13,9 +13,9 @@ public static class Admin
             .RequireAuthorization(ApiConstant.AuthorizationPolicies.Admin);
 
         var user = group.MapGroup("/users").WithTags("users");
-        user.MapGet(string.Empty, AdminHandler.UserHandler.HandleGetUsersV1).MapToApiVersion(1);
-        user.MapGet("{id:guid}", AdminHandler.UserHandler.HandleGetUserByIdV1).MapToApiVersion(1);
-        user.MapDelete("{id:guid}", AdminHandler.UserHandler.HandleDeleteUserByIdV1).MapToApiVersion(1);
+        user.MapGet(string.Empty, AdminHandler.UserHandler.HandleGetV1).MapToApiVersion(1);
+        user.MapGet("{id:guid}", AdminHandler.UserHandler.HandleGetByIdV1).MapToApiVersion(1);
+        user.MapDelete("{id:guid}", AdminHandler.UserHandler.HandleDeleteByIdV1).MapToApiVersion(1);
 
         return g;
     }
@@ -26,7 +26,7 @@ public static class AdminHandler
     public static class UserHandler
     {
         public static async Task<Results<Ok<PaginationResponse<MinimalUserResponse>>, BadRequest<ErrorResponse>>>
-            HandleGetUsersV1(
+            HandleGetV1(
                 PaginationRequest req,
                 IValidator<PaginationRequest> validator,
                 IGetUserService service,
@@ -42,7 +42,7 @@ public static class AdminHandler
             });
         }
 
-        public static async Task<Results<Ok<UserResponse>, NotFound>> HandleGetUserByIdV1(
+        public static async Task<Results<Ok<UserResponse>, NotFound>> HandleGetByIdV1(
             Guid id,
             IGetUserByIdService service,
             CancellationToken ct = default)
@@ -52,7 +52,7 @@ public static class AdminHandler
             return TypedResults.Ok(new UserResponse(result));
         }
 
-        public static async Task<Results<NoContent, NotFound>> HandleDeleteUserByIdV1(
+        public static async Task<Results<NoContent, NotFound>> HandleDeleteByIdV1(
             Guid id,
             IDeleteUserByIdService byIdService,
             CancellationToken ct = default)
