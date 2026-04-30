@@ -34,7 +34,7 @@ public static class AuthenticationConfiguration
                         ValidAudience = apiConfiguration.Audience,
                         ValidIssuer = apiConfiguration.Domain,
                     };
-                    options.RequireHttpsMetadata = false;
+                    options.RequireHttpsMetadata = builder.Environment.IsProduction();
                 });
 
             return builder;

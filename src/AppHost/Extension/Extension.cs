@@ -18,7 +18,7 @@ public static class Extension
                         secret: true),
                     port: int.TryParse(builder.Configuration["api_config:postgres:port"], out var port)
                         ? port
-                        : throw new NullReferenceException(nameof(port))
+                        : throw new InvalidOperationException(nameof(port))
                 )
                 .WithDataVolume()
                 .AddDatabase(name: "postgres", databaseName: "myApp");
@@ -34,7 +34,7 @@ public static class Extension
                     secret: true),
                 port: int.TryParse(builder.Configuration["api_config:redis:port"], out var port)
                     ? port
-                    : throw new NullReferenceException(nameof(port))
+                    : throw new InvalidOperationException(nameof(port))
             );
 
             // Remove TLS certificate as Aspire is used only for development
@@ -59,7 +59,7 @@ public static class Extension
                         secret: true),
                     port: int.TryParse(builder.Configuration["api_config:keycloak:port"], out var port)
                         ? port
-                        : throw new NullReferenceException(nameof(port))
+                        : throw new InvalidOperationException(nameof(port))
                 )
                 .WithDataVolume()
                 // Note:
@@ -74,10 +74,10 @@ public static class Extension
                 "smtp",
                 httpPort: int.TryParse(builder.Configuration["api_config:mailPit:http_port"], out var httpPort)
                     ? httpPort
-                    : throw new NullReferenceException(nameof(httpPort)),
+                    : throw new InvalidOperationException(nameof(httpPort)),
                 smtpPort: int.TryParse(builder.Configuration["api_config:mailPit:smtp_port"], out var smtpPort)
                     ? smtpPort
-                    : throw new NullReferenceException(nameof(smtpPort))
+                    : throw new InvalidOperationException(nameof(smtpPort))
             );
         }
     }

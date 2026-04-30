@@ -24,6 +24,7 @@ jobs:
         name: Setup dotnet 10.0.x
         with:
           dotnet-version: 10.0.x
+          cache: true
 
       - name: Install dependencies
         run: dotnet restore

@@ -99,13 +99,11 @@ public static class AppDbContextExtension
             catch (Exception e)
             {
                 logger.LogCritical("Error while migrating the database: {exception}", e);
-                logger.LogCritical("Exiting and rollbock all changes made to avoid conflicts or lost data");
+                logger.LogCritical("Exiting and rollback all changes made to avoid conflicts or lost data");
 
                 await transaction.RollbackAsync(ct);
 
-                Environment.Exit(1);
-
-                return false;
+                throw;
             }
 
             await transaction.CommitAsync(ct);

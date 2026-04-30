@@ -57,7 +57,15 @@ if (app.Environment.IsDevelopment())
     {
         await using (var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>())
         {
-            await dbContext.MigrateAndExecSqlScriptAsync(scope.ServiceProvider.GetRequiredService<ILoggerFactory>());
+            try
+            {
+                await dbContext.MigrateAndExecSqlScriptAsync(scope.ServiceProvider
+                    .GetRequiredService<ILoggerFactory>());
+            }
+            catch
+            {
+                Environment.Exit(1);
+            }
         }
     }
 }
