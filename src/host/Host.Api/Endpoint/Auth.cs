@@ -19,7 +19,8 @@ public static class Auth
 
 public static class AuthHandler
 {
-    public static async Task<NoContent> HandlePostSyncUserV1(ISyncUserService service,
+    public static async Task<NoContent> HandlePostSyncUserV1(
+        ISyncUserService service,
         ClaimsPrincipal user,
         CancellationToken ct = default)
     {

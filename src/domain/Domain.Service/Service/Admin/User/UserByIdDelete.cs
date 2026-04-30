@@ -41,7 +41,9 @@ public sealed class UserByIdDelete
         Guid id,
         CancellationToken ct = default)
     {
-        var user = await _db.Users.FirstAsync(user => user.Id == id, ct);
+        var user = await _db.Users
+            .Where(user => user.Id == id)
+            .FirstAsync(ct);
 
         user.SetSoftDeletableData();
         await _db.SaveChangesAsync(ct);

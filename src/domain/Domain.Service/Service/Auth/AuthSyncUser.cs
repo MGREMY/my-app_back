@@ -46,7 +46,8 @@ public sealed class AuthSyncUser
         var user = await _db.Users
             .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
             .AsNoTracking()
-            .FirstOrDefaultAsync(user => user.AuthId == query.AuthId, ct);
+            .Where(user => user.AuthId == query.AuthId)
+            .FirstOrDefaultAsync(ct);
 
         if (user is null)
         {

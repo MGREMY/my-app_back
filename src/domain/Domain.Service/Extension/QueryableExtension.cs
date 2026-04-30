@@ -1,9 +1,7 @@
-using System.Diagnostics.CodeAnalysis;
 using Domain.Service.Contract.Dto;
 
 namespace Domain.Service.Extension;
 
-[ExcludeFromCodeCoverage]
 public static class QueryableExtension
 {
     extension<T>(IQueryable<T> query)

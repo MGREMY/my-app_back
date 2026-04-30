@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
@@ -29,7 +28,6 @@ public sealed class CacheService : ICacheService
         return await JsonSerializer.DeserializeAsync<T>(ms, options: JsonSerializerOptions.Default, ct);
     }
 
-    [ExcludeFromCodeCoverage]
     public Task SaveAsync<T>(string key, T data, CancellationToken ct = default)
     {
         return _cache.SetAsync(
@@ -40,7 +38,6 @@ public sealed class CacheService : ICacheService
             ct);
     }
 
-    [ExcludeFromCodeCoverage]
     public Task DeleteAsync(string key, CancellationToken ct = default)
     {
         return _cache.RemoveAsync(key, ct);

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Domain.Model;
 using Domain.Service.Service;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Domain.Service.Extension;
 
-[ExcludeFromCodeCoverage]
 public static class Extension
 {
     extension(IServiceCollection services)

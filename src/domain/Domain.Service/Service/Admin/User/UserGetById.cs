@@ -40,8 +40,9 @@ public sealed class UserGetById
     {
         return _db.Users
             .AsNoTracking()
-            .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
             .AsSplitQuery()
-            .FirstAsync(user => user.Id == id, ct);
+            .Where(user => user.Id == id)
+            .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
+            .FirstAsync(ct);
     }
 }
