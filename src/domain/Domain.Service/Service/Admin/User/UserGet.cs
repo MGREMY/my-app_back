@@ -1,16 +1,16 @@
 using Core.Service;
 using Domain.Model;
 using Domain.Service.Contract.Dto;
-using Domain.Service.Contract.Service.User;
+using Domain.Service.Contract.Service.Admin.User;
 using Domain.Service.Extension;
 using Microsoft.EntityFrameworkCore;
 
-namespace Domain.Service.Service.User;
+namespace Domain.Service.Service.Admin.User;
 
 [PaginationHandlerFor<Model.Model.User>]
 public sealed class UserGet
     : AbstractServiceAsync<PaginationRequest, PaginationResponse<MinimalUserResponse>>,
-        IGetService
+        IGetUserService
 {
     private readonly AppDbContext _db;
 

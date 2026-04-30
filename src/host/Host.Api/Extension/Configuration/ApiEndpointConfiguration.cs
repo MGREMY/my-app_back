@@ -46,7 +46,7 @@ public static class ApiEndpointConfiguration
             group
                 .UseAuthApi()
                 .UseMiscApi()
-                .UseUserApi();
+                .UseAdminApi();
 
             return app;
         }

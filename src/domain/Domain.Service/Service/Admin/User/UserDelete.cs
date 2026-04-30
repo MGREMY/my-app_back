@@ -1,27 +1,30 @@
 using Core.Service;
 using Domain.Model;
+using Domain.Model.Model.Interface;
 using Domain.Service.Contract;
-using Domain.Service.Contract.Dto;
-using Domain.Service.Contract.Service.User;
+using Domain.Service.Contract.Service.Admin.User;
 using Domain.Service.Resource;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
-namespace Domain.Service.Service.User;
+namespace Domain.Service.Service.Admin.User;
 
-public sealed class UserGetById
-    : AbstractServiceAsync<Guid, UserResponse>,
-        IGetByIdService
+public sealed class UserDelete
+    : AbstractServiceAsync<Guid>,
+        IDeleteUserService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly ICacheService _cacheService;
 
-    public UserGetById(
+    public UserDelete(
         AppDbContext db,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer,
+        ICacheService cacheService)
     {
         _db = db;
         _localizer = localizer;
+        _cacheService = cacheService;
     }
 
     protected override async Task PreExecuteAsync(
@@ -34,14 +37,15 @@ public sealed class UserGetById
         }
     }
 
-    protected override Task<UserResponse> HandleAsync(
+    protected override async Task HandleAsync(
         Guid id,
         CancellationToken ct = default)
     {
-        return _db.Users
-            .AsNoTracking()
-            .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
-            .AsSplitQuery()
-            .FirstAsync(user => user.Id == id, ct);
+        var user = await _db.Users.FirstAsync(user => user.Id == id, ct);
+
+        user.SetSoftDeletableData();
+        await _db.SaveChangesAsync(ct);
+
+        await _cacheService.SaveAsync($"{ServiceConstant.Auth.SyncCacheKey}:{user.AuthId}", user, ct);
     }
 }
