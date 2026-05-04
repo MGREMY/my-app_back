@@ -2,12 +2,12 @@ using Core.Service;
 using Domain.Model;
 using Domain.Service.Contract;
 using Domain.Service.Contract.Dto;
-using Domain.Service.Contract.Service.Admin.User;
+using Domain.Service.Contract.Service.User;
 using Domain.Service.Resource;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
-namespace Domain.Service.Service.Admin.User;
+namespace Domain.Service.Service.User;
 
 public sealed class UserGetById
     : AbstractServiceAsync<Guid, UserResponse>,
@@ -41,7 +41,6 @@ public sealed class UserGetById
         return _db.Users
             .AsNoTracking()
             .AsSplitQuery()
-            .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
             .Where(user => user.Id == id)
             .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
             .FirstAsync(ct);

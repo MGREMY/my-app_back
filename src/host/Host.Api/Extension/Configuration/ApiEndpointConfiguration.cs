@@ -44,9 +44,10 @@ public static class ApiEndpointConfiguration
                 .RequireAuthorization();
 
             group
+                .UseAdminApi()
                 .UseAuthApi()
                 .UseMiscApi()
-                .UseAdminApi();
+                .UseUserApi();
 
             return app;
         }

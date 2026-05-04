@@ -1,13 +1,13 @@
 using Core.Service;
 using Domain.Model;
 using Domain.Service.Contract.Dto;
-using Domain.Service.Contract.Service.Admin.User;
+using Domain.Service.Contract.Service.User;
 using Domain.Service.Extension;
+using Domain.Service.Service.Admin.User;
 using Microsoft.EntityFrameworkCore;
 
-namespace Domain.Service.Service.Admin.User;
+namespace Domain.Service.Service.User;
 
-[PaginationHandlerFor<Model.Model.User>]
 public sealed class UserGet
     : AbstractServiceAsync<PaginationRequest, PaginationResponse<MinimalUserResponse>>,
         IGetUserService
@@ -25,7 +25,6 @@ public sealed class UserGet
     {
         return _db.Users
             .AsNoTracking()
-            .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
             .ProcessPaginationRequest(query, out var countAsync)
             .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)
             .ToPagedResponseAsync(query.PageNumber, query.PageSize, countAsync, ct);
