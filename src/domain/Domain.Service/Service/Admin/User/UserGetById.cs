@@ -41,7 +41,6 @@ public sealed class UserGetById
         return _db.Users
             .AsNoTracking()
             .AsSplitQuery()
-            .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
             .Where(user => user.Id == id)
             .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
             .FirstAsync(ct);
