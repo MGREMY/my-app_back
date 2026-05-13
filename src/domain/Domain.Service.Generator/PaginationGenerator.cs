@@ -75,7 +75,7 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                 var @entityFullName = target.Entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 var @entityName = target.Entity.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
                 var @entityProperties = Enumerable
-                    .GroupBy([.._entityMembers, .._entityInterfacesMembers], x => x.Name)
+                    .GroupBy([.. _entityMembers, .. _entityInterfacesMembers], x => x.Name)
                     .Select(x => x.First())
                     .ToArray();
 
