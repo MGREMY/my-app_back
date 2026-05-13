@@ -41,7 +41,7 @@ public static class Extension
 #pragma warning disable ASPIRECERTIFICATES001
             redis.WithoutHttpsCertificate();
 #pragma warning restore ASPIRECERTIFICATES001
-            
+
             return redis;
         }
 

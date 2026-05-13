@@ -6,6 +6,7 @@ public sealed class UserResponse
     public required DateTimeOffset CreatedAtUtc { get; set; }
     public required string UserName { get; set; }
     public required string Email { get; set; }
+    public required bool IsDeleted { get; set; }
 }
 
 public sealed class MinimalUserResponse
@@ -14,4 +15,5 @@ public sealed class MinimalUserResponse
     public required DateTimeOffset CreatedAtUtc { get; set; }
     public required string UserName { get; set; }
     public required string Email { get; set; }
+    public required bool IsDeleted { get; set; }
 }

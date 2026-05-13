@@ -78,38 +78,38 @@ public static partial class ExceptionHandlerConfiguration
                             });
                             break;
                         default:
-                        {
-                            logger ??= ctx.RequestServices.GetRequiredService<ILogger<ExceptionHandler>>();
-                            var reason = exHandlerFeature.Error.Message;
+                            {
+                                logger ??= ctx.RequestServices.GetRequiredService<ILogger<ExceptionHandler>>();
+                                var reason = exHandlerFeature.Error.Message;
 
-                            if (logStructuredException)
-                            {
-                                logger.LogStructuredException(
-                                    exHandlerFeature.Error,
-                                    exHandlerFeature.Error.GetType().Name,
-                                    exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
-                                    reason);
-                            }
-                            else
-                            {
-                                //this branch is only meant for unstructured textual logging
-                                logger.LogUnStructuredException(
-                                    exHandlerFeature.Error.GetType().Name,
-                                    exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
-                                    reason,
-                                    exHandlerFeature.Error.StackTrace);
-                            }
+                                if (logStructuredException)
+                                {
+                                    logger.LogStructuredException(
+                                        exHandlerFeature.Error,
+                                        exHandlerFeature.Error.GetType().Name,
+                                        exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
+                                        reason);
+                                }
+                                else
+                                {
+                                    //this branch is only meant for unstructured textual logging
+                                    logger.LogUnStructuredException(
+                                        exHandlerFeature.Error.GetType().Name,
+                                        exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
+                                        reason,
+                                        exHandlerFeature.Error.StackTrace);
+                                }
 
-                            ctx.Response.StatusCode = 500;
-                            await WriteToResponse(new InternalErrorResponse
-                            {
-                                Status = "Internal Server Error!",
-                                Code = ctx.Response.StatusCode,
-                                Reason = useGenericReason ? "An unexpected error has occurred." : reason,
-                                Note = "See application log for stack trace."
-                            });
-                            break;
-                        }
+                                ctx.Response.StatusCode = 500;
+                                await WriteToResponse(new InternalErrorResponse
+                                {
+                                    Status = "Internal Server Error!",
+                                    Code = ctx.Response.StatusCode,
+                                    Reason = useGenericReason ? "An unexpected error has occurred." : reason,
+                                    Note = "See application log for stack trace."
+                                });
+                                break;
+                            }
                     }
 
                     Task WriteToResponse<TValue>(TValue value)

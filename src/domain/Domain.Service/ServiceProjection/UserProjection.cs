@@ -13,6 +13,7 @@ internal static class UserProjection
             CreatedAtUtc = user.CreatedAtUtc,
             UserName = user.UserName,
             Email = user.Email,
+            IsDeleted = user.IsDeleted,
         };
 
     internal static readonly Expression<Func<User, UserResponse>> ToUserServiceResponse = user =>
@@ -22,5 +23,6 @@ internal static class UserProjection
             CreatedAtUtc = user.CreatedAtUtc,
             UserName = user.UserName,
             Email = user.Email,
+            IsDeleted = user.IsDeleted,
         };
 }

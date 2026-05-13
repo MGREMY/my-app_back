@@ -52,11 +52,11 @@ public sealed class AuthSyncUser
         if (user is null)
         {
             user = new Model.Model.User
-                {
-                    AuthId = query.AuthId,
-                    UserName = query.UserName,
-                    Email = query.Email,
-                }
+            {
+                AuthId = query.AuthId,
+                UserName = query.UserName,
+                Email = query.Email,
+            }
                 .SetCreatedAtData();
 
             await _db.Users.AddAsync(user, ct);
@@ -70,7 +70,7 @@ public sealed class AuthSyncUser
             UserName = user.UserName,
             Email = user.Email,
             CreatedAtUtc = user.CreatedAtUtc,
-            UpdatedAtUtc =  user.UpdatedAtUtc,
+            UpdatedAtUtc = user.UpdatedAtUtc,
             HasBeenModified = user.HasBeenModified,
             IsDeleted = user.IsDeleted,
             DeletedAtUtc = user.DeletedAtUtc,
