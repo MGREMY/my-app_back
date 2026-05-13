@@ -27,7 +27,8 @@ public sealed class UserGet
             .AsNoTracking()
             .AsQueryable();
 
-        if (query.IncludeDeletedItems) dbQuery = dbQuery.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter]);
+        if (query.AdditionalFlags.IncludeDeletedItems)
+            dbQuery = dbQuery.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter]);
 
         return dbQuery
             .ProcessPaginationRequest(query.PaginationRequest, out var countAsync)

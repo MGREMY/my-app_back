@@ -28,14 +28,15 @@ public static class AdminHandler
         public static async Task<Results<Ok<PaginationResponse<MinimalUserResponse>>, BadRequest<ErrorResponse>>>
             HandleGetV1(
                 PaginationRequest req,
-                bool includeDeletedItems,
+                AdditionalFlagsRequest additionalFlags,
                 IValidator<PaginationRequest> validator,
                 IGetUserService service,
                 CancellationToken ct = default)
         {
             await validator.ValidateAndThrowAsync(req, ct);
 
-            var result = await service.ExecuteAsync(new(req.ToServiceRequest(), includeDeletedItems), ct);
+            var result =
+                await service.ExecuteAsync(new(req.ToServiceRequest(), additionalFlags.ToServiceRequest()), ct);
 
             return TypedResults.Ok(new PaginationResponse<MinimalUserResponse>(result)
             {
