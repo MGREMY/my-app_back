@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Endpoint;
 
@@ -18,7 +19,7 @@ public static class Misc
 public static class MiscHandler
 {
     public static NoContent HandleGetAntiForgeryTokenV1(
-        IAntiforgery antiForgery,
+        [FromServices] IAntiforgery antiForgery,
         HttpContext context)
     {
         antiForgery.GetAndStoreTokens(context);

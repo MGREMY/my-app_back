@@ -2,12 +2,12 @@ using Core.Service;
 using Domain.Model;
 using Domain.Model.Model.Interface;
 using Domain.Service.Contract;
-using Domain.Service.Contract.Service.Admin.User;
+using Domain.Service.Contract.Service.User;
 using Domain.Service.Resource;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
-namespace Domain.Service.Service.Admin.User;
+namespace Domain.Service.Service.User;
 
 public sealed class UserByIdDelete
     : AbstractServiceAsync<Guid>,

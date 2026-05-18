@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Domain.Service.Contract.Service.Auth;
 using Host.Api.Extension;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Endpoint;
 
@@ -20,7 +21,7 @@ public static class Auth
 public static class AuthHandler
 {
     public static async Task<NoContent> HandlePostSyncUserV1(
-        ISyncUserService service,
+        [FromServices] ISyncUserService service,
         ClaimsPrincipal user,
         CancellationToken ct = default)
     {

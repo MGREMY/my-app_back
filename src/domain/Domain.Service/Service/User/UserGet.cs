@@ -3,13 +3,13 @@ using Domain.Model;
 using Domain.Service.Contract.Dto;
 using Domain.Service.Contract.Service.User;
 using Domain.Service.Extension;
-using Domain.Service.Service.Admin.User;
 using Microsoft.EntityFrameworkCore;
 
 namespace Domain.Service.Service.User;
 
+[PaginationHandlerFor<Model.Model.User>]
 public sealed class UserGet
-    : AbstractServiceAsync<PaginationRequest, PaginationResponse<MinimalUserResponse>>,
+    : AbstractServiceAsync<IGetUserService.Request, PaginationResponse<MinimalUserResponse>>,
         IGetUserService
 {
     private readonly AppDbContext _db;
@@ -20,13 +20,19 @@ public sealed class UserGet
     }
 
     protected override Task<PaginationResponse<MinimalUserResponse>> HandleAsync(
-        PaginationRequest query,
+        IGetUserService.Request query,
         CancellationToken ct = default)
     {
-        return _db.Users
+        var dbQuery = _db.Users
             .AsNoTracking()
-            .ProcessPaginationRequest(query, out var countAsync)
+            .AsQueryable();
+
+        if (query.AdditionalFlags.IncludeDeletedItems)
+            dbQuery = dbQuery.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter]);
+
+        return dbQuery
+            .ProcessPaginationRequest(query.PaginationRequest, out var countAsync)
             .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)
-            .ToPagedResponseAsync(query.PageNumber, query.PageSize, countAsync, ct);
+            .ToPagedResponseAsync(query.PaginationRequest.PageNumber, query.PaginationRequest.PageSize, countAsync, ct);
     }
 }
