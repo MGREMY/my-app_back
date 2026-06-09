@@ -59,10 +59,11 @@ public static partial class ExceptionHandlerConfiguration
                     switch (exHandlerFeature.Error)
                     {
                         case ValidationException validationException:
-                            ctx.Response.StatusCode = 400;
+                            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
                             await WriteToResponse(new ErrorResponse
                             {
-                                StatusCode = 400,
+                                StatusCode = StatusCodes.Status400BadRequest,
+                                Message = validationException.Message,
                                 Errors = validationException.Errors.GroupBy(x => x.PropertyName).ToDictionary(
                                     x => x.Key,
                                     x => x.Select(y => y.ErrorMessage).ToArray()
@@ -75,41 +76,42 @@ public static partial class ExceptionHandlerConfiguration
                             {
                                 StatusCode = domainException.StatusCode,
                                 Message = domainException.Message,
+                                Errors = domainException.Errors,
                             });
                             break;
                         default:
+                        {
+                            logger ??= ctx.RequestServices.GetRequiredService<ILogger<ExceptionHandler>>();
+                            var reason = exHandlerFeature.Error.Message;
+
+                            if (logStructuredException)
                             {
-                                logger ??= ctx.RequestServices.GetRequiredService<ILogger<ExceptionHandler>>();
-                                var reason = exHandlerFeature.Error.Message;
-
-                                if (logStructuredException)
-                                {
-                                    logger.LogStructuredException(
-                                        exHandlerFeature.Error,
-                                        exHandlerFeature.Error.GetType().Name,
-                                        exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
-                                        reason);
-                                }
-                                else
-                                {
-                                    //this branch is only meant for unstructured textual logging
-                                    logger.LogUnStructuredException(
-                                        exHandlerFeature.Error.GetType().Name,
-                                        exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
-                                        reason,
-                                        exHandlerFeature.Error.StackTrace);
-                                }
-
-                                ctx.Response.StatusCode = 500;
-                                await WriteToResponse(new InternalErrorResponse
-                                {
-                                    Status = "Internal Server Error!",
-                                    Code = ctx.Response.StatusCode,
-                                    Reason = useGenericReason ? "An unexpected error has occurred." : reason,
-                                    Note = "See application log for stack trace."
-                                });
-                                break;
+                                logger.LogStructuredException(
+                                    exHandlerFeature.Error,
+                                    exHandlerFeature.Error.GetType().Name,
+                                    exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
+                                    reason);
                             }
+                            else
+                            {
+                                //this branch is only meant for unstructured textual logging
+                                logger.LogUnStructuredException(
+                                    exHandlerFeature.Error.GetType().Name,
+                                    exHandlerFeature.Endpoint?.DisplayName?.Split(" => ")[0],
+                                    reason,
+                                    exHandlerFeature.Error.StackTrace);
+                            }
+
+                            ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                            await WriteToResponse(new InternalErrorResponse
+                            {
+                                Status = "Internal Server Error!",
+                                Code = ctx.Response.StatusCode,
+                                Reason = useGenericReason ? "An unexpected error has occurred." : reason,
+                                Note = "See application log for stack trace."
+                            });
+                            break;
+                        }
                     }
 
                     Task WriteToResponse<TValue>(TValue value)

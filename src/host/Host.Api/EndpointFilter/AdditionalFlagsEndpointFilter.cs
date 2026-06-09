@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Host.Api.EndpointFilter;
 
-public sealed class AdditionalFiagsEndpointFilter : IEndpointFilter
+public sealed class AdditionalFlagsEndpointFilter : IEndpointFilter
 {
     public async ValueTask<object?> InvokeAsync(
         EndpointFilterInvocationContext context,

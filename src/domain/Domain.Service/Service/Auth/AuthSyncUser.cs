@@ -1,3 +1,4 @@
+using System.Net;
 using Core.Service;
 using Domain.Model;
 using Domain.Model.Model.Interface;
@@ -40,7 +41,9 @@ public sealed class AuthSyncUser
                 return;
             }
 
-            throw new DomainException(_localizer.GetString(ServiceConstant.Error.user_already_deleted), 403);
+            throw new DomainException(
+                HttpStatusCode.Forbidden,
+                _localizer.GetString(ServiceConstant.Error.user_already_deleted));
         }
 
         var user = await _db.Users
@@ -51,12 +54,12 @@ public sealed class AuthSyncUser
 
         if (user is null)
         {
-            user = new Model.Model.User
-            {
-                AuthId = query.AuthId,
-                UserName = query.UserName,
-                Email = query.Email,
-            }
+            user = new Models.User
+                {
+                    AuthId = query.AuthId,
+                    UserName = query.UserName,
+                    Email = query.Email,
+                }
                 .SetCreatedAtData();
 
             await _db.Users.AddAsync(user, ct);
@@ -78,7 +81,9 @@ public sealed class AuthSyncUser
 
         if (user.IsDeleted)
         {
-            throw new DomainException(_localizer.GetString(ServiceConstant.Error.user_already_deleted), 403);
+            throw new DomainException(
+                HttpStatusCode.Forbidden,
+                _localizer.GetString(ServiceConstant.Error.user_already_deleted));
         }
     }
 }

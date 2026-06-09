@@ -14,7 +14,7 @@ public static class User
         var group = g.MapGroup("/users").WithTags("users");
 
         group.MapGet(string.Empty, UserHandler.HandleGetV1)
-            .AddEndpointFilter<AdditionalFiagsEndpointFilter>()
+            .AddEndpointFilter<AdditionalFlagsEndpointFilter>()
             .MapToApiVersion(1);
         group.MapGet("{id:guid}", UserHandler.HandleGetByIdV1).MapToApiVersion(1);
         group.MapDelete("{id:guid}", UserHandler.HandleDeleteByIdV1)

@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Using Include="Domain.Model.Model" Alias="Models"/>
         <ProjectReference Include="..\Domain.Model\Domain.Model.csproj" />
         <ProjectReference Include="..\Domain.Service.Contract\Domain.Service.Contract.csproj" />
         <ProjectReference Include="..\Domain.Service.Generator\Domain.Service.Generator.csproj"

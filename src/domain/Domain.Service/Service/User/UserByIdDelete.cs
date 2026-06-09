@@ -1,3 +1,4 @@
+using System.Net;
 using Core.Service;
 using Domain.Model;
 using Domain.Model.Model.Interface;
@@ -33,7 +34,9 @@ public sealed class UserByIdDelete
     {
         if (!await _db.Users.AnyAsync(user => user.Id == id, ct))
         {
-            throw new DomainException(_localizer.GetString(ServiceConstant.Error.user_not_found), 404);
+            throw new DomainException(
+                HttpStatusCode.NotFound,
+                _localizer.GetString(ServiceConstant.Error.user_not_found));
         }
     }
 
