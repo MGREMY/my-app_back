@@ -9,6 +9,8 @@
     <Project Path="src/domain/Domain.Model/Domain.Model.csproj" />
     <Project Path="src/domain/Domain.Service.Contract/Domain.Service.Contract.csproj" />
     <Project Path="src/domain/Domain.Service/Domain.Service.csproj" />
+    <Project Path="src/domain/Domain.Specification.MyApp/Domain.Specification.MyApp.csproj" />
+    <Project Path="src/domain/Domain.Specification/Domain.Specification.csproj" />
   </Folder>
   <Folder Name="/src/host/">
     <Project Path="src/host/Host.Api/Host.Api.csproj" />
