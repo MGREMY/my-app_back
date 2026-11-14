@@ -5,6 +5,9 @@ using Domain.Service.Contract;
 using Domain.Service.Contract.Dto;
 using Domain.Service.Contract.Service.User;
 using Domain.Service.Resource;
+using Domain.Specification;
+using Domain.Specification.Extensions;
+using Domain.Specification.MyApp.User;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 
@@ -29,7 +32,7 @@ public sealed class UserGetById
         Guid id,
         CancellationToken ct = default)
     {
-        if (!await _db.Users.AnyAsync(user => user.Id == id, ct))
+        if (!await _db.Users.Spec(new UserHasIdSpec(id)).AnyAsync(ct))
         {
             throw new DomainException(
                 HttpStatusCode.NotFound,
@@ -44,7 +47,7 @@ public sealed class UserGetById
         return _db.Users
             .AsNoTracking()
             .AsSplitQuery()
-            .Where(user => user.Id == id)
+            .Spec(new UserHasIdSpec(id))
             .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
             .FirstAsync(ct);
     }

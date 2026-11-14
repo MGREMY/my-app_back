@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Intentionally dependency-free: the specification abstraction must stay persistence-agnostic
+        so any provider (EF Core, in-memory, another ORM) can consume the expression trees without
+        dragging in a specific implementation.
+    -->
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>7.3</LangVersion>
+    </PropertyGroup>
+
+</Project>
