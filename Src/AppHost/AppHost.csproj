@@ -4,7 +4,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsAspireHost>true</IsAspireHost>
@@ -14,16 +14,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting.AppHost" Version="13.2.4" />
+        <PackageReference Include="Aspire.Hosting.AppHost" Version="13.6.5" />
         <PackageReference Include="Aspire.Hosting.Keycloak" Version="9.5.2-preview.1.25522.3"/>
-        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.2.4" />
-        <PackageReference Include="Aspire.Hosting.Redis" Version="13.2.4" />
-        <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.1.1" />
-        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.6.5" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="13.6.5" />
+        <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.6.1" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\host\Host.Api\Host.Api.csproj" />
+        <ProjectReference Include="..\Host\Host.Api\Host.Api.csproj" />
     </ItemGroup>
 
 </Project>

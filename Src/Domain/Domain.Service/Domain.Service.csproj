@@ -1,11 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>Domain.Service</AssemblyName>
         <RootNamespace>Domain.Service</RootNamespace>
+        <LangVersion>15</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,16 +21,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.7" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.7">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.15" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.15">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.5.0" />
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.7" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
-        <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.7" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="11.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Localization" Version="11.0.0" />
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     </ItemGroup>
 
     <ItemGroup>
