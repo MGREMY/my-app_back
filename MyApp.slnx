@@ -1,20 +1,21 @@
 <Solution>
   <Folder Name="/Src/">
     <Project Path="Src/AppHost/AppHost.csproj" />
-    <Project Path="Src/Core/Core.csproj" />
     <Project Path="Src/ServiceDefaults/ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/Src/Domain/">
-    <Project Path="Src/Domain/Domain.Service.Generator/Domain.Service.Generator.csproj" />
-    <Project Path="Src/Domain/Domain.Model/Domain.Model.csproj" />
-    <Project Path="Src/Domain/Domain.Service.Contract/Domain.Service.Contract.csproj" />
-    <Project Path="Src/Domain/Domain.Service/Domain.Service.csproj" />
-    <Project Path="Src/Domain/Domain.Specification.MyApp/Domain.Specification.MyApp.csproj" />
-    <Project Path="Src/Domain/Domain.Specification/Domain.Specification.csproj" />
+    <Project Path="Src\Domain\MyApp.Domain.Model\MyApp.Domain.Model.csproj" />
+    <Project Path="Src\Domain\MyApp.Domain.Specification\MyApp.Domain.Specification.csproj" />
   </Folder>
   <Folder Name="/Src/Host/">
-    <Project Path="Src/Host/Host.Api/Host.Api.csproj" />
+    <Project Path="Src\Host\MyApp.Host.Api\MyApp.Host.Api.csproj" />
   </Folder>
-  <Folder Name="/Src/Infrastructure/" />
-  <Folder Name="/Src/Service/" />
+  <Folder Name="/Src/Infrastructure/">
+    <Project Path="Src\Domain\MyApp.Infrastructure.Specification\MyApp.Infrastructure.Specification.csproj" />
+  </Folder>
+  <Folder Name="/Src/Service/">
+    <Project Path="Src\Domain\MyApp.Service.Abstractions\MyApp.Service.Abstractions.csproj" />
+    <Project Path="Src\Domain\MyApp.Service.Generator\MyApp.Service.Generator.csproj" />
+    <Project Path="Src\Domain\MyApp.Service\MyApp.Service.csproj" />
+  </Folder>
 </Solution>

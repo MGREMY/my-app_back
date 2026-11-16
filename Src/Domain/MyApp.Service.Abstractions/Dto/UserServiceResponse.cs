@@ -1,0 +1,19 @@
+namespace MyApp.Service.Abstractions.Dto;
+
+public sealed class UserResponse
+{
+    public required Guid Id { get; set; }
+    public required DateTimeOffset CreatedAtUtc { get; set; }
+    public required string UserName { get; set; }
+    public required string Email { get; set; }
+    public required bool IsDeleted { get; set; }
+}
+
+public sealed class MinimalUserResponse
+{
+    public required Guid Id { get; set; }
+    public required DateTimeOffset CreatedAtUtc { get; set; }
+    public required string UserName { get; set; }
+    public required string Email { get; set; }
+    public required bool IsDeleted { get; set; }
+}

@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MyApp.Domain.Model\MyApp.Domain.Model.csproj" />
+      <ProjectReference Include="..\MyApp.Infrastructure.Specification\MyApp.Infrastructure.Specification.csproj" />
+    </ItemGroup>
+
+</Project>

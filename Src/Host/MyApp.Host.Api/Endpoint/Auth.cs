@@ -1,0 +1,32 @@
+using System.Security.Claims;
+using MyApp.Service.Contract.Service.Auth;
+using MyApp.Host.Api.Extension;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+
+namespace MyApp.Host.Api.Endpoint;
+
+public static class Auth
+{
+    public static RouteGroupBuilder UseAuthApi(this RouteGroupBuilder g)
+    {
+        var group = g.MapGroup("/auth").WithTags("auth");
+
+        group.MapPost("sync-user", AuthHandler.HandlePostSyncUserV1).MapToApiVersion(1);
+
+        return g;
+    }
+}
+
+public static class AuthHandler
+{
+    public static async Task<NoContent> HandlePostSyncUserV1(
+        [FromServices] ISyncUserService service,
+        ClaimsPrincipal user,
+        CancellationToken ct = default)
+    {
+        await service.ExecuteAsync(new(user.CurrentId, user.CurrentUserName, user.CurrentEmail), ct);
+
+        return TypedResults.NoContent();
+    }
+}

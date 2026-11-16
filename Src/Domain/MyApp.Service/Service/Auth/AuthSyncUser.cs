@@ -1,0 +1,88 @@
+using System.Net;
+using MyApp.Domain.Model;
+using MyApp.Domain.Model.Model.Interface;
+using MyApp.Service.Abstractions;
+using MyApp.Service.Abstractions.Service.Auth;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
+using MyApp.Service.CachedDto;
+using MyApp.Service.Resource;
+
+namespace MyApp.Service.Service.Auth;
+
+public sealed class AuthSyncUser
+    : AbstractServiceAsync<ISyncUserService.Request>, ISyncUserService
+{
+    private readonly AppDbContext _db;
+    private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly ICacheService _cacheService;
+
+    public AuthSyncUser(
+        AppDbContext db,
+        IStringLocalizer<SharedResource> localizer,
+        ICacheService cacheService)
+    {
+        _db = db;
+        _localizer = localizer;
+        _cacheService = cacheService;
+    }
+
+    protected override async Task HandleAsync(
+        ISyncUserService.Request query,
+        CancellationToken ct = default)
+    {
+        var cacheKey = $"{ServiceConstant.Auth.SyncCacheKey}:{query.AuthId}";
+
+        if (await _cacheService.GetAsync<CachedUser>(cacheKey, ct) is { } cacheUser)
+        {
+            if (!cacheUser.IsDeleted)
+            {
+                return;
+            }
+
+            throw new DomainException(
+                HttpStatusCode.Forbidden,
+                _localizer.GetString(ServiceConstant.Error.user_already_deleted));
+        }
+
+        var user = await _db.Users
+            .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
+            .AsNoTracking()
+            .Where(user => user.AuthId == query.AuthId)
+            .FirstOrDefaultAsync(ct);
+
+        if (user is null)
+        {
+            user = new Models.User
+                {
+                    AuthId = query.AuthId,
+                    UserName = query.UserName,
+                    Email = query.Email,
+                }
+                .SetCreatedAtData();
+
+            await _db.Users.AddAsync(user, ct);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        await _cacheService.SaveAsync(cacheKey, new CachedUser
+        {
+            Id = user.Id,
+            AuthId = user.AuthId,
+            UserName = user.UserName,
+            Email = user.Email,
+            CreatedAtUtc = user.CreatedAtUtc,
+            UpdatedAtUtc = user.UpdatedAtUtc,
+            HasBeenModified = user.HasBeenModified,
+            IsDeleted = user.IsDeleted,
+            DeletedAtUtc = user.DeletedAtUtc,
+        }, ct);
+
+        if (user.IsDeleted)
+        {
+            throw new DomainException(
+                HttpStatusCode.Forbidden,
+                _localizer.GetString(ServiceConstant.Error.user_already_deleted));
+        }
+    }
+}

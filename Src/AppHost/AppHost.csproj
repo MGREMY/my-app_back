@@ -23,7 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Host\Host.Api\Host.Api.csproj" />
+        <ProjectReference Include="..\Host\MyApp.Host.Api\MyApp.Host.Api.csproj" />
     </ItemGroup>
 
 </Project>

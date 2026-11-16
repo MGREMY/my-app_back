@@ -8,7 +8,7 @@ var postgres = builder.AddPostgresContainer();
 var keycloak = builder.AddKeycloakContainer();
 var mailPit = builder.AddMailPitContainer();
 
-builder.AddProject<Host_Api>(name: "MyApp")
+builder.AddProject<MyApp_Host_Api>(name: "MyApp")
     .WithUrl("/scalar", displayText: "Scalar documentation")
     .WithExternalHttpEndpoints()
     .WaitFor(redis)
