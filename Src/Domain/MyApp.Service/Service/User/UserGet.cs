@@ -7,10 +7,8 @@ using MyApp.Service.Abstractions;
 
 namespace MyApp.Service.Service.User;
 
-[PaginationHandlerFor<Models.User>]
-public sealed class UserGet
-    : AbstractServiceAsync<IGetUserService.Request, PaginationResponse<MinimalUserResponse>>,
-        IGetUserService
+[PaginationHandlerFor<MyApp.Domain.Model.Model.User>]
+public sealed class UserGet : IGetUserService
 {
     private readonly AppDbContext _db;
 
@@ -19,20 +17,19 @@ public sealed class UserGet
         _db = db;
     }
 
-    protected override Task<PaginationResponse<MinimalUserResponse>> HandleAsync(
+    public async Task<ServiceResponse<PaginationResponse<UserResponse>>> ExecuteAsync(
         IGetUserService.Request query,
         CancellationToken ct = default)
     {
         var dbQuery = _db.Users
-            .AsNoTracking()
-            .AsQueryable();
+            .AsNoTracking();
 
         if (query.AdditionalFlags.IncludeDeletedItems)
-            dbQuery = dbQuery.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter]);
+            dbQuery.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter]);
 
-        return dbQuery
+        return await dbQuery
             .ProcessPaginationRequest(query.PaginationRequest, out var countAsync)
-            .Select(ServiceProjection.UserProjection.ToMinimalUserResponse)
+            .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
             .ToPagedResponseAsync(query.PaginationRequest.PageNumber, query.PaginationRequest.PageSize, countAsync, ct);
     }
 }

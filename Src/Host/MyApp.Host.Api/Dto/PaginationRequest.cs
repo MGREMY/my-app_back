@@ -31,22 +31,22 @@ public sealed record FilterRequest(
         Or = 1,
     }
 
-    public ServiceDto.FilterRequest ToServiceRequest()
+    public MyApp.Service.Abstractions.Dto.FilterRequest ToServiceRequest()
     {
-        return new ServiceDto.FilterRequest(
+        return new MyApp.Service.Abstractions.Dto.FilterRequest(
             PropertyName,
-            (ServiceDto.FilterRequest.Operator)FilterOperator,
+            (MyApp.Service.Abstractions.Dto.FilterRequest.Operator)FilterOperator,
             Value,
-            (ServiceDto.FilterRequest.Logic)FilterLogic,
+            (MyApp.Service.Abstractions.Dto.FilterRequest.Logic)FilterLogic,
             Filters?.Select(x => x.ToServiceRequest()) ?? []);
     }
 }
 
 public sealed record SortRequest(string PropertyName, bool IsDescending)
 {
-    public ServiceDto.SortRequest ToServiceRequest()
+    public MyApp.Service.Abstractions.Dto.SortRequest ToServiceRequest()
     {
-        return new ServiceDto.SortRequest(PropertyName, IsDescending);
+        return new MyApp.Service.Abstractions.Dto.SortRequest(PropertyName, IsDescending);
     }
 }
 
@@ -57,9 +57,9 @@ public sealed record PaginationRequest(
     IEnumerable<FilterRequest>? FilterRequests = null)
     : IBindableFromHttpContext<PaginationRequest>
 {
-    public ServiceDto.PaginationRequest ToServiceRequest()
+    public MyApp.Service.Abstractions.Dto.PaginationRequest ToServiceRequest()
     {
-        return new ServiceDto.PaginationRequest(
+        return new MyApp.Service.Abstractions.Dto.PaginationRequest(
             PageNumber,
             PageSize,
             SortRequests: SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
@@ -134,7 +134,7 @@ public sealed record PaginationResponse<T>(
     IEnumerable<T> Data
 )
 {
-    public PaginationResponse(ServiceDto.PaginationResponse value)
+    public PaginationResponse(MyApp.Service.Abstractions.Dto.PaginationResponse value)
         : this(
             value.PageNumber,
             value.PageSize,

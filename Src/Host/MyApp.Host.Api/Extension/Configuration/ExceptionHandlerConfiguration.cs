@@ -1,6 +1,5 @@
 using System.Net.Mime;
 using System.Text.Json;
-using MyApp.Service.Contract;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using MyApp.Host.Api.Dto;
@@ -15,17 +14,17 @@ internal class ExceptionHandler;
 /// </summary>
 public static partial class ExceptionHandlerConfiguration
 {
-    [LoggerMessage(3, LogLevel.Error, "[{@exceptionType}] at [{@route}] due to [{@reason}]")]
+    [LoggerMessage(3, LogLevel.Error, "[{ExceptionType}] at [{Route}] due to [{Reason}]")]
     public static partial void LogStructuredException(this ILogger l, Exception ex, string? exceptionType,
         string? route, string? reason);
 
     [LoggerMessage(4, LogLevel.Error, """
                                       =================================
-                                      {route}
-                                      TYPE: {exceptionType}
-                                      REASON: {reason}
+                                      {Route}
+                                      TYPE: {ExceptionType}
+                                      REASON: {Reason}
                                       ---------------------------------
-                                      {stackTrace}
+                                      {StackTrace}
                                       """)]
     public static partial void LogUnStructuredException(this ILogger l, string? exceptionType, string? route,
         string? reason, string? stackTrace);
@@ -68,15 +67,6 @@ public static partial class ExceptionHandlerConfiguration
                                     x => x.Key,
                                     x => x.Select(y => y.ErrorMessage).ToArray()
                                 ),
-                            });
-                            break;
-                        case DomainException domainException:
-                            ctx.Response.StatusCode = domainException.StatusCode;
-                            await WriteToResponse(new ErrorResponse
-                            {
-                                StatusCode = domainException.StatusCode,
-                                Message = domainException.Message,
-                                Errors = domainException.Errors,
                             });
                             break;
                         default:

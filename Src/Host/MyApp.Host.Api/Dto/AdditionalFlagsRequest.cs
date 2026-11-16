@@ -4,7 +4,7 @@ namespace MyApp.Host.Api.Dto;
 
 public record AdditionalFlagsRequest(bool IncludeDeletedItems)
 {
-    public ServiceDto.AdditionalFlags ToServiceRequest()
+    public MyApp.Service.Abstractions.Dto.AdditionalFlags ToServiceRequest()
     {
         return new(
             IncludeDeletedItems: IncludeDeletedItems

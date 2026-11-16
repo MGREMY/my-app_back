@@ -1,4 +1,3 @@
-using System.Net;
 using MyApp.Domain.Model;
 using MyApp.Domain.Model.Model.Interface;
 using MyApp.Service.Abstractions;
@@ -10,8 +9,7 @@ using MyApp.Service.Resource;
 
 namespace MyApp.Service.Service.Auth;
 
-public sealed class AuthSyncUser
-    : AbstractServiceAsync<ISyncUserService.Request>, ISyncUserService
+public sealed class AuthSyncUser : ISyncUserService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
@@ -27,9 +25,7 @@ public sealed class AuthSyncUser
         _cacheService = cacheService;
     }
 
-    protected override async Task HandleAsync(
-        ISyncUserService.Request query,
-        CancellationToken ct = default)
+    public async Task<ServiceResponse> ExecuteAsync(ISyncUserService.Request query, CancellationToken ct = default)
     {
         var cacheKey = $"{ServiceConstant.Auth.SyncCacheKey}:{query.AuthId}";
 
@@ -37,12 +33,10 @@ public sealed class AuthSyncUser
         {
             if (!cacheUser.IsDeleted)
             {
-                return;
+                return new ServiceSuccessResponse();
             }
 
-            throw new DomainException(
-                HttpStatusCode.Forbidden,
-                _localizer.GetString(ServiceConstant.Error.user_already_deleted));
+            return new ServiceErrorResponse(403, _localizer.GetString(ServiceConstant.Error.user_already_deleted));
         }
 
         var user = await _db.Users
@@ -53,7 +47,7 @@ public sealed class AuthSyncUser
 
         if (user is null)
         {
-            user = new Models.User
+            user = new MyApp.Domain.Model.Model.User
                 {
                     AuthId = query.AuthId,
                     UserName = query.UserName,
@@ -80,9 +74,10 @@ public sealed class AuthSyncUser
 
         if (user.IsDeleted)
         {
-            throw new DomainException(
-                HttpStatusCode.Forbidden,
-                _localizer.GetString(ServiceConstant.Error.user_already_deleted));
+            return
+                new ServiceErrorResponse(403, _localizer.GetString(ServiceConstant.Error.user_already_deleted));
         }
+
+        return new ServiceSuccessResponse();
     }
 }

@@ -63,7 +63,7 @@ public static class Extension
                 .Where(x => x is { IsClass: true, IsAbstract: false })
                 .ToArray();
 
-            var definedServiceInterfaces = typeof(MyApp.Service.Abstractions.DomainException).Assembly.DefinedTypes
+            var definedServiceInterfaces = typeof(MyApp.Service.Abstractions.ServiceResponse).Assembly.DefinedTypes
                 .Where(x =>
                     x is { IsInterface: true }
                     && !x.FullName!.Contains(skipInterfaceNameContaining, StringComparison.InvariantCultureIgnoreCase)

@@ -11,7 +11,6 @@
     <ItemGroup>
         <ProjectReference Include="..\MyApp.Domain.Specification\MyApp.Domain.Specification.csproj" />
         <ProjectReference Include="..\MyApp.Infrastructure.Specification\MyApp.Infrastructure.Specification.csproj" />
-        <Using Include="Domain.Model.Model" Alias="Models"/>
         <ProjectReference Include="..\MyApp.Domain.Model\MyApp.Domain.Model.csproj" />
         <ProjectReference Include="..\MyApp.Service.Abstractions\MyApp.Service.Abstractions.csproj" />
         <ProjectReference Include="..\MyApp.Service.Generator\MyApp.Service.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

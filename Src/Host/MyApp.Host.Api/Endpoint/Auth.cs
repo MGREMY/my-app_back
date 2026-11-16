@@ -1,8 +1,9 @@
 using System.Security.Claims;
-using MyApp.Service.Contract.Service.Auth;
 using MyApp.Host.Api.Extension;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using MyApp.Host.Api.Helpers;
+using MyApp.Service.Abstractions.Service.Auth;
 
 namespace MyApp.Host.Api.Endpoint;
 
@@ -20,13 +21,11 @@ public static class Auth
 
 public static class AuthHandler
 {
-    public static async Task<NoContent> HandlePostSyncUserV1(
+    public static async Task<IResult> HandlePostSyncUserV1(
         [FromServices] ISyncUserService service,
         ClaimsPrincipal user,
         CancellationToken ct = default)
-    {
-        await service.ExecuteAsync(new(user.CurrentId, user.CurrentUserName, user.CurrentEmail), ct);
-
-        return TypedResults.NoContent();
-    }
+        => await EndpointHelpers.HandleAsync(service,
+            new(user.CurrentId, user.CurrentUserName, user.CurrentEmail),
+            ct);
 }

@@ -1,9 +1,7 @@
-using System.Net;
 using MyApp.Domain.Model;
 using MyApp.Service.Abstractions;
 using MyApp.Service.Abstractions.Dto;
 using MyApp.Service.Abstractions.Service.User;
-using MyApp.Infrastructure.Specification;
 using MyApp.Infrastructure.Specification.Extensions;
 using MyApp.Domain.Specification.User;
 using Microsoft.EntityFrameworkCore;
@@ -12,9 +10,7 @@ using MyApp.Service.Resource;
 
 namespace MyApp.Service.Service.User;
 
-public sealed class UserGetById
-    : AbstractServiceAsync<Guid, UserResponse>,
-        IGetUserByIdService
+public sealed class UserGetById : IGetUserByIdService
 {
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
@@ -27,27 +23,18 @@ public sealed class UserGetById
         _localizer = localizer;
     }
 
-    protected override async Task PreExecuteAsync(
-        Guid id,
-        CancellationToken ct = default)
+    public async Task<ServiceResponse<UserResponse>> ExecuteAsync(Guid id, CancellationToken ct = default)
     {
-        if (!await _db.Users.Spec(new UserHasIdSpec(id)).AnyAsync(ct))
-        {
-            throw new DomainException(
-                HttpStatusCode.NotFound,
-                _localizer.GetString(ServiceConstant.Error.user_not_found));
-        }
-    }
-
-    protected override Task<UserResponse> HandleAsync(
-        Guid id,
-        CancellationToken ct = default)
-    {
-        return _db.Users
+        var user = await _db.Users
             .AsNoTracking()
             .AsSplitQuery()
             .Spec(new UserHasIdSpec(id))
             .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
-            .FirstAsync(ct);
+            .FirstOrDefaultAsync(ct);
+
+        if (user is null)
+            return new ServiceErrorResponse(404, _localizer.GetString(ServiceConstant.Error.user_not_found));
+
+        return user;
     }
 }

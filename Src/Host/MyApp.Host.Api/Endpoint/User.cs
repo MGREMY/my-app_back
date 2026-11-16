@@ -1,9 +1,9 @@
-using MyApp.Service.Contract.Service.User;
 using FluentValidation;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Host.Api.Dto;
 using MyApp.Host.Api.EndpointFilter;
+using MyApp.Host.Api.Helpers;
+using MyApp.Service.Abstractions.Service.User;
 
 namespace MyApp.Host.Api.Endpoint;
 
@@ -27,7 +27,7 @@ public static class User
 
 public static class UserHandler
 {
-    public static async Task<Results<Ok<PaginationResponse<MinimalUserResponse>>, BadRequest<ErrorResponse>>>
+    public static async Task<IResult>
         HandleGetV1(
             PaginationRequest req,
             AdditionalFlagsRequest additionalFlags,
@@ -37,31 +37,18 @@ public static class UserHandler
     {
         await validator.ValidateAndThrowAsync(req, ct);
 
-        var result = await service.ExecuteAsync(new(req.ToServiceRequest(), additionalFlags.ToServiceRequest()), ct);
-
-        return TypedResults.Ok(new PaginationResponse<MinimalUserResponse>(result)
-        {
-            Data = result.Data.Select(x => new MinimalUserResponse(x)),
-        });
+        return await EndpointHelpers.HandleAsync(service,
+            new(req.ToServiceRequest(), additionalFlags.ToServiceRequest()),
+            ct);
     }
 
-    public static async Task<Results<Ok<UserResponse>, NotFound>> HandleGetByIdV1(
+    public static async Task<IResult> HandleGetByIdV1(
         [FromRoute] Guid id,
         [FromServices] IGetUserByIdService service,
-        CancellationToken ct = default)
-    {
-        var result = await service.ExecuteAsync(id, ct);
+        CancellationToken ct = default) => await EndpointHelpers.HandleAsync(service, id, ct);
 
-        return TypedResults.Ok(new UserResponse(result));
-    }
-
-    public static async Task<Results<NoContent, NotFound>> HandleDeleteByIdV1(
+    public static async Task<IResult> HandleDeleteByIdV1(
         Guid id,
         [FromServices] IDeleteUserByIdService service,
-        CancellationToken ct = default)
-    {
-        await service.ExecuteAsync(id, ct);
-
-        return TypedResults.NoContent();
-    }
+        CancellationToken ct = default) => await EndpointHelpers.HandleAsync(service, id, ct);
 }

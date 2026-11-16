@@ -1,5 +1,5 @@
-using Domain.Model;
-using Domain.Model.Extension;
+using MyApp.Domain.Model;
+using MyApp.Domain.Model.Extension;
 using FluentValidation;
 using MyApp.Host.Api.Extension.Configuration;
 using ServiceDefaults;

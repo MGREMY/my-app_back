@@ -6,16 +6,6 @@ namespace MyApp.Service.ServiceProjection;
 
 internal static class UserProjection
 {
-    internal static readonly Expression<Func<User, MinimalUserResponse>> ToMinimalUserResponse = user =>
-        new MinimalUserResponse
-        {
-            Id = user.Id,
-            CreatedAtUtc = user.CreatedAtUtc,
-            UserName = user.UserName,
-            Email = user.Email,
-            IsDeleted = user.IsDeleted,
-        };
-
     internal static readonly Expression<Func<User, UserResponse>> ToUserServiceResponse = user =>
         new UserResponse
         {

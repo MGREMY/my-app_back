@@ -10,7 +10,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Using Include="Domain.Service.Contract.Dto" Alias="ServiceDto"/>
         <ProjectReference Include="..\..\Domain\MyApp.Service\MyApp.Service.csproj" />
         <ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj"/>
     </ItemGroup>
