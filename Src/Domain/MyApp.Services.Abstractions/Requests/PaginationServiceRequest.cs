@@ -4,5 +4,4 @@ public sealed record PaginationServiceRequest(
     int PageNumber,
     int PageSize,
     IEnumerable<SortServiceRequest> SortRequests,
-    IEnumerable<FilterServiceRequest> FilterRequests,
-    AdditionalFlagsServiceRequest AdditionalFlagsRequest);
+    IEnumerable<FilterServiceRequest> FilterRequests);

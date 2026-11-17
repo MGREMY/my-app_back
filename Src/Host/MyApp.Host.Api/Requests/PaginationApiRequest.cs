@@ -6,8 +6,7 @@ public sealed record PaginationApiRequest(
     int PageNumber = 1,
     int PageSize = 15,
     IEnumerable<SortApiRequest>? SortRequests = null,
-    IEnumerable<FilterApiRequest>? FilterRequests = null,
-    AdditionalFlagsApiRequest? AdditionalFlags = null)
+    IEnumerable<FilterApiRequest>? FilterRequests = null)
 {
     public Services.Abstractions.Requests.PaginationServiceRequest ToServiceRequest()
     {
@@ -15,8 +14,7 @@ public sealed record PaginationApiRequest(
             PageNumber,
             PageSize,
             SortRequests: SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
-            FilterRequests: FilterRequests?.Select(x => x.ToServiceRequest()) ?? [],
-            AdditionalFlagsRequest: AdditionalFlags?.ToServiceRequest() ?? new(false));
+            FilterRequests: FilterRequests?.Select(x => x.ToServiceRequest()) ?? []);
     }
 
     public sealed class Validator : AbstractValidator<PaginationApiRequest>

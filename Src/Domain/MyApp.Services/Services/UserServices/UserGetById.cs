@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
-using MyApp.Domain.Model;
-using MyApp.Domain.Specification.User;
-using MyApp.Infrastructure.Specification.Extensions;
+using MyApp.Domain.Models;
+using MyApp.Domain.Specifications.UserSpecifications;
+using MyApp.Infrastructure.Specifications.Extensions;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Responses;
 using MyApp.Services.Abstractions.Services.UserServices;
-using MyApp.Services.Resource;
+using MyApp.Services.Resources;
+using MyApp.Services.ServiceProjections;
 
 namespace MyApp.Services.Services.UserServices;
 
@@ -29,7 +30,7 @@ public sealed class UserGetById : IUserGetById
             .AsNoTracking()
             .AsSplitQuery()
             .Spec(new UserHasIdSpec(id))
-            .Select(ServiceProjection.UserProjection.ToUserServiceResponse)
+            .Select(UserProjection.ToUserServiceResponse)
             .FirstOrDefaultAsync(ct);
 
         if (user is null)

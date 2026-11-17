@@ -1,18 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
-using MyApp.Domain.Model;
-using MyApp.Domain.Model.Model.Interface;
+using MyApp.Domain.Models;
+using MyApp.Domain.Models.Models;
+using MyApp.Domain.Models.Models.Interface;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.AuthServices;
 using MyApp.Services.CachedDto;
-using MyApp.Services.Resource;
+using MyApp.Services.Resources;
 
 namespace MyApp.Services.Services.AuthServices;
 
 public sealed class AuthSyncUser : IAuthSyncUser
 {
     private readonly AppDbContext _db;
-    private readonly IStringLocalizer<SharedResource> _localizer;
     private readonly ICacheService _cacheService;
 
     public AuthSyncUser(
@@ -21,7 +21,6 @@ public sealed class AuthSyncUser : IAuthSyncUser
         ICacheService cacheService)
     {
         _db = db;
-        _localizer = localizer;
         _cacheService = cacheService;
     }
 
@@ -29,14 +28,9 @@ public sealed class AuthSyncUser : IAuthSyncUser
     {
         var cacheKey = $"{ServiceConstant.Auth.SyncCacheKey}:{query.AuthId}";
 
-        if (await _cacheService.GetAsync<CachedUser>(cacheKey, ct) is { } cacheUser)
+        if (await _cacheService.GetAsync<CachedUser>(cacheKey, ct) is not null)
         {
-            if (!cacheUser.IsDeleted)
-            {
-                return new ServiceSuccessResponse();
-            }
-
-            return new ServiceErrorResponse(403, _localizer.GetString(ServiceConstant.Error.user_already_deleted));
+            return new ServiceSuccessResponse();
         }
 
         var user = await _db.Users
@@ -47,7 +41,7 @@ public sealed class AuthSyncUser : IAuthSyncUser
 
         if (user is null)
         {
-            user = new MyApp.Domain.Model.Model.User
+            user = new User
                 {
                     AuthId = query.AuthId,
                     UserName = query.UserName,
@@ -68,15 +62,7 @@ public sealed class AuthSyncUser : IAuthSyncUser
             CreatedAtUtc = user.CreatedAtUtc,
             UpdatedAtUtc = user.UpdatedAtUtc,
             HasBeenModified = user.HasBeenModified,
-            IsDeleted = user.IsDeleted,
-            DeletedAtUtc = user.DeletedAtUtc,
         }, ct);
-
-        if (user.IsDeleted)
-        {
-            return
-                new ServiceErrorResponse(403, _localizer.GetString(ServiceConstant.Error.user_already_deleted));
-        }
 
         return new ServiceSuccessResponse();
     }

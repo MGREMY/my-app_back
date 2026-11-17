@@ -12,8 +12,6 @@ public static class ServiceConstant
     {
         // ReSharper disable InconsistentNaming
         public const string user_not_found = nameof(user_not_found);
-
-        public const string user_already_deleted = nameof(user_already_deleted);
         // ReSharper restore InconsistentNaming
     }
 }

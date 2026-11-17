@@ -9,11 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\MyApp.Domain.Specification\MyApp.Domain.Specification.csproj" />
-        <ProjectReference Include="..\MyApp.Infrastructure.Specification\MyApp.Infrastructure.Specification.csproj" />
-        <ProjectReference Include="..\MyApp.Domain.Model\MyApp.Domain.Model.csproj" />
+        <ProjectReference Include="..\MyApp.Domain.Specifications\MyApp.Domain.Specifications.csproj" />
+        <ProjectReference Include="..\MyApp.Infrastructure.Specifications\MyApp.Infrastructure.Specifications.csproj" />
+        <ProjectReference Include="..\MyApp.Domain.Models\MyApp.Domain.Models.csproj" />
         <ProjectReference Include="..\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj" />
-        <ProjectReference Include="..\MyApp.Services.Generator\MyApp.Services.Generator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\MyApp.Services.Generators\MyApp.Services.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>
@@ -30,23 +30,23 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Update="Resource\SharedResource.resx">
+      <EmbeddedResource Update="Resources\SharedResource.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>SharedResource.Designer.cs</LastGenOutput>
       </EmbeddedResource>
-      <EmbeddedResource Update="Resource\SharedResource.fr.resx">
+      <EmbeddedResource Update="Resources\SharedResource.fr.resx">
         <Generator>PublicResXFileCodeGenerator</Generator>
         <LastGenOutput>SharedResource.fr.Designer.cs</LastGenOutput>
       </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="Resource\SharedResource.Designer.cs">
+      <Compile Update="Resources\SharedResource.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>SharedResource.resx</DependentUpon>
       </Compile>
-      <Compile Update="Resource\SharedResource.fr.Designer.cs">
+      <Compile Update="Resources\SharedResource.fr.Designer.cs">
         <DesignTime>True</DesignTime>
         <AutoGen>True</AutoGen>
         <DependentUpon>SharedResource.fr.resx</DependentUpon>

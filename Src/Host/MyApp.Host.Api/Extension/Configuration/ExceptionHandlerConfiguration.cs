@@ -2,6 +2,7 @@ using System.Net.Mime;
 using System.Text.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http.HttpResults;
 using MyApp.Host.Api.Responses;
 
 namespace MyApp.Host.Api.Extension.Configuration;
@@ -59,15 +60,13 @@ public static partial class ExceptionHandlerConfiguration
                     {
                         case ValidationException validationException:
                             ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
-                            await WriteToResponse(new ErrorApiResponse
-                            {
-                                StatusCode = StatusCodes.Status400BadRequest,
-                                Message = validationException.Message,
-                                Errors = validationException.Errors.GroupBy(x => x.PropertyName).ToDictionary(
+                            await WriteToResponse(TypedResults.ValidationProblem(
+                                title: "Validation failed",
+                                detail: "The request contains invalid fields.",
+                                errors: validationException.Errors.GroupBy(x => x.PropertyName).ToDictionary(
                                     x => x.Key,
-                                    x => x.Select(y => y.ErrorMessage).ToArray()
-                                ),
-                            });
+                                    x => x.Select(y => y.ErrorMessage).ToArray())
+                            ));
                             break;
                         default:
                         {
@@ -93,13 +92,7 @@ public static partial class ExceptionHandlerConfiguration
                             }
 
                             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                            await WriteToResponse(new InternalErrorApiResponse
-                            {
-                                Status = "Internal Server Error!",
-                                Code = ctx.Response.StatusCode,
-                                Reason = useGenericReason ? "An unexpected error has occurred." : reason,
-                                Note = "See application log for stack trace."
-                            });
+                            await WriteToResponse(TypedResults.InternalServerError());
                             break;
                         }
                     }

@@ -1,14 +1,15 @@
+using MyApp.Services.Abstractions.Responses;
+
 namespace MyApp.Host.Api.Responses;
 
 public sealed record UserApiResponse(
     Guid Id,
     DateTimeOffset CreatedAtUtc,
     string UserName,
-    string Email,
-    bool IsDeleted)
+    string Email)
 {
-    public UserApiResponse(Services.Abstractions.Responses.UserServiceResponse value)
-        : this(value.Id, value.CreatedAtUtc, value.UserName, value.Email, value.IsDeleted)
+    public UserApiResponse(UserServiceResponse value)
+        : this(value.Id, value.CreatedAtUtc, value.UserName, value.Email)
 
     {
     }

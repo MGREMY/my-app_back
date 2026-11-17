@@ -1,5 +1,6 @@
 using Asp.Versioning;
-using MyApp.Host.Api.Endpoint;
+using Microsoft.OpenApi;
+using MyApp.Host.Api.Endpoints;
 
 namespace MyApp.Host.Api.Extension.Configuration;
 
@@ -13,8 +14,10 @@ public static class ApiEndpointConfiguration
             builder.Services
                 .AddApiVersioning(options =>
                 {
-                    options.ApiVersionReader = new UrlSegmentApiVersionReader();
-                    options.DefaultApiVersion = new ApiVersion(1);
+                    options.ApiVersionReader = ApiVersionReader.Combine(
+                        new QueryStringApiVersionReader(),
+                        new HeaderApiVersionReader("X-Api-Version"));
+                    options.DefaultApiVersion = new ApiVersion(1.0);
                     options.AssumeDefaultVersionWhenUnspecified = true;
                     options.ReportApiVersions = true;
                 })
@@ -23,7 +26,7 @@ public static class ApiEndpointConfiguration
                     options.GroupNameFormat = "'v'VVV";
                     // Replace the placeholder with the actual version
                     options.SubstituteApiVersionInUrl = true;
-                });
+                }).AddOpenApi();
 
             return builder;
         }
@@ -33,19 +36,9 @@ public static class ApiEndpointConfiguration
     {
         public WebApplication UseAppEndpoints()
         {
-            var apiVersionSet = app.NewApiVersionSet()
-                .HasApiVersion(new ApiVersion(1))
-                .ReportApiVersions()
-                .Build();
-
-            var group = app.MapGroup("/api/v{version:apiVersion}")
-                .WithTags("api")
-                .WithApiVersionSet(apiVersionSet);
-
-            group
-                .UseAuthApi()
-                .UseMiscApi()
-                .UseUserApi();
+            app.MapAuth().ToV1();
+            app.MapMisc().ToV1();
+            app.MapUser().ToV1();
 
             return app;
         }

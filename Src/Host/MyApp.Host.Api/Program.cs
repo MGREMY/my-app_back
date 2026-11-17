@@ -1,5 +1,5 @@
-using MyApp.Domain.Model;
-using MyApp.Domain.Model.Extension;
+using MyApp.Domain.Models;
+using MyApp.Domain.Models.Extensions;
 using FluentValidation;
 using MyApp.Host.Api.Extension.Configuration;
 using ServiceDefaults;
@@ -17,7 +17,6 @@ builder
     .AddAppCors()
     .AddAppServices()
     .AddAppHealthChecks()
-    .AddAppOpenApi()
     .AddAppVersioning();
 
 builder.Services

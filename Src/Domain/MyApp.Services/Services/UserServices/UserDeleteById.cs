@@ -1,12 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
-using MyApp.Domain.Model;
-using MyApp.Domain.Model.Model.Interface;
-using MyApp.Domain.Specification.User;
-using MyApp.Infrastructure.Specification.Extensions;
+using MyApp.Domain.Models;
+using MyApp.Domain.Specifications.UserSpecifications;
+using MyApp.Infrastructure.Specifications.Extensions;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.UserServices;
-using MyApp.Services.Resource;
+using MyApp.Services.Resources;
 
 namespace MyApp.Services.Services.UserServices;
 
@@ -35,8 +34,9 @@ public sealed class UserDeleteById : IUserDeleteById
         if (user is null)
             return new ServiceErrorResponse(404, _localizer.GetString(ServiceConstant.Error.user_not_found));
 
-        user.SetSoftDeletableData();
+        _db.Users.Remove(user);
         await _db.SaveChangesAsync(ct);
+        await _cacheService.DeleteAsync($"{ServiceConstant.Auth.SyncCacheKey}:{user.AuthId}", ct);
 
         return new ServiceSuccessResponse();
     }
