@@ -2,7 +2,7 @@ using System.Net.Mime;
 using System.Text.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
-using MyApp.Host.Api.Dto;
+using MyApp.Host.Api.Responses;
 
 namespace MyApp.Host.Api.Extension.Configuration;
 
@@ -59,7 +59,7 @@ public static partial class ExceptionHandlerConfiguration
                     {
                         case ValidationException validationException:
                             ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
-                            await WriteToResponse(new ErrorResponse
+                            await WriteToResponse(new ErrorApiResponse
                             {
                                 StatusCode = StatusCodes.Status400BadRequest,
                                 Message = validationException.Message,
@@ -93,7 +93,7 @@ public static partial class ExceptionHandlerConfiguration
                             }
 
                             ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                            await WriteToResponse(new InternalErrorResponse
+                            await WriteToResponse(new InternalErrorApiResponse
                             {
                                 Status = "Internal Server Error!",
                                 Code = ctx.Response.StatusCode,

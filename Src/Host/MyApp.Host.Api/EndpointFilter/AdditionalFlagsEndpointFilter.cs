@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
-using MyApp.Host.Api.Dto;
+using MyApp.Host.Api.Requests;
 
 namespace MyApp.Host.Api.EndpointFilter;
 
@@ -9,7 +9,7 @@ public sealed class AdditionalFlagsEndpointFilter : IEndpointFilter
         EndpointFilterInvocationContext context,
         EndpointFilterDelegate next)
     {
-        var additionalFlagsRequest = context.Arguments.OfType<AdditionalFlagsRequest>().FirstOrDefault();
+        var additionalFlagsRequest = context.Arguments.OfType<AdditionalFlagsApiRequest>().FirstOrDefault();
 
         if (additionalFlagsRequest is null) return await next(context);
 

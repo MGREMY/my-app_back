@@ -13,9 +13,9 @@
   <Folder Name="/Src/Infrastructure/">
     <Project Path="Src\Domain\MyApp.Infrastructure.Specification\MyApp.Infrastructure.Specification.csproj" />
   </Folder>
-  <Folder Name="/Src/Service/">
-    <Project Path="Src\Domain\MyApp.Service.Abstractions\MyApp.Service.Abstractions.csproj" />
-    <Project Path="Src\Domain\MyApp.Service.Generator\MyApp.Service.Generator.csproj" />
-    <Project Path="Src\Domain\MyApp.Service\MyApp.Service.csproj" />
+  <Folder Name="/Src/Services/">
+    <Project Path="Src\Domain\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj" />
+    <Project Path="Src\Domain\MyApp.Services.Generator\MyApp.Services.Generator.csproj" />
+    <Project Path="Src\Domain\MyApp.Services\MyApp.Services.csproj" />
   </Folder>
 </Solution>

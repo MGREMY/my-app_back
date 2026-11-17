@@ -1,4 +1,4 @@
-using MyApp.Service.Extension;
+using MyApp.Services.Extension;
 
 namespace MyApp.Host.Api.Extension.Configuration;
 

@@ -1,9 +1,13 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using MyApp.Host.Api.Dto;
 using MyApp.Host.Api.EndpointFilter;
 using MyApp.Host.Api.Helpers;
-using MyApp.Service.Abstractions.Service.User;
+using MyApp.Host.Api.Requests;
+using MyApp.Host.Api.Responses;
+using MyApp.Services.Abstractions;
+using MyApp.Services.Abstractions.Responses;
+using MyApp.Services.Abstractions.Services.UserServices;
 
 namespace MyApp.Host.Api.Endpoint;
 
@@ -13,8 +17,7 @@ public static class User
     {
         var group = g.MapGroup("/users").WithTags("users");
 
-        group.MapGet(string.Empty, UserHandler.HandleGetV1)
-            .AddEndpointFilter<AdditionalFlagsEndpointFilter>()
+        group.MapMethods(string.Empty, ["QUERY"], UserHandler.HandleGetV1)
             .MapToApiVersion(1);
         group.MapGet("{id:guid}", UserHandler.HandleGetByIdV1).MapToApiVersion(1);
         group.MapDelete("{id:guid}", UserHandler.HandleDeleteByIdV1)
@@ -27,28 +30,59 @@ public static class User
 
 public static class UserHandler
 {
+    [ProducesResponseType<PaginationApiResponse<UserApiResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemHttpResult>(StatusCodes.Status400BadRequest)]
     public static async Task<IResult>
         HandleGetV1(
-            PaginationRequest req,
-            AdditionalFlagsRequest additionalFlags,
-            [FromServices] IValidator<PaginationRequest> validator,
-            [FromServices] IGetUserService service,
+            [FromBody] PaginationApiRequest req,
+            [FromServices] IUserGet service,
             CancellationToken ct = default)
     {
-        await validator.ValidateAndThrowAsync(req, ct);
+        var result = await service.ExecuteAsync(new(req.ToServiceRequest()), ct);
 
-        return await EndpointHelpers.HandleAsync(service,
-            new(req.ToServiceRequest(), additionalFlags.ToServiceRequest()),
-            ct);
+        return result switch
+        {
+            ServiceErrorResponse error => EndpointHelpers.FormatErrorResponse(error),
+            PaginationServiceResponse<UserServiceResponse> response => TypedResults.Ok(
+                new PaginationApiResponse<UserApiResponse>(response)
+                {
+                    Data = response.Data.Select(x => new UserApiResponse(x)),
+                }),
+            _ => throw new ArgumentOutOfRangeException()
+        };
     }
 
+    [ProducesResponseType<UserApiResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemHttpResult>(StatusCodes.Status400BadRequest)]
     public static async Task<IResult> HandleGetByIdV1(
         [FromRoute] Guid id,
-        [FromServices] IGetUserByIdService service,
-        CancellationToken ct = default) => await EndpointHelpers.HandleAsync(service, id, ct);
+        [FromServices] IUserGetById service,
+        CancellationToken ct = default)
+    {
+        var result = await service.ExecuteAsync(id, ct);
 
-    public static async Task<IResult> HandleDeleteByIdV1(
+        return result switch
+        {
+            ServiceErrorResponse error => EndpointHelpers.FormatErrorResponse(error),
+            UserServiceResponse response => TypedResults.Ok(new UserApiResponse(response)),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
+
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemHttpResult>(StatusCodes.Status404NotFound)]
+    public static async Task<Results<NoContent, IResult>> HandleDeleteByIdV1(
         Guid id,
-        [FromServices] IDeleteUserByIdService service,
-        CancellationToken ct = default) => await EndpointHelpers.HandleAsync(service, id, ct);
+        [FromServices] IUserDeleteById service,
+        CancellationToken ct = default)
+    {
+        var result = await service.ExecuteAsync(id, ct);
+
+        return result switch
+        {
+            ServiceErrorResponse error => EndpointHelpers.FormatErrorResponse(error),
+            ServiceSuccessResponse => TypedResults.NoContent(),
+            _ => throw new ArgumentOutOfRangeException()
+        };
+    }
 }
