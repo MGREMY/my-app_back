@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Localization;
 using MyApp.Domain.Models;
 using MyApp.Domain.Specifications.Extensions;
@@ -6,7 +7,6 @@ using MyApp.Domain.Specifications.UserSpecifications;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Responses;
 using MyApp.Services.Abstractions.Services.UserServices;
-using MyApp.Services.CacheModels;
 using MyApp.Services.Resources;
 using MyApp.Services.ServiceProjections;
 
@@ -14,13 +14,13 @@ namespace MyApp.Services.Services.UserServices;
 
 public sealed class UserGetById : IUserGetById
 {
-    private readonly ICacheService _cacheService;
+    private readonly HybridCache _cacheService;
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public UserGetById(
         AppDbContext db,
-        ICacheService cacheService,
+        HybridCache cacheService,
         IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
@@ -30,21 +30,18 @@ public sealed class UserGetById : IUserGetById
 
     public async Task<ServiceResponse<UserServiceResponse>> ExecuteAsync(Guid id, CancellationToken ct = default)
     {
-        var cacheKey = ServiceConstant.Cache.UserKey(id);
+        var cachedUser = await _cacheService.GetOrCreateAsync(
+            key: ServiceConstant.Cache.UserKey(id),
+            factory: async token => await _db.Users
+                .Spec(new UserHasIdSpec(id))
+                .Select(UserProjection.ToCacheUser)
+                .FirstOrDefaultAsync(token),
+            tags: [ServiceConstant.Cache.UserTag],
+            cancellationToken: ct);
 
-        if (await _cacheService.GetAsync<CacheUser>(cacheKey, ct) is { } cachedUser)
-            return (UserServiceResponse)cachedUser;
-
-        var user = await _db.Users
-            .AsNoTracking()
-            .Spec(new UserHasIdSpec(id))
-            .FirstOrDefaultAsync(ct);
-
-        if (user is null)
+        if (cachedUser is null)
             return new ServiceErrorResponse(404, _localizer.GetString(ServiceConstant.Error.user_not_found));
 
-        await _cacheService.SaveAsync(cacheKey, (CacheUser)user, ct);
-
-        return UserProjection.ToUserServiceResponseFunc(user);
+        return (UserServiceResponse)cachedUser;
     }
 }

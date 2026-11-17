@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Localization;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models;
@@ -9,18 +10,19 @@ using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.AuthServices;
 using MyApp.Services.CacheModels;
 using MyApp.Services.Resources;
+using MyApp.Services.ServiceProjections;
 
 namespace MyApp.Services.Services.AuthServices;
 
 public sealed class AuthSyncUser : IAuthSyncUser
 {
-    private readonly ICacheService _cacheService;
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
+    private readonly HybridCache _cacheService;
 
     public AuthSyncUser(AppDbContext db,
-        ICacheService cacheService,
-        IStringLocalizer<SharedResource> localizer)
+        IStringLocalizer<SharedResource> localizer,
+        HybridCache cacheService)
     {
         _db = db;
         _cacheService = cacheService;
@@ -53,7 +55,11 @@ public sealed class AuthSyncUser : IAuthSyncUser
             await _db.SaveChangesAsync(ct);
         }
 
-        await _cacheService.SaveAsync(ServiceConstant.Cache.UserKey(user.Id), (CacheUser)user, ct);
+        await _cacheService.SetAsync(
+            key: ServiceConstant.Cache.UserKey(user.Id),
+            value: UserProjection.ToCacheUserFunc(user),
+            tags: [ServiceConstant.Cache.UserTag],
+            cancellationToken: ct);
 
         return new ServiceSuccessResponse();
     }

@@ -6,6 +6,7 @@ public static class ServiceConstant
     {
         private const string BaseKey = "";
 
+        public const string UserTag = "users";
         public static string UserKey(Guid id)
         {
             return $"{BaseKey}:users:{id}";

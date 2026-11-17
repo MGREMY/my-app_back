@@ -1,3 +1,4 @@
+using MyApp.Domain.Models.Extensions;
 using MyApp.Services.Extensions;
 
 namespace MyApp.Host.Api.Extension.Configuration;
@@ -17,10 +18,10 @@ public static class ApiServiceConfiguration
             ArgumentNullException.ThrowIfNull(redisConnectionString);
             ArgumentNullException.ThrowIfNull(dataPath);
 
-            builder.Services.AddMyAppServices(
-                postgresConnectionString,
-                redisConnectionString,
-                config => { config.DataPath = dataPath; });
+            builder.Services
+                .AddMyAppPersistence(postgresConnectionString)
+                .AddMyAppCache(redisConnectionString)
+                .AddMyAppServices(config => { config.DataPath = dataPath; });
 
             return builder;
         }

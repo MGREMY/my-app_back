@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
-using MyApp.Domain.Models;
 using MyApp.Services.Abstractions;
 
 namespace MyApp.Services.Extensions;
@@ -10,37 +8,24 @@ public static class Extension
 {
     extension(IServiceCollection services)
     {
-        public IServiceCollection AddMyAppServices(
-            string postgresConnectionString,
-            string redisConnectionString,
-            Action<ServiceOption> options)
+        /// <summary>
+        ///     Register the application services only.
+        ///     Infrastructure (database, distributed cache) must be registered by the host,
+        ///     e.g. with <c>AddMyAppPersistence</c> and <see cref="AddMyAppCache" />.
+        /// </summary>
+        public IServiceCollection AddMyAppServices(Action<ServiceOption> options)
         {
             return services
                 .AddLocalization()
                 .AddServiceOption(options)
-                .AddDatabase(postgresConnectionString)
-                .AddCache(redisConnectionString)
                 .AddServices();
         }
 
-        private IServiceCollection AddServiceOption(Action<ServiceOption> options)
-        {
-            return services.Configure(options);
-        }
-
-        private IServiceCollection AddDatabase(string postgresConnectionString)
-        {
-            services.AddDbContextPool<AppDbContext>(options =>
-            {
-                options.UseLazyLoadingProxies();
-                options.UseNpgsql(postgresConnectionString,
-                    npgOptions => { npgOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName); });
-            });
-
-            return services;
-        }
-
-        private IServiceCollection AddCache(string redisConnectionString)
+        /// <summary>
+        ///     Register the hybrid cache backed by Redis as distributed (L2) cache.
+        /// </summary>
+        /// <param name="redisConnectionString">Redis connection string</param>
+        public IServiceCollection AddMyAppCache(string redisConnectionString)
         {
             services.AddHybridCache(options =>
             {
@@ -53,6 +38,11 @@ public static class Extension
             }).Services.AddStackExchangeRedisCache(options => { options.Configuration = redisConnectionString; });
 
             return services;
+        }
+
+        private IServiceCollection AddServiceOption(Action<ServiceOption> options)
+        {
+            return services.Configure(options);
         }
 
         private IServiceCollection AddServices()

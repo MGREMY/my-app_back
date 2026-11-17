@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Localization;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models.Interface;
@@ -12,14 +13,14 @@ namespace MyApp.Services.Services.UserServices;
 
 public sealed class UserDeleteById : IUserDeleteById
 {
-    private readonly ICacheService _cacheService;
+    private readonly HybridCache _cacheService;
     private readonly AppDbContext _db;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public UserDeleteById(
         AppDbContext db,
         IStringLocalizer<SharedResource> localizer,
-        ICacheService cacheService)
+        HybridCache cacheService)
     {
         _db = db;
         _localizer = localizer;
@@ -38,7 +39,7 @@ public sealed class UserDeleteById : IUserDeleteById
         user.SetSoftDeletableData();
 
         await _db.SaveChangesAsync(ct);
-        await _cacheService.DeleteAsync(ServiceConstant.Cache.UserKey(user.Id), ct);
+        await _cacheService.RemoveAsync(ServiceConstant.Cache.UserKey(user.Id), ct);
 
         return new ServiceSuccessResponse();
     }
