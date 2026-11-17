@@ -3,11 +3,12 @@
     <PropertyGroup>
         <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>default</LangVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MyApp.Domain.Models\MyApp.Domain.Models.csproj" />
+        <ProjectReference Include="..\MyApp.Domain.Models\MyApp.Domain.Models.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Antiforgery;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MyApp.Host.Api.Endpoints;
@@ -15,7 +14,7 @@ public static class MiscEndpoint
         api.MapGet("anti-forgery-token", V1.AntiForgeryToken)
             .Produces(StatusCodes.Status204NoContent);
 
-        return new(builder);
+        return new MiscApiBuilder(builder);
     }
 
     private static class V1

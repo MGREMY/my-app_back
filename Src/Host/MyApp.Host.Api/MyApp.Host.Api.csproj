@@ -10,22 +10,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Domain\MyApp.Services\MyApp.Services.csproj" />
+        <ProjectReference Include="..\..\Domain\MyApp.Services\MyApp.Services.csproj"/>
         <ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Asp.Versioning.Http" Version="10.2.3" />
-        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1" />
-        <PackageReference Include="Asp.Versioning.OpenApi" Version="10.2.3" />
+        <PackageReference Include="Asp.Versioning.Http" Version="10.2.3"/>
+        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1"/>
+        <PackageReference Include="Asp.Versioning.OpenApi" Version="10.2.3"/>
         <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0"/>
         <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0"/>
         <PackageReference Include="AspNetCore.HealthChecks.System" Version="9.0.0"/>
         <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0"/>
-        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15" />
-        <PackageReference Include="Scalar.AspNetCore" Version="3.0.0" />
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15"/>
+        <PackageReference Include="Scalar.AspNetCore" Version="3.0.0"/>
     </ItemGroup>
 
 </Project>

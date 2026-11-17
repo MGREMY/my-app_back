@@ -11,22 +11,19 @@ public static class AppDbContextExtension
     extension(AppDbContext dbContext)
     {
         /// <summary>
-        /// Apply script before and after pending migrations.
-        ///
-        /// Each migration SQL script must be in a folder with the same name as the migration
-        /// (copy/paste the filename from the migration without the extension).
-        ///
-        /// Each script must be in either the "Before" or "After" folder ; depending
-        /// on when you want it to be executed.
+        ///     Apply script before and after pending migrations.
+        ///     Each migration SQL script must be in a folder with the same name as the migration
+        ///     (copy/paste the filename from the migration without the extension).
+        ///     Each script must be in either the "Before" or "After" folder ; depending
+        ///     on when you want it to be executed.
         /// </summary>
-        /// <param name="dbContext"><see cref="AppDbContext"/> from where the migration must be executed</param>
-        /// <param name="loggerFactory"><see cref="ILoggerFactory"/> mandatory logger factory</param>
-        /// <param name="ct"><see cref="CancellationToken"/> cancellation token</param>
+        /// <param name="dbContext"><see cref="AppDbContext" /> from where the migration must be executed</param>
+        /// <param name="loggerFactory"><see cref="ILoggerFactory" /> mandatory logger factory</param>
+        /// <param name="ct"><see cref="CancellationToken" /> cancellation token</param>
         /// <returns>If all pending migrations have successfully been applied or not</returns>
-        ///
         /// <remarks>
-        /// If any migration or SQL script didn't work correctly, every pending migrations and SQL script are rolled back
-        /// in order to prevent data loss.
+        ///     If any migration or SQL script didn't work correctly, every pending migrations and SQL script are rolled back
+        ///     in order to prevent data loss.
         /// </remarks>
         public async Task<bool> MigrateAndExecSqlScriptAsync(
             ILoggerFactory loggerFactory,
@@ -66,7 +63,6 @@ public static class AppDbContextExtension
                         "After");
 
                     if (sqlScriptDirectoryExists)
-                    {
                         if (Directory.Exists(beforeCurrentMigrationSqlScriptDirectory))
                         {
                             logger.LogInformation("Starting sql scripts in {DirectoryName} directory",
@@ -74,7 +70,6 @@ public static class AppDbContextExtension
 
                             await FindAndExecuteSqlScriptInDirectory(beforeCurrentMigrationSqlScriptDirectory);
                         }
-                    }
 
                     logger.LogInformation("Starting migration {Name}", pendingMigration);
                     var migrationScript = migrator.GenerateScript(
@@ -85,7 +80,6 @@ public static class AppDbContextExtension
                     appliedMigrations.Add(pendingMigration);
 
                     if (sqlScriptDirectoryExists)
-                    {
                         if (Directory.Exists(afterCurrentMigrationSqlScriptDirectory))
                         {
                             logger.LogInformation("Starting sql scripts in {DirectoryName} directory",
@@ -93,7 +87,6 @@ public static class AppDbContextExtension
 
                             await FindAndExecuteSqlScriptInDirectory(afterCurrentMigrationSqlScriptDirectory);
                         }
-                    }
                 }
             }
             catch (Exception e)
@@ -115,9 +108,9 @@ public static class AppDbContextExtension
             async Task FindAndExecuteSqlScriptInDirectory(string directory)
             {
                 foreach (var sqlScript in Directory.GetFiles(
-                             path: directory,
-                             searchPattern: "*.sql",
-                             searchOption: SearchOption.AllDirectories))
+                             directory,
+                             "*.sql",
+                             SearchOption.AllDirectories))
                 {
                     logger.LogInformation("Starting {SqlScript}", sqlScript);
                     await dbContext.Database.ExecuteSqlRawAsync(await File.ReadAllTextAsync(sqlScript, ct), ct);

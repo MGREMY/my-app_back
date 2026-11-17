@@ -1,3 +1,5 @@
+using MyApp.Services.Abstractions.Requests;
+
 namespace MyApp.Host.Api.Requests;
 
 public sealed record FilterApiRequest(
@@ -7,6 +9,12 @@ public sealed record FilterApiRequest(
     FilterApiRequest.Logic FilterLogic,
     IEnumerable<FilterApiRequest>? Filters = null)
 {
+    public enum Logic
+    {
+        And = 0,
+        Or = 1
+    }
+
     public enum Operator
     {
         Equal = 0,
@@ -18,22 +26,16 @@ public sealed record FilterApiRequest(
         Contains = 6,
         NotContains = 7,
         StartWith = 8,
-        EndWith = 9,
+        EndWith = 9
     }
 
-    public enum Logic
+    public FilterServiceRequest ToServiceRequest()
     {
-        And = 0,
-        Or = 1,
-    }
-
-    public Services.Abstractions.Requests.FilterServiceRequest ToServiceRequest()
-    {
-        return new Services.Abstractions.Requests.FilterServiceRequest(
+        return new FilterServiceRequest(
             PropertyName,
-            (Services.Abstractions.Requests.FilterServiceRequest.Operator)FilterOperator,
+            (FilterServiceRequest.Operator)FilterOperator,
             Value,
-            (Services.Abstractions.Requests.FilterServiceRequest.Logic)FilterLogic,
+            (FilterServiceRequest.Logic)FilterLogic,
             Filters?.Select(x => x.ToServiceRequest()) ?? []);
     }
 }

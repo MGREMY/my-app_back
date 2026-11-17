@@ -1,6 +1,6 @@
+using FluentValidation;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Extensions;
-using FluentValidation;
 using MyApp.Host.Api.Extension.Configuration;
 using ServiceDefaults;
 
@@ -51,7 +51,6 @@ app
     });
 
 if (app.Environment.IsDevelopment())
-{
     await using (var scope = app.Services.CreateAsyncScope())
     {
         await using (var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>())
@@ -67,6 +66,5 @@ if (app.Environment.IsDevelopment())
             }
         }
     }
-}
 
 app.Run();

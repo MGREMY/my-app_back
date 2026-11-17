@@ -5,12 +5,6 @@ namespace MyApp.Host.Api.Extension.Configuration;
 
 public static class AuthenticationConfiguration
 {
-    public class ApiAuthenticationOptions
-    {
-        public string Domain { get; set; } = string.Empty;
-        public string Audience { get; set; } = string.Empty;
-    }
-
     extension<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
@@ -32,7 +26,7 @@ public static class AuthenticationConfiguration
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidAudience = apiConfiguration.Audience,
-                        ValidIssuer = apiConfiguration.Domain,
+                        ValidIssuer = apiConfiguration.Domain
                     };
                     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
                 });
@@ -49,5 +43,11 @@ public static class AuthenticationConfiguration
 
             return app;
         }
+    }
+
+    public class ApiAuthenticationOptions
+    {
+        public string Domain { get; set; } = string.Empty;
+        public string Audience { get; set; } = string.Empty;
     }
 }

@@ -16,11 +16,17 @@ public sealed class UserApiBuilder(IVersionedEndpointRouteBuilder builder) : Ver
 public static class ApiBuilder
 {
     public static AuthApiBuilder MapAuth(this IEndpointRouteBuilder builder)
-        => new(builder.NewVersionedApi("Auth").RequireAuthorization());
+    {
+        return new AuthApiBuilder(builder.NewVersionedApi("Auth").RequireAuthorization());
+    }
 
     public static MiscApiBuilder MapMisc(this IEndpointRouteBuilder builder)
-        => new(builder.NewVersionedApi("Misc").RequireAuthorization());
+    {
+        return new MiscApiBuilder(builder.NewVersionedApi("Misc"));
+    }
 
     public static UserApiBuilder MapUser(this IEndpointRouteBuilder builder)
-        => new(builder.NewVersionedApi("User").RequireAuthorization());
+    {
+        return new UserApiBuilder(builder.NewVersionedApi("User").RequireAuthorization());
+    }
 }

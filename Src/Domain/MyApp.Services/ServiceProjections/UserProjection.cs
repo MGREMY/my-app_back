@@ -12,6 +12,9 @@ internal static class UserProjection
             Id = user.Id,
             CreatedAtUtc = user.CreatedAtUtc,
             UserName = user.UserName,
-            Email = user.Email,
+            Email = user.Email
         };
+
+    internal static readonly Func<User, UserServiceResponse>
+        ToUserServiceResponseFunc = ToUserServiceResponse.Compile();
 }

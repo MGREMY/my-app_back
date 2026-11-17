@@ -4,52 +4,52 @@
         <TargetFramework>net11.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>15</LangVersion>
+        <LangVersion>default</LangVersion>
         <PackageId>MyApp.Services</PackageId>
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\MyApp.Domain.Specifications\MyApp.Domain.Specifications.csproj" />
-        <ProjectReference Include="..\MyApp.Domain.Models\MyApp.Domain.Models.csproj" />
-        <ProjectReference Include="..\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj" />
-        <ProjectReference Include="..\MyApp.Services.Generators\MyApp.Services.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\MyApp.Domain.Specifications\MyApp.Domain.Specifications.csproj"/>
+        <ProjectReference Include="..\MyApp.Domain.Models\MyApp.Domain.Models.csproj"/>
+        <ProjectReference Include="..\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj"/>
+        <ProjectReference Include="..\MyApp.Services.Generators\MyApp.Services.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.15" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.15"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.15">
-          <PrivateAssets>all</PrivateAssets>
-          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="11.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Localization" Version="11.0.0" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="11.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Localization" Version="11.0.0"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Update="Resources\SharedResource.resx">
-        <Generator>PublicResXFileCodeGenerator</Generator>
-        <LastGenOutput>SharedResource.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
-      <EmbeddedResource Update="Resources\SharedResource.fr.resx">
-        <Generator>PublicResXFileCodeGenerator</Generator>
-        <LastGenOutput>SharedResource.fr.Designer.cs</LastGenOutput>
-      </EmbeddedResource>
+        <EmbeddedResource Update="Resources\SharedResource.resx">
+            <Generator>PublicResXFileCodeGenerator</Generator>
+            <LastGenOutput>SharedResource.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
+        <EmbeddedResource Update="Resources\SharedResource.fr.resx">
+            <Generator>PublicResXFileCodeGenerator</Generator>
+            <LastGenOutput>SharedResource.fr.Designer.cs</LastGenOutput>
+        </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Update="Resources\SharedResource.Designer.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>SharedResource.resx</DependentUpon>
-      </Compile>
-      <Compile Update="Resources\SharedResource.fr.Designer.cs">
-        <DesignTime>True</DesignTime>
-        <AutoGen>True</AutoGen>
-        <DependentUpon>SharedResource.fr.resx</DependentUpon>
-      </Compile>
+        <Compile Update="Resources\SharedResource.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>SharedResource.resx</DependentUpon>
+        </Compile>
+        <Compile Update="Resources\SharedResource.fr.Designer.cs">
+            <DesignTime>True</DesignTime>
+            <AutoGen>True</AutoGen>
+            <DependentUpon>SharedResource.fr.resx</DependentUpon>
+        </Compile>
     </ItemGroup>
 
 </Project>

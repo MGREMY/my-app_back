@@ -20,7 +20,7 @@ public static class QueryableExtension
                 HasPreviousPage = pageNumber > 1,
                 HasNextPage = pageNumber < totalPages,
                 TotalPages = totalPages,
-                Data = query.ToArray(),
+                Data = query.ToArray()
             };
         }
 
@@ -39,7 +39,7 @@ public static class QueryableExtension
                 HasPreviousPage = pageNumber > 1,
                 HasNextPage = pageNumber < totalPages,
                 TotalPages = totalPages,
-                Data = query.ToArray(),
+                Data = query.ToArray()
             };
         }
     }

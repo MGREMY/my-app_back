@@ -5,8 +5,6 @@ namespace MyApp.Domain.Models;
 
 public class AppDbContext : DbContext
 {
-    public virtual DbSet<User> Users { get; set; }
-
     public AppDbContext()
     {
     }
@@ -15,4 +13,6 @@ public class AppDbContext : DbContext
         : base(options)
     {
     }
+
+    public virtual DbSet<User> Users { get; set; }
 }

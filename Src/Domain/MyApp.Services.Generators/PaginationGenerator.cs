@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
-using MyApp.Services.Generators.Extensions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using MyApp.Services.Generators.Extensions;
 using MyApp.Services.Generators.Parser;
 
 namespace MyApp.Services.Generators;
@@ -14,12 +13,6 @@ namespace MyApp.Services.Generators;
 [Generator(LanguageNames.CSharp)]
 public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
 {
-    private class Target(INamedTypeSymbol @class, ITypeSymbol entity)
-    {
-        public INamedTypeSymbol Class { get; } = @class;
-        public ITypeSymbol Entity { get; } = entity;
-    }
-
     private const string AttributeFqdn = "MyApp.Services.PaginationHandlerForAttribute`1";
 
     private const string AttributeSourceCode =
@@ -43,11 +36,11 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
             ctx.AddSource("PaginationHandlerFor.g.cs", AttributeSourceCode);
         });
 
-        IncrementalValueProvider<ImmutableArray<Target>> classProvider =
+        var classProvider =
             context.SyntaxProvider.ForAttributeWithMetadataName(
                     AttributeFqdn,
-                    predicate: static (node, _) => node is ClassDeclarationSyntax,
-                    transform: static (ctx, _) => new Target(
+                    static (node, _) => node is ClassDeclarationSyntax,
+                    static (ctx, _) => new Target(
                         (INamedTypeSymbol)ctx.TargetSymbol,
                         ctx.Attributes[0].AttributeClass!.TypeArguments[0]))
                 .Collect();
@@ -72,10 +65,10 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                     .ToArray();
 
                 var @namespace = target.Class.ContainingNamespace.ToDisplayString();
-                var @className = target.Class.Name;
-                var @entityFullName = target.Entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                var @entityName = target.Entity.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
-                var @entityProperties = Enumerable
+                var className = target.Class.Name;
+                var entityFullName = target.Entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                var entityName = target.Entity.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+                var entityProperties = Enumerable
                     .GroupBy([.. _entityMembers, .. _entityInterfacesMembers], x => x.Name)
                     .Select(x => x.First())
                     .ToArray();
@@ -92,7 +85,7 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
 using System.Linq.Expressions;
 
-using t1 = {{@entityFullName}};
+using t1 = {{entityFullName}};
 
 namespace {{@namespace}}
 {
@@ -125,7 +118,7 @@ namespace {{@namespace}}
                 {
                     switch (request.PropertyName)
                     {
-                        {{string.Join("\n", @entityProperties.Select<IPropertySymbol, string>(property => {
+                        {{string.Join("\n", entityProperties.Select<IPropertySymbol, string>(property => {
                             var propertySwitchSelector = SwitchCaseSelectorForEntityProperty(property);
 
                             return $"""
@@ -146,7 +139,7 @@ namespace {{@namespace}}
                 {
                     switch (request.PropertyName)
                     {
-                        {{string.Join("\n", @entityProperties.Select<IPropertySymbol, string>(property => {
+                        {{string.Join("\n", entityProperties.Select<IPropertySymbol, string>(property => {
                             var propertySwitchSelector = SwitchCaseSelectorForEntityProperty(property);
 
                             return $"""
@@ -192,7 +185,7 @@ namespace {{@namespace}}
 
                 switch (request.PropertyName)
                 {
-                    {{string.Join("\n", @entityProperties.Select<IPropertySymbol, string>(property => {
+                    {{string.Join("\n", entityProperties.Select<IPropertySymbol, string>(property => {
                         var propertySwitchSelector = SwitchCaseSelectorForEntityProperty(property);
                         var propertyValueParserAndComparer = BuildValueParserAndComparerForProperty(property);
 
@@ -242,16 +235,16 @@ namespace {{@namespace}}
 """;
 #pragma warning restore format // @formatter:on
 
-                spc.AddSource($"{@entityName}.paginationHandler.g.cs", source);
+                spc.AddSource($"{entityName}.paginationHandler.g.cs", source);
             }
         });
     }
 
     /// <summary>
-    /// Return a switch case selector with all possible formats for a property symbol
+    ///     Return a switch case selector with all possible formats for a property symbol
     /// </summary>
     /// <example>
-    /// <code>
+    ///     <code>
     /// [...]
     /// case "string_format":
     /// case "StringFormat":
@@ -268,7 +261,7 @@ namespace {{@namespace}}
     }
 
     /// <summary>
-    /// Return all possible format for a string
+    ///     Return all possible format for a string
     /// </summary>
     /// <param name="input">string to format</param>
     /// <returns></returns>
@@ -300,7 +293,13 @@ namespace {{@namespace}}
             nameof(Int32) => Int32PropertyParser.Parse(propertySymbol, isNullable),
             nameof(Boolean) => BooleanPropertyParser.Parse(propertySymbol, isNullable),
             nameof(String) => StringPropertyParser.Parse(propertySymbol, isNullable),
-            _ => string.Empty,
+            _ => string.Empty
         };
+    }
+
+    private class Target(INamedTypeSymbol @class, ITypeSymbol entity)
+    {
+        public INamedTypeSymbol Class { get; } = @class;
+        public ITypeSymbol Entity { get; } = entity;
     }
 }

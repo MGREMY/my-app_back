@@ -10,7 +10,6 @@ public sealed record UserApiResponse(
 {
     public UserApiResponse(UserServiceResponse value)
         : this(value.Id, value.CreatedAtUtc, value.UserName, value.Email)
-
     {
     }
 }

@@ -20,7 +20,7 @@ internal class FileStorageService : IFileStorageService
 
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        return Task.FromResult(System.IO.File.OpenRead(filePath));
+        return Task.FromResult(File.OpenRead(filePath));
     }
 
     public Task<string> CreateAsync(CancellationToken ct = default)
@@ -30,7 +30,7 @@ internal class FileStorageService : IFileStorageService
         var fileName = Guid.NewGuid().ToString();
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        using var _ = System.IO.File.Create(filePath);
+        using var _ = File.Create(filePath);
 
         return Task.FromResult(filePath);
     }
@@ -49,7 +49,7 @@ internal class FileStorageService : IFileStorageService
         await using var fileStream = append switch
         {
             true => new FileStream(filePath, FileMode.Append, FileAccess.Write),
-            false => new FileStream(filePath, FileMode.Create, FileAccess.Write),
+            false => new FileStream(filePath, FileMode.Create, FileAccess.Write)
         };
 
         await stream.CopyToAsync(fileStream, ct);
@@ -74,7 +74,7 @@ internal class FileStorageService : IFileStorageService
 
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        return Task.FromResult(System.IO.File.Exists(filePath));
+        return Task.FromResult(File.Exists(filePath));
     }
 
     public Task DeleteAsync(string fileName, CancellationToken ct = default)
@@ -83,7 +83,7 @@ internal class FileStorageService : IFileStorageService
 
         var filePath = Path.Combine(_options.DataPath, fileName);
 
-        System.IO.File.Delete(filePath);
+        File.Delete(filePath);
 
         return Task.CompletedTask;
     }

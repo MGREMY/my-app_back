@@ -20,7 +20,7 @@ public static class AuthEndpoint
             .Produces(StatusCodes.Status204NoContent)
             .Produces<ProblemHttpResult>(StatusCodes.Status400BadRequest);
 
-        return new(builder);
+        return new AuthApiBuilder(builder);
     }
 
     private static class V1
@@ -30,13 +30,14 @@ public static class AuthEndpoint
             ClaimsPrincipal user,
             CancellationToken ct = default)
         {
-            var result = await service.ExecuteAsync(new(user.CurrentId, user.CurrentUserName, user.CurrentEmail), ct);
+            var result =
+                await service.ExecuteAsync(
+                    new IAuthSyncUser.Request(user.CurrentId, user.CurrentUserName, user.CurrentEmail), ct);
 
             return result switch
             {
                 ServiceErrorResponse error => EndpointHelper.FormatErrorResponse(error),
-                ServiceSuccessResponse => TypedResults.NoContent(),
-                _ => throw new ArgumentOutOfRangeException(),
+                ServiceSuccessResponse => TypedResults.NoContent()
             };
         }
     }

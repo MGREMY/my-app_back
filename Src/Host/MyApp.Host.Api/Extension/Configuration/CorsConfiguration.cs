@@ -2,11 +2,6 @@ namespace MyApp.Host.Api.Extension.Configuration;
 
 public static class CorsConfiguration
 {
-    public class ApiCorsConfiguration
-    {
-        public IEnumerable<string> Origins { get; set; } = [];
-    }
-
     extension<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
@@ -37,5 +32,10 @@ public static class CorsConfiguration
 
             return app;
         }
+    }
+
+    public class ApiCorsConfiguration
+    {
+        public IEnumerable<string> Origins { get; set; } = [];
     }
 }

@@ -6,14 +6,17 @@ public static class StringExtensions
 {
     private static readonly Regex RegexFindNonAlphaChar = new(@"([^a-zA-Z\d])", RegexOptions.Compiled);
     private static readonly Regex RegexFindNonAlphaCharGroup = new(@"([^a-zA-Z\d]+)", RegexOptions.Compiled);
-    private static readonly Regex RegexFindNonAlphaCharGroupAndNextChar = new(@"([^a-zA-Z\d]+[a-zA-Z])", RegexOptions.Compiled);
+
+    private static readonly Regex RegexFindNonAlphaCharGroupAndNextChar =
+        new(@"([^a-zA-Z\d]+[a-zA-Z])", RegexOptions.Compiled);
+
     private static readonly Regex RegexFindUpperChar = new(@"\.?([A-Z])", RegexOptions.Compiled);
     private static readonly Regex RegexFindFirstCharUnderscore = new(@"^_", RegexOptions.Compiled);
     private static readonly Regex RegexFindLastCharUnderscore = new(@"_$", RegexOptions.Compiled);
     private static readonly Regex RegexFindFirstChar = new(@"(^.)", RegexOptions.Compiled);
 
     /// <summary>
-    /// Converts text to camelCase.
+    ///     Converts text to camelCase.
     /// </summary>
     /// <param name="text">The text to be converted.</param>
     public static string ToCamelCase(this string text)
@@ -33,7 +36,7 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Converts text to PascalCase.
+    ///     Converts text to PascalCase.
     /// </summary>
     /// <param name="text">The text to be converted.</param>
     public static string ToPascalCase(this string text)
@@ -53,7 +56,7 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Converts text to lower_snake_case.
+    ///     Converts text to lower_snake_case.
     /// </summary>
     /// <param name="text">The text to be converted.</param>
     public static string ToLowerSnakeCase(this string text)
@@ -79,7 +82,7 @@ public static class StringExtensions
     }
 
     /// <summary>
-    /// Converts text to _underscoreCamelCase.
+    ///     Converts text to _underscoreCamelCase.
     /// </summary>
     /// <param name="text">The text to be converted.</param>
     public static string ToUnderscoreCamelCase(this string text)

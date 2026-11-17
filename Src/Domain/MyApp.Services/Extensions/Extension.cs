@@ -3,7 +3,6 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using MyApp.Domain.Models;
 using MyApp.Services.Abstractions;
-using MyApp.Services.Services;
 
 namespace MyApp.Services.Extensions;
 
@@ -49,7 +48,7 @@ public static class Extension
                 options.DefaultEntryOptions = new HybridCacheEntryOptions
                 {
                     Expiration = TimeSpan.FromMinutes(5),
-                    LocalCacheExpiration = TimeSpan.FromMinutes(5),
+                    LocalCacheExpiration = TimeSpan.FromMinutes(5)
                 };
             }).Services.AddStackExchangeRedisCache(options => { options.Configuration = redisConnectionString; });
 
@@ -58,34 +57,24 @@ public static class Extension
 
         private IServiceCollection AddServices()
         {
-            const string skipInterfaceNameContaining = "dto";
-
             var definedServiceTypes = typeof(Extension).Assembly.DefinedTypes
                 .Where(x => x is { IsClass: true, IsAbstract: false })
                 .ToArray();
 
-            var definedServiceInterfaces = typeof(MyApp.Services.Abstractions.ServiceResponse).Assembly.DefinedTypes
-                .Where(x =>
-                    x is { IsInterface: true }
-                    && !x.FullName!.Contains(skipInterfaceNameContaining, StringComparison.InvariantCultureIgnoreCase)
-                )
+            var definedServiceInterfaces = typeof(ServiceResponse).Assembly.DefinedTypes
+                .Where(x => x is { IsInterface: true })
                 .ToArray();
 
             foreach (var serviceInterface in definedServiceInterfaces)
+            foreach (var definedServiceType in definedServiceTypes)
             {
-                foreach (var definedServiceType in definedServiceTypes)
-                {
-                    if (!definedServiceType.ImplementedInterfaces.Contains(serviceInterface)) continue;
+                if (!definedServiceType.ImplementedInterfaces.Contains(serviceInterface)) continue;
 
-                    services.AddScoped(serviceInterface, definedServiceType);
-                    break;
-                }
+                services.AddScoped(serviceInterface, definedServiceType);
+                break;
             }
 
-            return services
-                .AddHttpClient()
-                .AddScoped<ICacheService, CacheService>()
-                .AddScoped<IFileStorageService, FileStorageService>();
+            return services.AddHttpClient();
         }
     }
 }

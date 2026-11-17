@@ -5,7 +5,7 @@ using MyApp.Domain.Models.Models.Interface;
 namespace MyApp.Domain.Models.Models;
 
 [EntityTypeConfiguration<UserEntityConfiguration, User>]
-public class User : BaseEntity, ICreatedAt
+public class User : BaseEntity, ICreatedAt, ISoftDeletable
 {
     public required string AuthId { get; set; }
     public required string UserName { get; set; }
@@ -14,6 +14,8 @@ public class User : BaseEntity, ICreatedAt
     public DateTimeOffset CreatedAtUtc { get; set; }
     public DateTimeOffset? UpdatedAtUtc { get; set; }
     public bool HasBeenModified { get; set; }
+    public bool IsDeleted { get; set; }
+    public DateTimeOffset? DeletedAtUtc { get; set; }
 }
 
 internal sealed class UserEntityConfiguration : IEntityTypeConfiguration<User>
@@ -23,7 +25,8 @@ internal sealed class UserEntityConfiguration : IEntityTypeConfiguration<User>
         builder
             .ToTable("user")
             .AddBaseEntity()
-            .AddCreatedAt();
+            .AddCreatedAt()
+            .AddSoftDeletion();
 
         builder
             .Property(x => x.AuthId)

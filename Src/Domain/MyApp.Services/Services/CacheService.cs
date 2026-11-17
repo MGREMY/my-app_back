@@ -14,15 +14,15 @@ internal sealed class CacheService : ICacheService
         _cache = distributedCache;
     }
 
-    public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
+    public async Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : ICacheData
     {
         if (await _cache.GetAsync(key, ct) is not { } cacheValue) return default;
 
         using var ms = new MemoryStream(cacheValue);
-        return await JsonSerializer.DeserializeAsync<T>(ms, options: JsonSerializerOptions.Default, ct);
+        return await JsonSerializer.DeserializeAsync<T>(ms, JsonSerializerOptions.Default, ct);
     }
 
-    public Task SaveAsync<T>(string key, T data, CancellationToken ct = default)
+    public Task SaveAsync<T>(string key, T data, CancellationToken ct = default) where T : ICacheData
     {
         return _cache.SetAsync(
             key,

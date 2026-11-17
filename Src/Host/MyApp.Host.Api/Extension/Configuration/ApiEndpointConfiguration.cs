@@ -1,5 +1,4 @@
 using Asp.Versioning;
-using Microsoft.OpenApi;
 using MyApp.Host.Api.Endpoints;
 
 namespace MyApp.Host.Api.Extension.Configuration;

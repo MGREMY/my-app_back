@@ -1,4 +1,5 @@
 using FluentValidation;
+using MyApp.Services.Abstractions.Requests;
 
 namespace MyApp.Host.Api.Requests;
 
@@ -8,13 +9,13 @@ public sealed record PaginationApiRequest(
     IEnumerable<SortApiRequest>? SortRequests = null,
     IEnumerable<FilterApiRequest>? FilterRequests = null)
 {
-    public Services.Abstractions.Requests.PaginationServiceRequest ToServiceRequest()
+    public PaginationServiceRequest ToServiceRequest()
     {
-        return new Services.Abstractions.Requests.PaginationServiceRequest(
+        return new PaginationServiceRequest(
             PageNumber,
             PageSize,
-            SortRequests: SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
-            FilterRequests: FilterRequests?.Select(x => x.ToServiceRequest()) ?? []);
+            SortRequests?.Select(x => x.ToServiceRequest()) ?? [],
+            FilterRequests?.Select(x => x.ToServiceRequest()) ?? []);
     }
 
     public sealed class Validator : AbstractValidator<PaginationApiRequest>

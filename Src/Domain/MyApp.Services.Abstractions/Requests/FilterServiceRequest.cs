@@ -7,6 +7,12 @@ public sealed record FilterServiceRequest(
     FilterServiceRequest.Logic FilterLogic,
     IEnumerable<FilterServiceRequest> Filters)
 {
+    public enum Logic
+    {
+        And = 0,
+        Or = 1
+    }
+
     public enum Operator
     {
         Equal = 0,
@@ -18,12 +24,6 @@ public sealed record FilterServiceRequest(
         Contains = 6,
         NotContains = 7,
         StartWith = 8,
-        EndWith = 9,
-    }
-
-    public enum Logic
-    {
-        And = 0,
-        Or = 1,
+        EndWith = 9
     }
 }

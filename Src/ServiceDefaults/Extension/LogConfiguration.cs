@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -20,19 +21,20 @@ internal static class LogConfiguration
                 .Enrich.WithProperty("ApplicationName", builder.Environment.ApplicationName)
                 .WriteTo.Console(
                     theme: SystemConsoleTheme.Colored,
-                    outputTemplate: outputTemplate
+                    outputTemplate: outputTemplate,
+                    formatProvider: CultureInfo.InvariantCulture
                 )
                 .WriteTo.File(
                     "logs/log.log",
                     outputTemplate: outputTemplate,
                     rollOnFileSizeLimit: true,
                     rollingInterval: RollingInterval.Day,
-                    retainedFileTimeLimit: TimeSpan.FromDays(7)
+                    retainedFileTimeLimit: TimeSpan.FromDays(7),
+                    formatProvider: CultureInfo.InvariantCulture
                 );
 
             var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
             if (!string.IsNullOrWhiteSpace(otlpEndpoint))
-            {
                 loggerConfiguration
                     .WriteTo.OpenTelemetry(options =>
                     {
@@ -49,10 +51,9 @@ internal static class LogConfiguration
                             ["service.name"] = builder.Environment.ApplicationName,
                             ["service.version"] = typeof(LogConfiguration).Assembly.GetName().Version?.ToString()
                                                   ?? "1.0.0",
-                            ["deployment.environment"] = builder.Environment.EnvironmentName,
+                            ["deployment.environment"] = builder.Environment.EnvironmentName
                         };
                     });
-            }
 
             builder.Logging.ClearProviders();
             builder.Logging.AddSerilog(loggerConfiguration.CreateLogger());

@@ -3,41 +3,41 @@ using Microsoft.Extensions.Localization;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models;
 using MyApp.Domain.Models.Models.Interface;
+using MyApp.Domain.Specifications.Extensions;
+using MyApp.Domain.Specifications.UserSpecifications;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.AuthServices;
-using MyApp.Services.CachedDto;
+using MyApp.Services.CacheModels;
 using MyApp.Services.Resources;
 
 namespace MyApp.Services.Services.AuthServices;
 
 public sealed class AuthSyncUser : IAuthSyncUser
 {
-    private readonly AppDbContext _db;
     private readonly ICacheService _cacheService;
+    private readonly AppDbContext _db;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public AuthSyncUser(
-        AppDbContext db,
-        IStringLocalizer<SharedResource> localizer,
-        ICacheService cacheService)
+    public AuthSyncUser(AppDbContext db,
+        ICacheService cacheService,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _cacheService = cacheService;
+        _localizer = localizer;
     }
 
     public async Task<ServiceResponse> ExecuteAsync(IAuthSyncUser.Request query, CancellationToken ct = default)
     {
-        var cacheKey = $"{ServiceConstant.Auth.SyncCacheKey}:{query.AuthId}";
-
-        if (await _cacheService.GetAsync<CachedUser>(cacheKey, ct) is not null)
-        {
-            return new ServiceSuccessResponse();
-        }
-
         var user = await _db.Users
-            .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
             .AsNoTracking()
-            .Where(user => user.AuthId == query.AuthId)
+            // Ignore filter because some users can be deleted and should be treated as unauthorized
+            .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
+            .Spec(new UserHasAuthIdSpec(query.AuthId))
             .FirstOrDefaultAsync(ct);
+
+        if (user is { IsDeleted: true })
+            return new ServiceErrorResponse(403, _localizer.GetString(ServiceConstant.Error.user_already_deleted));
 
         if (user is null)
         {
@@ -45,7 +45,7 @@ public sealed class AuthSyncUser : IAuthSyncUser
                 {
                     AuthId = query.AuthId,
                     UserName = query.UserName,
-                    Email = query.Email,
+                    Email = query.Email
                 }
                 .SetCreatedAtData();
 
@@ -53,16 +53,7 @@ public sealed class AuthSyncUser : IAuthSyncUser
             await _db.SaveChangesAsync(ct);
         }
 
-        await _cacheService.SaveAsync(cacheKey, new CachedUser
-        {
-            Id = user.Id,
-            AuthId = user.AuthId,
-            UserName = user.UserName,
-            Email = user.Email,
-            CreatedAtUtc = user.CreatedAtUtc,
-            UpdatedAtUtc = user.UpdatedAtUtc,
-            HasBeenModified = user.HasBeenModified,
-        }, ct);
+        await _cacheService.SaveAsync(ServiceConstant.Cache.UserKey(user.Id), (CacheUser)user, ct);
 
         return new ServiceSuccessResponse();
     }

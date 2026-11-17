@@ -7,31 +7,31 @@ public static class Extension
         public IResourceBuilder<PostgresDatabaseResource> AddPostgresContainer()
         {
             return builder.AddPostgres(
-                    name: "myAppPostgresServer",
-                    userName: builder.AddParameterFromConfiguration(
-                        name: "Z-PARAM-POSTGRES-USER",
-                        configurationKey: "api_config:postgres:user",
-                        secret: true),
-                    password: builder.AddParameterFromConfiguration(
-                        name: "Z-PARAM-POSTGRES-PASSWORD",
-                        configurationKey: "api_config:postgres:password",
-                        secret: true),
-                    port: int.TryParse(builder.Configuration["api_config:postgres:port"], out var port)
+                    "myAppPostgresServer",
+                    builder.AddParameterFromConfiguration(
+                        "Z-PARAM-POSTGRES-USER",
+                        "api_config:postgres:user",
+                        true),
+                    builder.AddParameterFromConfiguration(
+                        "Z-PARAM-POSTGRES-PASSWORD",
+                        "api_config:postgres:password",
+                        true),
+                    int.TryParse(builder.Configuration["api_config:postgres:port"], out var port)
                         ? port
                         : throw new InvalidOperationException(nameof(port))
                 )
                 .WithDataVolume()
-                .AddDatabase(name: "postgres", databaseName: "myApp");
+                .AddDatabase("postgres", "myApp");
         }
 
         public IResourceBuilder<RedisResource> AddRedisContainer()
         {
             var redis = builder.AddRedis(
-                name: "myAppRedis",
+                "myAppRedis",
                 password: builder.AddParameterFromConfiguration(
-                    name: "Z-PARAM-REDIS-PASSWORD",
-                    configurationKey: "api_config:redis:password",
-                    secret: true),
+                    "Z-PARAM-REDIS-PASSWORD",
+                    "api_config:redis:password",
+                    true),
                 port: int.TryParse(builder.Configuration["api_config:redis:port"], out var port)
                     ? port
                     : throw new InvalidOperationException(nameof(port))
@@ -48,15 +48,15 @@ public static class Extension
         public IResourceBuilder<KeycloakResource> AddKeycloakContainer()
         {
             return builder.AddKeycloak(
-                    name: "myAppKeycloak",
+                    "myAppKeycloak",
                     adminUsername: builder.AddParameterFromConfiguration(
-                        name: "Z-PARAM-KEYCLOAK-ADMIN-USERNAME",
-                        configurationKey: "api_config:keycloak:admin_username",
-                        secret: true),
+                        "Z-PARAM-KEYCLOAK-ADMIN-USERNAME",
+                        "api_config:keycloak:admin_username",
+                        true),
                     adminPassword: builder.AddParameterFromConfiguration(
-                        name: "Z-PARAM-KEYCLOAK-ADMIN-PASSWORD",
-                        configurationKey: "api_config:keycloak:admin_password",
-                        secret: true),
+                        "Z-PARAM-KEYCLOAK-ADMIN-PASSWORD",
+                        "api_config:keycloak:admin_password",
+                        true),
                     port: int.TryParse(builder.Configuration["api_config:keycloak:port"], out var port)
                         ? port
                         : throw new InvalidOperationException(nameof(port))
@@ -72,10 +72,10 @@ public static class Extension
         {
             return builder.AddMailPit(
                 "smtp",
-                httpPort: int.TryParse(builder.Configuration["api_config:mailPit:http_port"], out var httpPort)
+                int.TryParse(builder.Configuration["api_config:mailPit:http_port"], out var httpPort)
                     ? httpPort
                     : throw new InvalidOperationException(nameof(httpPort)),
-                smtpPort: int.TryParse(builder.Configuration["api_config:mailPit:smtp_port"], out var smtpPort)
+                int.TryParse(builder.Configuration["api_config:mailPit:smtp_port"], out var smtpPort)
                     ? smtpPort
                     : throw new InvalidOperationException(nameof(smtpPort))
             );

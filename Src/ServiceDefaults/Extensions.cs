@@ -12,11 +12,14 @@ public static class Extensions
         where TBuilder : IHostApplicationBuilder
     {
         /// <summary>
-        /// Add OpenTelemetry, self Health Check and Serilog to the application
+        ///     Add OpenTelemetry, self Health Check and Serilog to the application
         /// </summary>
-        /// <param name="builder"></param>
-        /// <typeparam name="TBuilder"><see cref="IHostApplicationBuilder"/></typeparam>
-        /// <returns><see cref="IHostApplicationBuilder"/></returns>
+        /// <typeparam name="TBuilder">
+        ///     <see cref="IHostApplicationBuilder" />
+        /// </typeparam>
+        /// <returns>
+        ///     <see cref="IHostApplicationBuilder" />
+        /// </returns>
         public TBuilder AddServiceDefaults()
         {
             builder
@@ -32,12 +35,13 @@ public static class Extensions
     extension(WebApplication application)
     {
         /// <summary>
-        /// Map Health and Alive endpoint to the Application
+        ///     Map Health and Alive endpoint to the Application
         /// </summary>
-        /// <param name="application"><see cref="WebApplication"/></param>
         /// <param name="healthEndpointPath">Endpoint for Health Check</param>
         /// <param name="aliveEndpointPath">Endpoint for Alive Check</param>
-        /// <returns><see cref="WebApplication"/></returns>
+        /// <returns>
+        ///     <see cref="WebApplication" />
+        /// </returns>
         public WebApplication MapDefaultEndpoint(
             string healthEndpointPath,
             string aliveEndpointPath)
@@ -46,7 +50,7 @@ public static class Extensions
             {
                 application.MapHealthChecks(healthEndpointPath, new HealthCheckOptions
                 {
-                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse,
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
                 });
 
                 application.MapHealthChecks(aliveEndpointPath, new HealthCheckOptions
