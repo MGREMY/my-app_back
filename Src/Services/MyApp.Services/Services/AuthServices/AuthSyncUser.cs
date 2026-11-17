@@ -8,7 +8,6 @@ using MyApp.Domain.Specifications.Extensions;
 using MyApp.Domain.Specifications.UserSpecifications;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.AuthServices;
-using MyApp.Services.CacheModels;
 using MyApp.Services.Resources;
 using MyApp.Services.ServiceProjections;
 

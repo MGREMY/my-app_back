@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Domain\MyApp.Services\MyApp.Services.csproj"/>
+        <ProjectReference Include="..\..\Services\MyApp.Services\MyApp.Services.csproj"/>
         <ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj"/>
     </ItemGroup>
 

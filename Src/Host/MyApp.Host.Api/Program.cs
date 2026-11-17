@@ -5,16 +5,11 @@ using MyApp.Host.Api.Extension.Configuration;
 using ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
-var config = builder.GetAppConfig();
 
 builder
     .AddServiceDefaults()
     .AddAppAuthorization()
-    .AddAppAuthentication(options =>
-    {
-        options.Domain = config.Auth.Domain;
-        options.Audience = config.Auth.Audience;
-    })
+    .AddAppAuthentication()
     .AddAppCors()
     .AddAppServices()
     .AddAppHealthChecks()
@@ -34,7 +29,7 @@ builder.Services
 var app = builder.Build();
 
 app
-    .UseAppCors(options => { options.Origins = config.Cors.Origins; })
+    .UseAppCors()
     .UseAppLocalization()
     .UseAppDomainExceptionHandler()
     .UseAppAuthentication()

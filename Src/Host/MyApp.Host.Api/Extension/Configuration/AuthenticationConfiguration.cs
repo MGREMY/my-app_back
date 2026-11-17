@@ -8,10 +8,9 @@ public static class AuthenticationConfiguration
     extension<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
-        public TBuilder AddAppAuthentication(Action<ApiAuthenticationOptions> configure)
+        public TBuilder AddAppAuthentication()
         {
-            ApiAuthenticationOptions apiConfiguration = new();
-            configure(apiConfiguration);
+            var config = builder.GetAppConfig();
 
             builder.Services
                 .AddAuthentication(options =>
@@ -22,11 +21,11 @@ public static class AuthenticationConfiguration
                 .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
                 {
                     options.IncludeErrorDetails = true;
-                    options.Authority = apiConfiguration.Domain;
+                    options.Authority = config.Auth.Domain;
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidAudience = apiConfiguration.Audience,
-                        ValidIssuer = apiConfiguration.Domain
+                        ValidAudience = config.Auth.Audience,
+                        ValidIssuer = config.Auth.Domain
                     };
                     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
                 });
@@ -43,11 +42,5 @@ public static class AuthenticationConfiguration
 
             return app;
         }
-    }
-
-    public class ApiAuthenticationOptions
-    {
-        public string Domain { get; set; } = string.Empty;
-        public string Audience { get; set; } = string.Empty;
     }
 }

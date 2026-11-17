@@ -9,8 +9,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\MyApp.Domain.Specifications\MyApp.Domain.Specifications.csproj"/>
-        <ProjectReference Include="..\MyApp.Domain.Models\MyApp.Domain.Models.csproj"/>
+        <ProjectReference Include="..\..\Domain\MyApp.Domain.Specifications\MyApp.Domain.Specifications.csproj"/>
+        <ProjectReference Include="..\..\Domain\MyApp.Domain.Models\MyApp.Domain.Models.csproj"/>
         <ProjectReference Include="..\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj"/>
         <ProjectReference Include="..\MyApp.Services.Generators\MyApp.Services.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
