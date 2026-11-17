@@ -10,18 +10,12 @@ public static class ApiServiceConfiguration
     {
         public TBuilder AddAppServices()
         {
-            var postgresConnectionString = builder.Configuration.GetConnectionString("postgres");
-            var redisConnectionString = builder.Configuration.GetConnectionString("redis");
-            var dataPath = builder.Configuration.GetValue<string>("DataPath");
-
-            ArgumentNullException.ThrowIfNull(postgresConnectionString);
-            ArgumentNullException.ThrowIfNull(redisConnectionString);
-            ArgumentNullException.ThrowIfNull(dataPath);
+            var config = builder.GetAppConfig();
 
             builder.Services
-                .AddMyAppPersistence(postgresConnectionString)
-                .AddMyAppCache(redisConnectionString)
-                .AddMyAppServices(config => { config.DataPath = dataPath; });
+                .AddMyAppPersistence(config.Database.ConnectionString)
+                .AddMyAppCache(config.Cache.ConnectionString)
+                .AddMyAppServices(options => { options.DataPath = config.Services.DataPath; });
 
             return builder;
         }

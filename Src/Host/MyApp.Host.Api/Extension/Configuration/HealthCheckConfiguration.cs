@@ -7,17 +7,13 @@ public static class HealthCheckConfiguration
     {
         public TBuilder AddAppHealthChecks()
         {
-            var postgresConnectionString = builder.Configuration.GetConnectionString("postgres");
-            var redisConnectionString = builder.Configuration.GetConnectionString("redis");
-
-            ArgumentNullException.ThrowIfNull(postgresConnectionString);
-            ArgumentNullException.ThrowIfNull(redisConnectionString);
+            var config = builder.GetAppConfig();
 
             builder.Services
                 .AddHealthChecks()
                 .AddDiskStorageHealthCheck(options => { options.CheckAllDrives = true; }, "system:diskStorage")
-                .AddNpgSql(postgresConnectionString, name: "services:PostgresSQL")
-                .AddRedis(redisConnectionString, "services:Redis");
+                .AddNpgSql(config.Database.ConnectionString, name: "services:PostgresSQL")
+                .AddRedis(config.Cache.ConnectionString, "services:Redis");
 
             return builder;
         }

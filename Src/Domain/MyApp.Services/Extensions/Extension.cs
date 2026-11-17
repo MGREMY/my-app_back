@@ -52,7 +52,7 @@ public static class Extension
                 .ToArray();
 
             var definedServiceInterfaces = typeof(ServiceResponse).Assembly.DefinedTypes
-                .Where(x => x is { IsInterface: true })
+                .Where(x => x is { IsInterface: true, IsGenericTypeDefinition: false })
                 .ToArray();
 
             foreach (var serviceInterface in definedServiceInterfaces)
