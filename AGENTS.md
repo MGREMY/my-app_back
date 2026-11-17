@@ -42,10 +42,23 @@ Run the API alone (the `Api` configuration section must be complete, see section
 dotnet run --project Src/Host/MyApp.Host.Api
 ```
 
-Add an EF Core migration (generated in `Src/Domain/MyApp.Domain.Models/Migrations`):
+Add an EF Core migration (generated in `Src/Domain/MyApp.Domain.Models/Migrations`). The tools start the API in
+`Development`, so they read `appsettings.Development.json`; override with `Api__...` environment variables to target
+another database:
 
 ```bash
 dotnet ef migrations add <MigrationName> --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api --output-dir Migrations
+```
+
+Apply migrations to a database, or generate the SQL script to apply them elsewhere (both include the SQL scripts of
+section 6.2):
+
+```bash
+dotnet ef database update --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api
+```
+
+```bash
+dotnet ef migrations script --idempotent --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api --output migrations.sql
 ```
 
 Rename the template (camelCase then PascalCase replacement of `myApp` / `MyApp`):
@@ -122,7 +135,8 @@ Api
 
 1. Add the property (or a new `ApiXxxOption` sub-class) in `ApiOption.cs`.
 2. If required, add a `Require(...)` line in `GetAppConfig()`.
-3. Add the default value in `Src/Host/MyApp.Host.Api/appsettings.json`.
+3. Declare the key with an empty value in `Src/Host/MyApp.Host.Api/appsettings.json` (schema only, never real
+   values) and put the local value in `appsettings.Development.json`.
 4. Wire it from `Src/AppHost/Program.cs` with `.WithEnvironment("Api__Xxx__Yyy", ...)`, reading the value from the
    AppHost `api_config` section (`Src/AppHost/appsettings.Development.json`).
 
@@ -238,23 +252,54 @@ public class Product : BaseEntity, ICreatedAt
 
 ### 6.2 SQL scripts around a migration
 
-`AppDbContext.MigrateAndExecSqlScriptAsync()` applies pending migrations one by one and runs raw SQL scripts:
+A migration can run raw SQL scripts before and after its generated operations. Put them in:
 
 ```
 Src/Domain/MyApp.Domain.Models/SqlScripts/<MigrationFileNameWithoutExtension>/
-├── Before/          executed before the migration
+├── Before/          executed before the migration operations
 │   ├── *.sql
 │   └── <any sub-folder>/*.sql
-└── After/           executed after the migration
+└── After/           executed after the migration operations
     ├── *.sql
     └── <any sub-folder>/*.sql
 ```
 
-`Before` and `After` are searched recursively, so scripts can be organized in any hierarchy, for example
-`After/user/seed.sql`, `After/product/indexes.sql`.
+Example for the migration file `20261118093000_AddProduct.cs`:
 
-Everything (migrations and scripts) runs in a single transaction and is rolled back on failure. Migrations are
-applied automatically at startup in the `Development` environment only.
+```
+SqlScripts/20261118093000_AddProduct/
+└── After/
+    ├── 01_product/
+    │   ├── 01_seed.sql
+    │   └── 02_ix_product_name.no-transaction.sql
+    └── 02_user/
+        └── seed.sql
+```
+
+Rules:
+
+- `Before` and `After` are searched recursively, so scripts can be organized in any hierarchy.
+- Inside a stage, scripts run in **ordinal order of their relative path**. Prefix folders and files with numbers
+  (`01_`, `02_`) to control the order; do not rely on names alone (`product/` runs before `user/`, `10_` before `2_`).
+- A script whose name ends with `.no-transaction.sql` runs outside of the migration transaction (needed for
+  `CREATE INDEX CONCURRENTLY`, `VACUUM`...). EF Core logs a warning for it: if the process stops during that script,
+  the migration stays partially applied.
+- Batch separators such as SQL Server's `GO` are supported (handled by the database provider).
+- Scripts are not reverted when a migration is rolled back (`Down`).
+
+How it works (nothing to do by hand):
+
+- `*.sql` files under `SqlScripts/` are embedded in the `MyApp.Domain.Models` assembly.
+- Every migration inherits `SqlScriptMigration` (`SqlScriptMigrations/SqlScriptMigration.cs`), which injects the
+  scripts as EF Core SQL operations around the generated ones. Scripts are therefore part of every way of applying
+  migrations: `Database.MigrateAsync()`, `dotnet ef database update`, `dotnet ef migrations script` and bundles.
+- `dotnet ef migrations add` generates migrations that already inherit `SqlScriptMigration`, thanks to
+  `SqlScriptMigrationsGenerator`. It is registered for the EF Core tools by the `DesignTimeServicesReference`
+  assembly attribute declared in `MyApp.Host.Api.csproj`. Never edit generated migration files to change their base
+  class.
+
+Migrations are applied automatically at startup (`Database.MigrateAsync()` in `Program.cs`) in the `Development`
+environment only.
 
 ### 6.3 Add a specification
 
@@ -378,14 +423,16 @@ Supported cultures: `en` (default) and `fr`.
 
 ### 6.9 Add an endpoint
 
-1. If the feature is a new area, add an API builder in `Endpoints/ApiBuilder.cs`:
+1. If the feature is a new area, add an API builder in `Endpoints/ApiBuilder.cs`. Always create the versioned API
+   with `NewAppVersionedApi(...)`, never `NewVersionedApi(...)` directly: it adds the conventions shared by every
+   endpoint, such as automatic validation.
 
    ```csharp
    public sealed class ProductApiBuilder(IVersionedEndpointRouteBuilder builder) : VersionedApiBuilder(builder);
 
    public static ProductApiBuilder MapProduct(this IEndpointRouteBuilder builder)
    {
-       return new ProductApiBuilder(builder.NewVersionedApi("Product").RequireAuthorization());
+       return new ProductApiBuilder(builder.NewAppVersionedApi("Product").RequireAuthorization());
    }
    ```
 
@@ -424,7 +471,10 @@ API contracts are separate from service contracts and live in `Host.Api`:
 
 - `Requests/<Name>ApiRequest.cs`: `sealed record` with a `ToServiceRequest()` method converting it to the service
   request. Its FluentValidation validator is a nested `sealed class Validator : AbstractValidator<...>`.
-  Validators are registered with `AddValidatorsFromAssemblyContaining<Program>()`.
+- Validation is automatic: `AddAppValidation()` registers every validator of the API assembly, and `ValidationFilter`
+  (added by `NewAppVersionedApi`) validates every handler argument that has a validator before the handler runs.
+  Invalid input returns a `400` validation problem (`EndpointHelper.FormatValidationErrorResponse`). Never inject
+  `IValidator<T>` nor call `Validate` in a handler.
 - `Responses/<Name>ApiResponse.cs`: `sealed record` with a constructor taking the service response.
 
 Services never return API types and endpoints never expose service types.
@@ -438,7 +488,8 @@ Services never return API types and endpoints never expose service types.
 - **Antiforgery**: header `X-XSRF-TOKEN`, cookie `XSRF-TOKEN`, token issued by `GET /misc/anti-forgery-token`.
 - **CORS**: default policy registered in `AddAppCors()`, allowed origins from `Api:Cors:Origins`, credentials
   allowed, `Content-Disposition` exposed.
-- **Errors**: unhandled exceptions are logged and returned as `500`. Business errors go through
+- **Errors**: unhandled exceptions are logged and returned as `500`. Validation errors are returned as `400`
+  validation problems (section 6.10). Business errors go through
   `ServiceErrorResponse` and are returned as RFC 7807 problem details by `EndpointHelper.FormatErrorResponse`.
 - **Soft deletion**: entities implementing `ISoftDeletable` are filtered by the named filter
   `ModelConstant.SoftDeletionFilter`. To read deleted rows, use
@@ -482,13 +533,13 @@ Services never return API types and endpoints never expose service types.
 
 ## 10. Known pitfalls
 
-- Migrations and SQL scripts run automatically in `Development` only. Other environments must apply them explicitly.
-- All migrations and scripts run in one transaction. Regular statements (including `CREATE INDEX`) work, but the few
-  PostgreSQL statements forbidden inside a transaction (`CREATE INDEX CONCURRENTLY`, `VACUUM`, `CREATE DATABASE`...)
-  fail.
-- Each SQL script file is sent as a single command. Client-side batch separators such as SQL Server's `GO` are not
-  supported.
-- Script files are executed in file system order, which is not guaranteed to be alphabetical.
+- Migrations and SQL scripts run automatically in `Development` only. Other environments must apply them explicitly
+  (`dotnet ef database update`, generated SQL script or bundle, see section 2).
+- A SQL script placed in a folder that does not match the exact migration file name (timestamp included) is silently
+  ignored.
+- Statements forbidden inside a transaction (`CREATE INDEX CONCURRENTLY`, `VACUUM`...) fail unless the script name
+  ends with `.no-transaction.sql`.
+- Script order is ordinal on the relative path: without numeric prefixes, `10_x.sql` runs before `2_x.sql`.
 - Adding an interface to `Services.Abstractions` without exactly one implementation in `Services` makes startup fail
   (section 5.3).
 - Missing required configuration makes startup fail with the list of missing `Api:...` keys (section 4).

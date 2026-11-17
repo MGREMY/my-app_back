@@ -1,6 +1,5 @@
-using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using MyApp.Domain.Models;
-using MyApp.Domain.Models.Extensions;
 using MyApp.Host.Api.Extension.Configuration;
 using ServiceDefaults;
 
@@ -13,10 +12,10 @@ builder
     .AddAppCors()
     .AddAppServices()
     .AddAppHealthChecks()
-    .AddAppVersioning();
+    .AddAppVersioning()
+    .AddAppValidation();
 
 builder.Services
-    .AddValidatorsFromAssemblyContaining<Program>()
     .AddAntiforgery(options =>
     {
         options.HeaderName = "X-XSRF-TOKEN";
@@ -44,7 +43,8 @@ if (app.Environment.IsDevelopment())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        await dbContext.MigrateAndExecSqlScriptAsync(scope.ServiceProvider.GetRequiredService<ILoggerFactory>());
+        // Applies pending migrations, including their SQL scripts (see SqlScriptMigration)
+        await dbContext.Database.MigrateAsync();
     }
 
 app.Run();

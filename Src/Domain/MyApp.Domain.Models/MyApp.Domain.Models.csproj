@@ -10,9 +10,10 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.15"/>
+        <!-- compile is needed by SqlScriptMigrationsGenerator (design-time only, not flowing to other projects) -->
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
             <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.15"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.15"/>
@@ -24,9 +25,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="SqlScript\**">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </None>
+        <!-- Scripts run by SqlScriptMigration, embedded as "SqlScripts/<MigrationId>/<Before|After>/<path>.sql" -->
+        <EmbeddedResource Include="SqlScripts\**\*.sql"
+                          LogicalName="SqlScripts/$([System.String]::Copy('%(RecursiveDir)').Replace('\', '/'))%(Filename)%(Extension)"/>
     </ItemGroup>
 
     <ItemGroup>

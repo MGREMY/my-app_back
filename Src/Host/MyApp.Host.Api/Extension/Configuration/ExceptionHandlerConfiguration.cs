@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
+using MyApp.Host.Api.Helpers;
 
 namespace MyApp.Host.Api.Extension.Configuration;
 
@@ -54,13 +55,8 @@ public static partial class ExceptionHandlerConfiguration
                     switch (exHandlerFeature.Error)
                     {
                         case ValidationException validationException:
-                            await TypedResults.ValidationProblem(
-                                title: "Validation failed",
-                                detail: "The request contains invalid fields.",
-                                errors: validationException.Errors.GroupBy(x => x.PropertyName).ToDictionary(
-                                    x => x.Key,
-                                    x => x.Select(y => y.ErrorMessage).ToArray())
-                            ).ExecuteAsync(ctx);
+                            await EndpointHelper.FormatValidationErrorResponse(validationException.Errors)
+                                .ExecuteAsync(ctx);
                             break;
                         default:
                         {

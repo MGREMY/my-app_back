@@ -1,4 +1,3 @@
-using FluentValidation;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using MyApp.Host.Api.Helpers;
@@ -41,11 +40,8 @@ public static class UserEndpoint
             Get(
                 [FromBody] PaginationApiRequest req,
                 [FromServices] IUserGet service,
-                [FromServices] IValidator<PaginationApiRequest> validator,
                 CancellationToken ct = default)
         {
-            await validator.ValidateAndThrowAsync(req, ct);
-
             var result = await service.ExecuteAsync(new IUserGet.Request(req.ToServiceRequest()), ct);
 
             return result switch
