@@ -56,12 +56,19 @@ public static class Extension
                 .ToArray();
 
             foreach (var serviceInterface in definedServiceInterfaces)
-            foreach (var definedServiceType in definedServiceTypes)
             {
-                if (!definedServiceType.ImplementedInterfaces.Contains(serviceInterface)) continue;
+                var implementations = definedServiceTypes
+                    .Where(x => x.ImplementedInterfaces.Contains(serviceInterface))
+                    .ToArray();
 
-                services.AddScoped(serviceInterface, definedServiceType);
-                break;
+                services.AddScoped(serviceInterface, implementations switch
+                {
+                    [var single] => single,
+                    [] => throw new InvalidOperationException(
+                        $"No implementation found for service '{serviceInterface.FullName}'."),
+                    _ => throw new InvalidOperationException(
+                        $"Multiple implementations found for service '{serviceInterface.FullName}': {string.Join(", ", implementations.Select(x => x.FullName))}."),
+                });
             }
 
             return services.AddHttpClient();

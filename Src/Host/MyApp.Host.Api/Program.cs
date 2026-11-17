@@ -34,37 +34,21 @@ var app = builder.Build();
 
 app
     .UseAppCors(options => { options.Origins = builder.Configuration["AuthOrigins"]?.Split(';') ?? []; })
+    .UseAppLocalization()
+    .UseAppDomainExceptionHandler()
     .UseAppAuthentication()
     .UseAppAuthorization()
-    .UseAppDomainExceptionHandler()
     .UseAppOpenApi()
     .MapDefaultEndpoint(ServiceDefaultConstant.HealthEndpointPath, ServiceDefaultConstant.AliveEndpointPath)
     .UseAppEndpoints()
-    .UseAntiforgery()
-    .UseRequestLocalization(options =>
-    {
-        string[] supportedCultures = ["en", "fr"];
-        options.SetDefaultCulture(supportedCultures[0])
-            .AddSupportedCultures(supportedCultures)
-            .AddSupportedUICultures(supportedCultures);
-        options.ApplyCurrentCultureToResponseHeaders = true;
-    });
+    .UseAntiforgery();
 
 if (app.Environment.IsDevelopment())
     await using (var scope = app.Services.CreateAsyncScope())
     {
-        await using (var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>())
-        {
-            try
-            {
-                await dbContext.MigrateAndExecSqlScriptAsync(scope.ServiceProvider
-                    .GetRequiredService<ILoggerFactory>());
-            }
-            catch
-            {
-                Environment.Exit(1);
-            }
-        }
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        await dbContext.MigrateAndExecSqlScriptAsync(scope.ServiceProvider.GetRequiredService<ILoggerFactory>());
     }
 
 app.Run();

@@ -33,20 +33,18 @@ public static class AppDbContextExtension
             var migrator = dbContext.GetInfrastructure().GetRequiredService<IMigrator>();
 
             logger.LogInformation("Preparing migrations");
-            var appliedMigrations = await dbContext.Database.GetAppliedMigrationsAsync(ct)
-                .ContinueWith(x => x.Result.ToList(), ct);
-            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(ct)
-                .ContinueWith(x => x.Result.ToArray(), ct);
+            var appliedMigrations = (await dbContext.Database.GetAppliedMigrationsAsync(ct)).ToList();
+            var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync(ct)).ToList();
             var sqlScriptDirectory = Path.Combine(AppContext.BaseDirectory, "SqlScripts");
             var sqlScriptDirectoryExists = Directory.Exists(sqlScriptDirectory);
 
             if (!sqlScriptDirectoryExists)
                 logger.LogInformation("No SqlScript folder found. No SqlScript will be executed");
 
-            logger.LogInformation("Starting migrations ; Total count of migrations: {Count}", pendingMigrations.Length);
+            logger.LogInformation("Starting migrations ; Total count of migrations: {Count}", pendingMigrations.Count);
 
             // Creating a transaction ; if something fails, everything is rollback
-            var transaction = await dbContext.Database.BeginTransactionAsync(ct);
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
 
             try
             {
