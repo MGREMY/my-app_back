@@ -8,7 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MyApp.Domain.Models\MyApp.Domain.Models.csproj" />
-      <ProjectReference Include="..\MyApp.Infrastructure.Specifications\MyApp.Infrastructure.Specifications.csproj" />
     </ItemGroup>
 
 </Project>

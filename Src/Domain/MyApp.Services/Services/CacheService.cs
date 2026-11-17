@@ -1,17 +1,11 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Distributed;
+using MyApp.Services.Abstractions;
 
 namespace MyApp.Services.Services;
 
-public interface ICacheService
-{
-    Task<T?> GetAsync<T>(string key, CancellationToken ct = default);
-    Task SaveAsync<T>(string key, T data, CancellationToken ct = default);
-    Task DeleteAsync(string key, CancellationToken ct = default);
-}
-
-public sealed class CacheService : ICacheService
+internal sealed class CacheService : ICacheService
 {
     private readonly IDistributedCache _cache;
 

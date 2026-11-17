@@ -1,7 +1,6 @@
-using System;
 using System.Linq.Expressions;
 
-namespace MyApp.Infrastructure.Specifications
+namespace MyApp.Domain.Specifications
 {
     /// <summary>
     ///     Represents a reusable, composable predicate over <typeparamref name="T" />.

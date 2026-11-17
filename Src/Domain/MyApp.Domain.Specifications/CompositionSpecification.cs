@@ -1,8 +1,7 @@
-using System;
 using System.Linq.Expressions;
 using MyApp.Infrastructure.Specifications.Helpers;
 
-namespace MyApp.Infrastructure.Specifications
+namespace MyApp.Domain.Specifications
 {
     /// <summary>
     ///     Specification that combines two specifications with a logical AND.

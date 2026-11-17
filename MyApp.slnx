@@ -10,9 +10,6 @@
   <Folder Name="/Src/Host/">
     <Project Path="Src\Host\MyApp.Host.Api\MyApp.Host.Api.csproj" />
   </Folder>
-  <Folder Name="/Src/Infrastructure/">
-    <Project Path="Src\Domain\MyApp.Infrastructure.Specifications\MyApp.Infrastructure.Specifications.csproj" />
-  </Folder>
   <Folder Name="/Src/Services/">
     <Project Path="Src\Domain\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj" />
     <Project Path="Src\Domain\MyApp.Services.Generators\MyApp.Services.Generators.csproj" />

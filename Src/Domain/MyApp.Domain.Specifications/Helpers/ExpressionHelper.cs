@@ -1,5 +1,6 @@
 using System;
 using System.Linq.Expressions;
+using MyApp.Domain.Specifications;
 
 namespace MyApp.Infrastructure.Specifications.Helpers
 {

@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace MyApp.Infrastructure.Specifications
+namespace MyApp.Domain.Specifications
 {
     /// <summary>
     ///     Rewrites the outer parameter of a specification's expression tree.

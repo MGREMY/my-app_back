@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using MyApp.Domain.Models.Models;
-using MyApp.Infrastructure.Specifications;
 
 namespace MyApp.Domain.Specifications.UserSpecifications;
 

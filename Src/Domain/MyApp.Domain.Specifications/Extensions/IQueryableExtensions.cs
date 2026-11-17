@@ -1,4 +1,5 @@
 using System.Linq;
+using MyApp.Domain.Specifications;
 
 namespace MyApp.Infrastructure.Specifications.Extensions
 {

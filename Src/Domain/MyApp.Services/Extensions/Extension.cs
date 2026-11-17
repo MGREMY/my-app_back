@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using MyApp.Domain.Models;
+using MyApp.Services.Abstractions;
 using MyApp.Services.Services;
 
 namespace MyApp.Services.Extensions;
@@ -83,7 +84,8 @@ public static class Extension
 
             return services
                 .AddHttpClient()
-                .AddScoped<ICacheService, CacheService>();
+                .AddScoped<ICacheService, CacheService>()
+                .AddScoped<IFileStorageService, FileStorageService>();
         }
     }
 }

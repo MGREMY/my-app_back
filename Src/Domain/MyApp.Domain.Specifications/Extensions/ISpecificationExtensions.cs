@@ -1,3 +1,5 @@
+using MyApp.Domain.Specifications;
+
 namespace MyApp.Infrastructure.Specifications.Extensions
 {
     /// <summary>
