@@ -18,6 +18,34 @@ namespace MyApp.Services.Generators.Parser;
 ///         Invalid input (unsupported operator, unparsable value) throws <c>InvalidPaginationRequestException</c>.
 ///     </para>
 /// </remarks>
+//
+// Example: for a `DateTimeOffset? UpdatedAtUtc` property, the builder case becomes (simplified):
+//
+//   case "updatedatutc":
+//   {
+//       var property = FilterExpressionHelper.Bind((User x) => x.UpdatedAtUtc, target); // from PaginationGenerator
+//
+//       // --- emitted by this class ---------------------------------------------------------------------
+//       global::System.DateTimeOffset? parsedValue = null;                      // nullable: null by default
+//       if (DateTimeOffset.TryParse(request.Value, ..., out var parsed))
+//           parsedValue = parsed.ToUniversalTime();
+//       else if (request.Value is not "", null or "null")                       // anything else is an error
+//           throw new InvalidPaginationRequestException(...);
+//
+//       var value = FilterExpressionHelper.Value(parsedValue, property.Type);   // @p0, typed as the property
+//
+//       return request.FilterOperator switch
+//       {
+//           Equal       => Expression.Equal(property, value),                   // x.UpdatedAtUtc == @p0
+//           GreaterThan => Expression.GreaterThan(property, value),             // only for Comparable types
+//           ...
+//           _           => throw new InvalidPaginationRequestException(...),    // operator not allowed for the type
+//       };
+//   }
+//
+// Each supported type only differs by three things (see ScalarInfo): how request.Value is parsed, how the parsed
+// value is converted, and which operators are allowed. Adding a type means adding one ScalarInfo in TryGetInfo.
+//
 public static class ScalarFilterEmitter
 {
     /// <summary>Operators available for a scalar type.</summary>
@@ -121,6 +149,7 @@ public static class ScalarFilterEmitter
     /// </summary>
     private static string EmitParsed(ScalarInfo info)
     {
+        // Parsing block: produces a local "parsedValue" of the property type (T or T?)
         var parse = info.IsNullable
             ? $$"""
                 {{info.TypeName}}? parsedValue = null;
@@ -135,6 +164,8 @@ public static class ScalarFilterEmitter
                 var parsedValue = {{info.Converted}};
                 """;
 
+        // Ordering operators are only emitted for Comparable types: for the others, they fall into the default arm
+        // of the switch and are rejected at runtime (Expression.GreaterThan on a Guid would throw anyway)
         var comparisons = info.Operators == OperatorSet.Comparable
             ? """
               FilterServiceRequest.Operator.GreaterThan => Expression.GreaterThan(property, value),
@@ -175,6 +206,8 @@ public static class ScalarFilterEmitter
         info = null!;
 
         var isNullable = false;
+        // Nullable<T> (int?, DateTimeOffset?...): describe T and remember it is nullable. Nullable reference types
+        // (string?) are not wrapped: they are detected with NullableAnnotation below.
         if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable)
         {
             isNullable = true;
