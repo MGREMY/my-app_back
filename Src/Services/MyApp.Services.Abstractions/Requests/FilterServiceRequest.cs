@@ -3,7 +3,7 @@ namespace MyApp.Services.Abstractions.Requests;
 public sealed record FilterServiceRequest(
     string PropertyName,
     FilterServiceRequest.Operator FilterOperator,
-    string Value,
+    string? Value,
     FilterServiceRequest.Logic FilterLogic,
     IEnumerable<FilterServiceRequest> Filters)
 {

@@ -44,11 +44,11 @@ public sealed record PaginationApiRequest(
                     filter.RuleFor(x => x.PropertyName)
                         .NotEmpty();
                     filter.RuleFor(x => x.FilterOperator)
-                        .NotNull();
-                    filter.RuleFor(x => x.Value)
-                        .NotNull();
+                        .IsInEnum();
+                    // Value is nullable on purpose: a JSON null means "IS NULL" / "IS NOT NULL".
+                    // Whether null is allowed depends on the property and the operator: checked by the generated code.
                     filter.RuleFor(x => x.FilterLogic)
-                        .NotNull();
+                        .IsInEnum();
                 }))
                 .When(x => x.FilterRequests?.Any() ?? false);
         }
