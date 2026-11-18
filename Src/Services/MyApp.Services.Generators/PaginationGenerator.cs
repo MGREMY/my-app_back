@@ -105,6 +105,16 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                   return closure.Body.Type == targetType ? closure.Body : Expression.Convert(closure.Body, targetType);
               }
 
+              /// <summary>
+              ///     Reserved path segment targeting the number of items of a collection ("posts.$count").
+              ///     The "$" prefix avoids any collision with a real property named Count.
+              /// </summary>
+              public const string CountSegment = "$count";
+
+              /// <summary>source.Count(), translated by EF Core to a COUNT subquery.</summary>
+              public static Expression Count<TItem>(Expression source)
+                  => Bind((IEnumerable<TItem> s) => s.Count(), source);
+
               /// <summary>source.Any(item => predicate), translated by EF Core to EXISTS (...).</summary>
               public static Expression Any<TItem>(Expression source, ParameterExpression item, Expression predicate)
                   => Bind(
@@ -236,7 +246,14 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                     cases.Add($$"""
                                 case "{{label}}":
                                 {
-                                    if (rest is null) throw new InvalidPaginationRequestException($"{request.PropertyName} is a navigation property, filter on one of its properties instead");
+                                    if (rest is null) throw new InvalidPaginationRequestException($"{request.PropertyName} is a collection, filter on one of its properties or on its {FilterExpressionHelper.CountSegment} instead");
+
+                                    // "posts.$count": condition on the number of items (SQL COUNT subquery)
+                                    if (rest == FilterExpressionHelper.CountSegment)
+                                    {
+                                        var property = FilterExpressionHelper.Count<{{itemFullName}}>({{access}});
+                                        {{ScalarFilterEmitter.EmitCount()}}
+                                    }
 
                                     var item = Expression.Parameter(typeof({{itemFullName}}), "x" + (depth + 1));
                                     var predicate = {{builderNames[navigationType]}}.Build(item, rest, request, depth + 1);

@@ -76,6 +76,19 @@ public static class ScalarFilterEmitter
     }
 
     /// <summary>
+    ///     Emit the comparison code for the number of items of a collection (<c>"posts.$count"</c>).
+    /// </summary>
+    /// <remarks>
+    ///     Same contract as <see cref="Emit" />: <c>property</c> is the <c>Count()</c> expression, of type <c>int</c>,
+    ///     so the value is parsed as an <c>int</c> and every numeric operator is available.
+    /// </remarks>
+    public static string EmitCount()
+    {
+        return EmitParsed(new ScalarInfo("global::System.Int32", false, OperatorSet.Comparable,
+            "global::System.Int32.TryParse(request.Value, CultureInfo.InvariantCulture, out var parsed)", "parsed"));
+    }
+
+    /// <summary>
     ///     String properties: the value is used as is. Text operators are case-insensitive
     ///     (<c>lower(property) LIKE lower(value)</c> in SQL).
     /// </summary>

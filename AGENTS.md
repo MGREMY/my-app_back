@@ -400,6 +400,7 @@ What the generated code supports:
 | Filter types       | `string`, `bool`, `int`, `long`, `decimal`, `double`, enums, `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, and their nullable versions. |
 | Reference filters  | `role.name` becomes a join on the navigation.                                                      |
 | Collection filters | `posts.likes` becomes `EXISTS (...)` (at least one item matches); collections can be nested (`posts.tags.label`). |
+| Collection count   | `posts.$count` filters on the number of items (`COUNT` subquery), with the numeric operators: `posts.$count = 0` (no post), `posts.tags.$count > 2`. |
 | Navigation depth   | At most 4 navigations in a filter path. Cycles (`posts.author.role.name`) are allowed.             |
 | Sorting            | Scalar properties and reference navigations up to 3 levels (`role.name`). Not through collections. |
 | Null values        | On a nullable property, `null`, an empty value or `"null"` means `IS NULL`.                         |
@@ -423,8 +424,86 @@ How the generator is organized (`Src/Services/MyApp.Services.Generators/`):
 - `PaginationGenerator.cs`: finds the `[PaginationHandlerFor<TEntity>]` roots, walks the navigation graph and emits
   one `{Entity}FilterBuilder` per reachable entity (internal, namespace `MyApp.Services.Generated.Filtering`), the
   shared `FilterExpressionHelper`, and the `{Entity}PaginationExtensions` of each root.
-- `Parser/ScalarFilterEmitter.cs`: emits the parsing and comparison code for each scalar type. Add a type there to
-  make it filterable.
+- `Parser/ScalarFilterEmitter.cs`: emits the parsing and comparison code for each scalar type (and for `$count`).
+  Add a type there to make it filterable (see below).
+
+Known limits of the generated code:
+
+- Collections only support "at least one item matches" (`EXISTS`) and `$count`. There is no "all items match":
+  `posts.title != "x"` means "at least one post whose title is not x", not "no post titled x" (use
+  `posts.$count` combined with another filter, or a dedicated service, for that).
+- Collections of primitives (`string[]`, `List<int>`, PostgreSQL arrays) are ignored.
+- A filter takes a single value: no `In [a, b, c]` (combine `Equal` filters with `Or`).
+- Logic is evaluated left to right without precedence: `A OR B AND C` is `(A OR B) AND C`. Use nested `filters` for
+  another grouping.
+- String `Equal` / `NotEqual` are case-sensitive, text operators are not. The `lower()` calls of text operators
+  prevent the use of regular indexes on large tables.
+- Every public property of the entity and of every reachable entity is filterable and sortable, sensitive ones
+  included (`AuthId`, `Email`...). A client cannot read them through filters, but can infer their values from the
+  filtered results. Property names are the entity ones, not the API response ones.
+- Types not listed above (`short`, `float`, `TimeSpan`, `TimeOnly`, custom structs...) are sortable but not
+  filterable until they are added to `ScalarFilterEmitter`.
+
+#### Adding a filterable type
+
+Every filterable type is described in `ScalarFilterEmitter.TryGetInfo` by a `ScalarInfo`:
+
+| Argument     | Meaning                                                                                          |
+|--------------|--------------------------------------------------------------------------------------------------|
+| `typeName`   | Fully qualified, non-nullable type name (use the `name` variable).                              |
+| `isNullable` | Pass the `isNullable` variable: `Nullable<T>` is unwrapped before, and gets `IS NULL` support for free. |
+| `operators`  | `OperatorSet.Equatable` (equal, not equal), `Comparable` (+ ordering) or `String` (+ text operators). |
+| `parse`      | C# boolean expression parsing `request.Value` into `out var parsed`. Use the invariant culture.  |
+| `converted`  | Expression turning `parsed` into the compared value (usually `"parsed"`, `"parsed.ToUniversalTime()"` for dates). |
+
+Once declared, the type is filterable everywhere (nullable version, navigations, collections) and the
+generated code picks it up at the next build. Update the type tables of this section and of the README.
+
+1. **Type with a `SpecialType`** (most C# keyword types: `short`, `byte`, `float`, `uint`...): add it to the matching
+   `case` of the `switch (type.SpecialType)`. Example for `short` and `float`, which parse like the other numbers:
+
+   ```csharp
+   case SpecialType.System_Int16:
+   case SpecialType.System_Single:
+   case SpecialType.System_Int32:
+   // ...
+       info = new ScalarInfo(name, isNullable, OperatorSet.Comparable,
+           $"{name}.TryParse(request.Value, CultureInfo.InvariantCulture, out var parsed)", "parsed");
+       return true;
+   ```
+
+2. **Framework type without `SpecialType`** (`TimeOnly`, `TimeSpan`...): add a `case` on its fully qualified name in
+   the `switch (name)`:
+
+   ```csharp
+   case "global::System.TimeOnly":
+       info = new ScalarInfo(name, isNullable, OperatorSet.Comparable,
+           $"{name}.TryParse(request.Value, CultureInfo.InvariantCulture, out var parsed)", "parsed");
+       return true;
+   ```
+
+3. **Custom type** (strongly typed id, value object `struct`...): same as 2 with its own name and parsing, for
+   example a `record struct UserId(Guid Value)` implementing `IParsable<UserId>`:
+
+   ```csharp
+   case "global::MyApp.Domain.Models.Models.UserId":
+       info = new ScalarInfo(name, isNullable, OperatorSet.Equatable,
+           $"{name}.TryParse(request.Value, CultureInfo.InvariantCulture, out var parsed)", "parsed");
+       return true;
+   ```
+
+   Constraints for custom types:
+   - the comparison is built with `Expression.Equal` / `Expression.GreaterThan`..., so the type must define the
+     matching operators (`==`, `!=`, and `<`, `>`... for `Comparable`); records define `==` / `!=` automatically;
+   - EF Core must be able to translate the comparison: the type needs a value converter in its entity configuration,
+     and ordering operators compare the **converted** database value, so only use `Comparable` when that order is
+     meaningful;
+   - supported scalars are checked before navigations, so a type declared in `TryGetInfo` is always handled as a
+     scalar. Without that declaration, a class of `MyApp.Domain.Models` is treated as a navigation (prefer `struct`s
+     for value objects meant to be filtered as a single value).
+
+Always check the translation against PostgreSQL after adding a type (for example `uint` has no native PostgreSQL
+type).
 
 To inspect the generated code, build with
 `dotnet build Src/Services/MyApp.Services --no-incremental -p:EmitCompilerGeneratedFiles=true` and look under

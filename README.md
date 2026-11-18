@@ -189,6 +189,10 @@ Content-Type: application/json
 - Case-insensitive, `_` ignored: `userName`, `UserName` and `user_name` are the same property.
 - Dotted paths follow navigation properties: `role.name` (reference), `posts.likes` (collection: at least one post
   matches), `posts.tags.label` (nested collections). At most 4 navigations per filter path.
+- `$count` after a collection filters on its number of items, with the numeric operators: `posts.$count` equal to
+  `0` returns rows without any post, `posts.$count` greater than `2` rows with at least 3 posts.
+- Collections only support "at least one item matches" and `$count`: `posts.title` not equal to `x` means "at least
+  one post whose title is not x".
 - Sorting accepts scalar properties and references up to 3 levels (`role.name`), not collections.
 
 ### Operators and logic
