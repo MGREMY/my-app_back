@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Company>Host.Api</Company>
+        <Product>Host.Api</Product>
+        <PackageId>MyApp.Host.Api</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Services\MyApp.Services\MyApp.Services.csproj"/>
+        <ProjectReference Include="..\..\ServiceDefaults\ServiceDefaults.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Asp.Versioning.Http" Version="10.2.3"/>
+        <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.2.1"/>
+        <PackageReference Include="Asp.Versioning.OpenApi" Version="10.2.3"/>
+        <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.System" Version="9.0.0"/>
+        <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0"/>
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.15"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Scalar.AspNetCore" Version="3.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- EF Core tools only look for design-time services in the startup project: point them to the Models ones -->
+        <AssemblyAttribute Include="Microsoft.EntityFrameworkCore.Design.DesignTimeServicesReferenceAttribute">
+            <_Parameter1>MyApp.Domain.Models.SqlScriptMigrations.SqlScriptDesignTimeServices, MyApp.Domain.Models</_Parameter1>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+</Project>

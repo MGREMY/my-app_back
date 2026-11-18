@@ -1,0 +1,86 @@
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
+using MyApp.Host.Api.Helpers;
+using MyApp.Host.Api.Requests;
+using MyApp.Host.Api.Responses;
+using MyApp.Services.Abstractions;
+using MyApp.Services.Abstractions.Responses;
+using MyApp.Services.Abstractions.Services.UserServices;
+
+namespace MyApp.Host.Api.Endpoints;
+
+public static class UserEndpoint
+{
+    public static UserApiBuilder ToV1(this UserApiBuilder apiBuilder)
+    {
+        var builder = apiBuilder.Endpoints;
+        var api = builder.MapGroup("/users")
+            .HasApiVersion(1.0);
+
+        api.MapMethods(string.Empty, ["QUERY"], V1.Get)
+            .Produces<PaginationApiResponse<UserApiResponse>>()
+            .Produces<ProblemHttpResult>(StatusCodes.Status400BadRequest);
+
+        api.MapGet("{id}", V1.GetById)
+            .Produces<UserApiResponse>()
+            .Produces<ProblemHttpResult>(StatusCodes.Status404NotFound);
+
+        api.MapDelete("{id}", V1.DisableById)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<ProblemHttpResult>(StatusCodes.Status400BadRequest)
+            .Produces<ProblemHttpResult>(StatusCodes.Status404NotFound)
+            .RequireAuthorization(ApiConstant.AuthorizationPolicies.Admin);
+
+        return new UserApiBuilder(builder);
+    }
+
+    private static class V1
+    {
+        public static async Task<IResult>
+            Get(
+                [FromBody] PaginationApiRequest req,
+                [FromServices] IUserGet service,
+                CancellationToken ct = default)
+        {
+            var result = await service.ExecuteAsync(new IUserGet.Request(req.ToServiceRequest()), ct);
+
+            return result switch
+            {
+                ServiceErrorResponse error => EndpointHelper.FormatErrorResponse(error),
+                PaginationServiceResponse<UserServiceResponse> response => TypedResults.Ok(
+                    new PaginationApiResponse<UserApiResponse>(response)
+                    {
+                        Data = response.Data.Select(x => new UserApiResponse(x))
+                    })
+            };
+        }
+
+        public static async Task<IResult> GetById(
+            [FromRoute] Guid id,
+            [FromServices] IUserGetById service,
+            CancellationToken ct = default)
+        {
+            var result = await service.ExecuteAsync(id, ct);
+
+            return result switch
+            {
+                ServiceErrorResponse error => EndpointHelper.FormatErrorResponse(error),
+                UserServiceResponse response => TypedResults.Ok(new UserApiResponse(response))
+            };
+        }
+
+        public static async Task<IResult> DisableById(
+            Guid id,
+            [FromServices] IUserDeleteById service,
+            CancellationToken ct = default)
+        {
+            var result = await service.ExecuteAsync(id, ct);
+
+            return result switch
+            {
+                ServiceErrorResponse error => EndpointHelper.FormatErrorResponse(error),
+                ServiceSuccessResponse => TypedResults.NoContent()
+            };
+        }
+    }
+}

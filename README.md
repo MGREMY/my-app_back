@@ -1,58 +1,255 @@
 # MyApp Backend
 
-A backend API.
+Backend API template built with ASP.NET Core Minimal API on .NET 11.
 
-## Tech Stack
+Architecture, conventions and step-by-step recipes (adding an entity, a service, an endpoint, a setting...) are
+documented in [AGENTS.md](AGENTS.md).
 
-- **Framework**: ASP.NET Core
-- **API**: MinimalAPI
-- **Database**: PostgreSQL (via Entity Framework Core)
-- **Cache**: Redis
-- **Authentication**: JWT-based
-- **Documentation**: OpenAPI/Scalar
+## Tech stack
+
+- **Runtime**: .NET 11, C# 15
+- **API**: ASP.NET Core Minimal API with API versioning
+- **Database**: PostgreSQL through Entity Framework Core
+- **Cache**: HybridCache (in-memory + Redis)
+- **Authentication**: JWT bearer (Keycloak in development)
+- **Documentation**: OpenAPI with Scalar UI
+- **Observability**: OpenTelemetry, Serilog, health checks
+- **Local orchestration**: .NET Aspire
 
 ## Features
 
-- User authentication and authorization
-- CRUD operations
-- Pagination support
-- Health checks
-- OpenTelemetry for observability
+- JWT authentication and role-based authorization
+- Generated pagination, filtering and sorting
+- Reusable query specifications
+- Soft deletion
+- Localized error messages (English, French)
+- Health checks and OpenTelemetry
 
-## Installation
+## Prerequisites
 
-1. Ensure you have .NET 10+ installed.
-2. Clone the repository.
-3. Navigate to the project root.
-4. Restore dependencies: `dotnet restore`
+- .NET SDK 11.0 (see `global.json`)
+- Docker, to run the development dependencies through Aspire
+
+## Getting started
+
+```bash
+dotnet restore
+dotnet build MyApp.slnx
+```
+
+### Run with Aspire (recommended)
+
+Starts the API together with PostgreSQL, Redis, Keycloak and MailPit:
+
+```bash
+dotnet run --project Src/AppHost
+```
+
+Ports and credentials of the dependencies are set in `Src/AppHost/appsettings.Development.json`, under the
+`api_config` section. The Aspire dashboard gives access to every resource and to the API.
+
+### Run the API alone
+
+```bash
+dotnet run --project Src/Host/MyApp.Host.Api
+```
+
+The API listens on `http://localhost:5230`. In `Development`, the `Api` settings come from
+`appsettings.Development.json` and target the dependencies started by Aspire (same ports and credentials). In any
+other environment, every required setting must be provided (see below), otherwise the application stops at startup
+and lists the missing keys.
+
+In the `Development` environment:
+
+- pending migrations and SQL scripts are applied automatically at startup;
+- the Scalar UI is available at `/scalar`.
 
 ## Configuration
 
-Update `appsettings.json` or environment variables for:
-- Database connection string
-- Redis connection
-- Smtp connection
-- Authentication settings (domain, audience, origins)
+The API reads a single `Api` section, from environment variables (`__` as separator, for example
+`Api__Database__ConnectionString`) or from the `appsettings` files of `Src/Host/MyApp.Host.Api`:
 
-## Running
+- `appsettings.json` declares the schema with empty values, so a non-configured environment fails at startup;
+- `appsettings.Development.json` contains the local development values.
 
-1. Start the application: `dotnet run --project src/host/MyApp.Host.Api`
-2. In development, migrations will run automatically.
-3. Access API at `https://localhost:5230` (or configured port)
-4. Swagger UI at `/scalar`
+| Key                            | Required | Description                         |
+|--------------------------------|----------|-------------------------------------|
+| `Api:Database:ConnectionString`| yes      | PostgreSQL connection string        |
+| `Api:Cache:ConnectionString`   | yes      | Redis connection string             |
+| `Api:Auth:Domain`              | yes      | JWT authority (issuer)              |
+| `Api:Auth:Audience`            | yes      | JWT audience                        |
+| `Api:Cors:Origins`             | no       | Allowed CORS origins (array)        |
+| `Api:Services:DataPath`        | yes      | Folder used for file storage        |
 
-## Development
+When running through Aspire, these values are injected by `Src/AppHost/Program.cs`.
 
-- Use `dotnet build` to build the solution.
-- Run tests with `dotnet test`.
-- For local development, use the AppHost project for orchestration.
+## Database migrations
 
-## Renaming the Project
+The repository ships without any migration: each project forked from this template creates its own.
 
-To rename the project from "MyApp" to your desired names, run the provided script with two arguments: the camelCase replacement for "myApp" and the PascalCase replacement for "MyApp". For example:
+### Commands
+
+The EF Core tools start the API in the `Development` environment, so they use `appsettings.Development.json`. To
+target another database (`database update`), override the connection string with
+`Api__Database__ConnectionString`.
+
+Create a migration:
 
 ```bash
-./rename_script.sh mywiki MyWiki
+dotnet ef migrations add <MigrationName> --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api --output-dir Migrations
 ```
 
-This will update all file contents and rename files/directories accordingly. Run it from the project root, and commit changes afterward. Test in a copy first to avoid issues.
+Apply pending migrations to a database:
+
+```bash
+dotnet ef database update --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api
+```
+
+Generate an idempotent SQL script, for example to apply migrations in production:
+
+```bash
+dotnet ef migrations script --idempotent --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api --output migrations.sql
+```
+
+In the `Development` environment, pending migrations are also applied at startup.
+
+### SQL scripts around a migration
+
+A migration can run custom SQL scripts before and after the operations generated by EF Core (seed data, indexes,
+functions...). Place them in a folder named after the migration file, without extension:
+
+```
+Src/Domain/MyApp.Domain.Models/SqlScripts/
+└── 20261118093000_AddProduct/
+    ├── Before/                                   executed before the migration operations
+    │   └── 01_cleanup.sql
+    └── After/                                    executed after the migration operations
+        ├── 01_product/
+        │   ├── 01_seed.sql
+        │   └── 02_ix_product_name.no-transaction.sql
+        └── 02_user/
+            └── seed.sql
+```
+
+Rules:
+
+- `Before` and `After` can contain any hierarchy of sub-folders.
+- Scripts run in ordinal order of their relative path. Use numeric prefixes (`01_`, `02_`) to control the order.
+- A script named `*.no-transaction.sql` runs outside of the migration transaction, for statements that cannot run
+  inside one (`CREATE INDEX CONCURRENTLY`, `VACUUM`...).
+- Batch separators such as SQL Server's `GO` are supported.
+- A folder whose name does not match a migration file exactly is ignored.
+- Scripts are not reverted when a migration is rolled back.
+
+Scripts are part of the migration itself, so they are executed by every way of applying migrations: startup in
+development, `dotnet ef database update`, the generated SQL script and migration bundles.
+
+### How it works
+
+| Piece                                            | When                         | Role                                                                                         |
+|--------------------------------------------------|------------------------------|----------------------------------------------------------------------------------------------|
+| `SqlScripts/**/*.sql`                            | build                        | Embedded in the `MyApp.Domain.Models` assembly (see its `.csproj`).                          |
+| `SqlScriptMigration`                             | runtime                      | Base class of every migration. Adds the scripts as EF Core SQL operations before and after the generated ones; EF Core then runs them and manages transactions. |
+| `SqlScriptMigrationsGenerator`                   | `dotnet ef migrations add`   | Generates migrations inheriting `SqlScriptMigration` instead of `Migration`.                 |
+| `DesignTimeServicesReference` attribute          | `dotnet ef` commands         | Declared in `MyApp.Host.Api.csproj`: the EF Core tools only look for design-time services in the startup project, the attribute points them to the generator. |
+
+The classes live in `Src/Domain/MyApp.Domain.Models/SqlScriptMigrations/`. Generated migration files never need to be
+edited by hand.
+
+## Project structure
+
+```
+Src/
+├── AppHost/                          Aspire orchestration (development only)
+├── ServiceDefaults/                  Logging, OpenTelemetry, health endpoints
+├── Host/MyApp.Host.Api/              Endpoints, API contracts, host configuration
+├── Domain/
+│   ├── MyApp.Domain.Models/          Entities, DbContext, migrations, SQL scripts
+│   └── MyApp.Domain.Specifications/  Reusable query predicates
+└── Services/
+    ├── MyApp.Services.Abstractions/  Service contracts
+    ├── MyApp.Services/               Service implementations
+    └── MyApp.Services.Generators/    Pagination source generator
+```
+
+## Docker
+
+The image is built from `docker/myApp/Dockerfile` and listens on port `8080`:
+
+```bash
+docker build -f docker/myApp/Dockerfile -t myapp .
+```
+
+A multi-architecture image (`linux/amd64`, `linux/arm64`) is pushed to `ghcr.io` on every published GitHub release.
+
+### Running the image
+
+The container runs in the `Production` environment: `appsettings.Development.json` is not loaded, so every required
+`Api` setting must be provided, usually as environment variables (`__` as separator). Arrays use one variable per
+item, with its index: `Api__Cors__Origins__0`, `Api__Cors__Origins__1`...
+
+```bash
+docker run -p 8080:8080 \
+  -e Api__Database__ConnectionString="Host=db;Port=5432;Username=app;Password=secret;Database=myApp" \
+  -e Api__Cache__ConnectionString="redis:6379,password=secret" \
+  -e Api__Auth__Domain="https://auth.example.com/realms/myApp" \
+  -e Api__Auth__Audience="myApp-back" \
+  -e Api__Cors__Origins__0="https://app.example.com" \
+  -e Api__Services__DataPath="/app/data" \
+  -v myapp-data:/app/data \
+  myapp
+```
+
+The same with Docker Compose:
+
+```yaml
+services:
+  api:
+    image: myapp
+    ports:
+      - "8080:8080"
+    environment:
+      Api__Database__ConnectionString: "Host=db;Port=5432;Username=app;Password=secret;Database=myApp"
+      Api__Cache__ConnectionString: "redis:6379,password=secret"
+      Api__Auth__Domain: "https://auth.example.com/realms/myApp"
+      Api__Auth__Audience: "myApp-back"
+      Api__Cors__Origins__0: "https://app.example.com"
+      Api__Cors__Origins__1: "https://admin.example.com"
+      Api__Services__DataPath: "/app/data"
+    volumes:
+      - myapp-data:/app/data
+
+volumes:
+  myapp-data:
+```
+
+For a long configuration, a JSON file can be mounted instead. It is loaded for the `Production` environment and
+supports real arrays; keep secrets in environment variables, which override it:
+
+```yaml
+    volumes:
+      - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+```
+
+Notes:
+
+- The HTTP port is set to `8080` by `docker/myApp/entrypoint.sh`.
+- Health endpoints are available in every environment: `/alive` for liveness probes (the process responds) and
+  `/health` for readiness (PostgreSQL, Redis and disk checks, detailed JSON report).
+- Use an absolute `DataPath` backed by a volume, otherwise stored files are lost when the container is recreated.
+  The container runs as the `app` user, which owns `/app`.
+- Migrations are not applied at startup outside `Development`: apply them beforehand (see
+  [Database migrations](#database-migrations)).
+- Environment variables are visible with `docker inspect`. In production, inject secrets with the orchestrator's
+  secret management (Docker secrets, Kubernetes secrets...).
+
+## Renaming the project
+
+To rename the template, run `setup.sh` from the repository root with the camelCase replacement of `myApp` and the
+PascalCase replacement of `MyApp`:
+
+```bash
+./setup.sh mywiki MyWiki
+```
+
+The script updates file contents and renames files and directories. Try it on a copy first, then commit the result.

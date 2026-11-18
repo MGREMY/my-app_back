@@ -1,0 +1,550 @@
+# AGENTS.md
+
+Reference guide for anyone working on this repository, human or AI agent. It describes the architecture, the
+conventions in place and step-by-step recipes for the most common tasks. When in doubt, follow the existing code:
+consistency with what is already there wins over personal preference.
+
+## 1. Overview
+
+Backend API template built with:
+
+| Concern           | Technology                                                                 |
+|-------------------|----------------------------------------------------------------------------|
+| Runtime           | .NET 11, C# 15 (`LangVersion` default)                                     |
+| API               | ASP.NET Core Minimal API, Asp.Versioning                                   |
+| Database          | PostgreSQL through EF Core (Npgsql provider, lazy loading proxies)         |
+| Cache             | `HybridCache` (in-memory L1 + Redis L2)                                    |
+| Authentication    | JWT bearer (Keycloak in development)                                       |
+| Validation        | FluentValidation                                                           |
+| Documentation     | OpenAPI + Scalar (development only)                                        |
+| Observability     | OpenTelemetry, Serilog, health checks                                      |
+| Dev orchestration | .NET Aspire (`AppHost`), used for local development only                   |
+| Test runner       | Microsoft.Testing.Platform (set in `global.json`)                          |
+
+## 2. Commands
+
+Run every command from the repository root unless stated otherwise.
+
+```bash
+dotnet restore
+dotnet build MyApp.slnx
+```
+
+Run the whole stack (API, PostgreSQL, Redis, Keycloak, MailPit) through Aspire:
+
+```bash
+dotnet run --project Src/AppHost
+```
+
+Run the API alone (the `Api` configuration section must be complete, see section 4):
+
+```bash
+dotnet run --project Src/Host/MyApp.Host.Api
+```
+
+Add an EF Core migration (generated in `Src/Domain/MyApp.Domain.Models/Migrations`). The tools start the API in
+`Development`, so they read `appsettings.Development.json`; override with `Api__...` environment variables to target
+another database:
+
+```bash
+dotnet ef migrations add <MigrationName> --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api --output-dir Migrations
+```
+
+Apply migrations to a database, or generate the SQL script to apply them elsewhere (both include the SQL scripts of
+section 6.2):
+
+```bash
+dotnet ef database update --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api
+```
+
+```bash
+dotnet ef migrations script --idempotent --project Src/Domain/MyApp.Domain.Models --startup-project Src/Host/MyApp.Host.Api --output migrations.sql
+```
+
+Rename the template (camelCase then PascalCase replacement of `myApp` / `MyApp`):
+
+```bash
+./setup.sh mywiki MyWiki
+```
+
+## 3. Architecture
+
+### 3.1 Projects
+
+```
+Src/
+├── AppHost/                          Aspire orchestration (development only)
+├── ServiceDefaults/                  Shared host setup: logging, OpenTelemetry, health endpoints
+├── Host/
+│   └── MyApp.Host.Api/               HTTP layer: endpoints, API contracts, host configuration
+├── Domain/
+│   ├── MyApp.Domain.Models/          EF Core entities, AppDbContext, migrations, SQL scripts
+│   └── MyApp.Domain.Specifications/  Reusable query predicates (specification pattern)
+└── Services/
+    ├── MyApp.Services.Abstractions/  Service contracts: interfaces, requests, responses
+    ├── MyApp.Services/               Service implementations (use cases)
+    └── MyApp.Services.Generators/    Roslyn source generator (pagination), netstandard2.0
+```
+
+`Domain/` holds the domain model (entities and their shared conditions). `Services/` holds the application layer:
+the use cases built on top of the domain.
+
+### 3.2 Dependency rules
+
+```
+Host.Api ──► Services ──► Services.Abstractions
+   │            ├──────► Domain.Specifications ──► Domain.Models
+   │            ├──────► Domain.Models
+   │            └──────► Services.Generators (analyzer only)
+   └──────► ServiceDefaults
+AppHost ──► Host.Api (orchestration only)
+```
+
+- `Services.Abstractions` depends on nothing. It only contains contracts.
+- `Domain.Specifications` only knows entities and expression trees. It never references EF Core APIs.
+- `Services` does not know the database provider. Npgsql is only referenced by `Domain.Models`.
+- `Host.Api` is the composition root. It is the only place that decides which infrastructure is used.
+- The generator is referenced with `OutputItemType="Analyzer" ReferenceOutputAssembly="false"`.
+
+## 4. Configuration
+
+The API declares its own typed configuration schema. Framework conventions such as the `ConnectionStrings` section
+or Aspire's `WithReference` injection are not used.
+
+### 4.1 Schema
+
+Defined in `Src/Host/MyApp.Host.Api/ApiOption.cs`, bound from the `Api` section:
+
+```
+Api
+├── Database:ConnectionString
+├── Cache:ConnectionString
+├── Auth:Domain
+├── Auth:Audience
+├── Cors:Origins[]
+└── Services:DataPath          (bound to MyApp.Services.ServiceOption)
+```
+
+- `builder.GetAppConfig()` (`Extension/Configuration/ApiOptionConfiguration.cs`) binds the section and validates
+  required values. It throws a single `InvalidOperationException` listing every missing key.
+- Every configuration extension that needs settings calls `builder.GetAppConfig()`. Never read
+  `builder.Configuration["..."]` directly.
+- Environment variables use `__` as separator: `Api__Database__ConnectionString`, `Api__Cors__Origins__0`.
+
+### 4.2 Adding a setting
+
+1. Add the property (or a new `ApiXxxOption` sub-class) in `ApiOption.cs`.
+2. If required, add a `Require(...)` line in `GetAppConfig()`.
+3. Declare the key with an empty value in `Src/Host/MyApp.Host.Api/appsettings.json` (schema only, never real
+   values) and put the local value in `appsettings.Development.json`.
+4. Wire it from `Src/AppHost/Program.cs` with `.WithEnvironment("Api__Xxx__Yyy", ...)`, reading the value from the
+   AppHost `api_config` section (`Src/AppHost/appsettings.Development.json`).
+
+## 5. Composition and dependency injection
+
+### 5.1 Host configuration extensions
+
+Each concern of the host lives in `Src/Host/MyApp.Host.Api/Extension/Configuration/<Concern>Configuration.cs` and
+exposes C# 14+ `extension` blocks:
+
+- `AddAppXxx()` on `TBuilder where TBuilder : IHostApplicationBuilder`, returning `TBuilder`.
+- `UseAppXxx()` on `WebApplication`, returning `WebApplication`.
+
+Both return the same type they extend so `Program.cs` stays a single fluent chain. Framework methods that return
+`IApplicationBuilder` (for example `UseRequestLocalization`) must be wrapped in a `UseAppXxx()` extension to keep the
+chain typed.
+
+Extensions that need settings read them themselves with `builder.GetAppConfig()` inside `AddAppXxx()`. Do not create
+per-extension option classes nor pass settings from `Program.cs` through an `Action<T>`: every setting belongs to
+`ApiOption` (section 4). When a `UseAppXxx()` needs a setting, resolve it during `AddAppXxx()` instead (for example
+CORS registers a default policy with the configured origins, and `UseAppCors()` only calls `UseCors()`).
+
+Middleware order in `Program.cs` matters: CORS, localization, exception handler, authentication, authorization,
+OpenAPI, then endpoints.
+
+### 5.2 Layer registration
+
+Each layer exposes its own registration extension. The host composes them:
+
+```csharp
+builder.Services
+    .AddMyAppPersistence(config.Database.ConnectionString)   // Domain.Models: DbContext pool, Npgsql
+    .AddMyAppCache(config.Cache.ConnectionString)            // Services: HybridCache + Redis
+    .AddMyAppServices(options => { ... });                   // Services: use cases, localization, options
+```
+
+A layer never registers infrastructure that belongs to another layer.
+
+### 5.3 Automatic service registration
+
+`AddMyAppServices()` scans the assemblies:
+
+- every non-generic interface of `MyApp.Services.Abstractions` is registered as **scoped**;
+- it must have **exactly one** implementing class in `MyApp.Services`, otherwise startup fails with an
+  `InvalidOperationException` (none found, or several found);
+- open generic interfaces (`IService<>`, `IServiceAsync<,>`, ...) are excluded.
+
+Consequence: do not put an interface in `Services.Abstractions` unless it is a service implemented in `Services`.
+No manual `AddScoped` is needed for a new service.
+
+## 6. Recipes
+
+### 6.1 Add an entity
+
+1. Create `Src/Domain/MyApp.Domain.Models/Models/<Entity>.cs`.
+2. Inherit `BaseEntity` (sequential `Guid` key) and implement the behaviour interfaces you need:
+   - `ICreatedAt`: `CreatedAtUtc`, `UpdatedAtUtc`, `HasBeenModified`.
+   - `ISoftDeletable`: `IsDeleted`, `DeletedAtUtc`, adds a named global query filter.
+3. Configure it in an `internal sealed class <Entity>EntityConfiguration : IEntityTypeConfiguration<Entity>` in the
+   same file, linked with `[EntityTypeConfiguration<<Entity>EntityConfiguration, <Entity>>]` on the entity.
+4. In `Configure`, chain the shared builders, then the specific columns:
+
+   ```csharp
+   builder
+       .ToTable("entity_name")
+       .AddBaseEntity()
+       .AddCreatedAt()
+       .AddSoftDeletion();
+   ```
+
+   Table and column names are **snake_case**, set explicitly with `ToTable` and `HasColumnName`.
+5. Add the `DbSet` in `AppDbContext`. Its name is the **plural of the entity class name**:
+   `public virtual DbSet<Product> Products { get; set; }`.
+6. Create the migration (section 2). Migrations live in the `Migrations` folder of `MyApp.Domain.Models`.
+7. Use the helpers instead of setting fields by hand: `entity.SetCreatedAtData()`, `entity.SetUpdatedAtData()`,
+   `entity.SetSoftDeletableData()`.
+
+Property rules (nullable reference types are enabled):
+
+| Property kind                        | Declaration                                                           |
+|--------------------------------------|-----------------------------------------------------------------------|
+| Column                               | `public required string Name { get; set; }`                           |
+| Optional column                      | `public string? Description { get; set; }`                            |
+| Required reference navigation        | `public virtual Category Category { get; set; } = null!;`             |
+| Optional reference navigation        | `public virtual Category? Category { get; set; } = null;`             |
+| Collection navigation                | `public virtual ICollection<Order> Orders { get; set; } = [];`        |
+
+- Non-nullable columns are `required` so every creation site sets them explicitly.
+- Nullable columns are not `required`: when they are not set, they are `null`.
+- Navigation properties are always `virtual` (lazy loading proxies) and never `required`: they are initialized by
+  default as shown above.
+- Collections are always exposed as `ICollection<T>`.
+- Properties coming from the shared behaviours (`Id`, `ICreatedAt`, `ISoftDeletable`) are not `required`: they are
+  generated by EF Core or set by the helpers.
+- Order inside the class: the entity's own properties first (columns, then navigations), then the properties coming
+  from the implemented interfaces, separated from the rest by an empty line.
+
+```csharp
+[EntityTypeConfiguration<ProductEntityConfiguration, Product>]
+public class Product : BaseEntity, ICreatedAt
+{
+    public required string Name { get; set; }
+    public string? Description { get; set; }
+    public required Guid CategoryId { get; set; }
+    public virtual Category Category { get; set; } = null!;
+    public virtual ICollection<Order> Orders { get; set; } = [];
+
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset? UpdatedAtUtc { get; set; }
+    public bool HasBeenModified { get; set; }
+}
+```
+
+### 6.2 SQL scripts around a migration
+
+A migration can run raw SQL scripts before and after its generated operations. Put them in:
+
+```
+Src/Domain/MyApp.Domain.Models/SqlScripts/<MigrationFileNameWithoutExtension>/
+├── Before/          executed before the migration operations
+│   ├── *.sql
+│   └── <any sub-folder>/*.sql
+└── After/           executed after the migration operations
+    ├── *.sql
+    └── <any sub-folder>/*.sql
+```
+
+Example for the migration file `20261118093000_AddProduct.cs`:
+
+```
+SqlScripts/20261118093000_AddProduct/
+└── After/
+    ├── 01_product/
+    │   ├── 01_seed.sql
+    │   └── 02_ix_product_name.no-transaction.sql
+    └── 02_user/
+        └── seed.sql
+```
+
+Rules:
+
+- `Before` and `After` are searched recursively, so scripts can be organized in any hierarchy.
+- Inside a stage, scripts run in **ordinal order of their relative path**. Prefix folders and files with numbers
+  (`01_`, `02_`) to control the order; do not rely on names alone (`product/` runs before `user/`, `10_` before `2_`).
+- A script whose name ends with `.no-transaction.sql` runs outside of the migration transaction (needed for
+  `CREATE INDEX CONCURRENTLY`, `VACUUM`...). EF Core logs a warning for it: if the process stops during that script,
+  the migration stays partially applied.
+- Batch separators such as SQL Server's `GO` are supported (handled by the database provider).
+- Scripts are not reverted when a migration is rolled back (`Down`).
+
+How it works (nothing to do by hand):
+
+- `*.sql` files under `SqlScripts/` are embedded in the `MyApp.Domain.Models` assembly.
+- Every migration inherits `SqlScriptMigration` (`SqlScriptMigrations/SqlScriptMigration.cs`), which injects the
+  scripts as EF Core SQL operations around the generated ones. Scripts are therefore part of every way of applying
+  migrations: `Database.MigrateAsync()`, `dotnet ef database update`, `dotnet ef migrations script` and bundles.
+- `dotnet ef migrations add` generates migrations that already inherit `SqlScriptMigration`, thanks to
+  `SqlScriptMigrationsGenerator`. It is registered for the EF Core tools by the `DesignTimeServicesReference`
+  assembly attribute declared in `MyApp.Host.Api.csproj`. Never edit generated migration files to change their base
+  class.
+
+Migrations are applied automatically at startup (`Database.MigrateAsync()` in `Program.cs`) in the `Development`
+environment only.
+
+### 6.3 Add a specification
+
+A specification is a reusable, composable predicate. Use it when the **same condition is needed by several
+services** (for example "user has this id", "entity is active and owned by X"). It is not a repository: services keep
+querying `AppDbContext` directly, specifications only factor out shared conditions.
+
+1. Create `Src/Domain/MyApp.Domain.Specifications/<Entity>Specifications/<Entity><Condition>Spec.cs`:
+
+   ```csharp
+   public sealed class UserHasIdSpec : ISpecification<User>
+   {
+       private readonly Guid _id;
+
+       public UserHasIdSpec(Guid id)
+       {
+           _id = id;
+       }
+
+       public Expression<Func<User, bool>> Criteria => x => x.Id == _id;
+   }
+   ```
+
+2. Apply it with `query.Spec(new UserHasIdSpec(id))`.
+3. Compose with `a.And(b)`, `a.Or(b)`, `a.Not()`. `a.And(b).Not()` negates the whole composition, `a.And(b.Not())`
+   negates only `b`.
+
+The predicate must stay translatable by EF Core: no method calls the provider cannot translate.
+
+### 6.4 Add a service
+
+One service is one use case. Naming: `<Entity><Action>` (`UserGetById`, `UserDeleteById`, `AuthSyncUser`).
+
+1. Contract in `Src/Services/MyApp.Services.Abstractions/Services/<Domain>Services/I<Entity><Action>.cs`. Inherit
+   one of the base interfaces of `IService.cs`:
+
+   | Interface                         | Returns                                   |
+   |-----------------------------------|-------------------------------------------|
+   | `IServiceAsync<TQuery>`           | `Task<ServiceResponse>`                   |
+   | `IServiceAsync<TQuery, TResult>`  | `Task<ServiceResponse<TResult>>`          |
+   | `IService<TQuery>` / `<TQuery, TResult>` | synchronous equivalents            |
+
+   When the input has several fields, declare it as a nested record named `Request`:
+
+   ```csharp
+   public interface IAuthSyncUser : IServiceAsync<IAuthSyncUser.Request>
+   {
+       public sealed record Request(string AuthId, string UserName, string Email);
+   }
+   ```
+
+2. Implementation in `Src/Services/MyApp.Services/Services/<Domain>Services/<Entity><Action>.cs`:
+   - `public sealed class`, constructor injection into `private readonly` fields;
+   - inject `AppDbContext`, `HybridCache`, `IStringLocalizer<SharedResource>` as needed.
+3. Return values use the `ServiceResponse` unions (`Services.Abstractions/ServiceResponse.cs`):
+   - success without payload: `new ServiceSuccessResponse()`;
+   - success with payload: the `TResult` value itself (implicit conversion);
+   - error: `new ServiceErrorResponse(<httpStatusCode>, _localizer.GetString(ServiceConstant.Error.<key>))`.
+4. Output types follow the same logic as inputs:
+   - an output specific to one service is declared as a nested record named `Response` in its interface:
+
+     ```csharp
+     public interface IProductGetStock : IServiceAsync<Guid, IProductGetStock.Response>
+     {
+         public sealed record Response(Guid ProductId, int Quantity);
+     }
+     ```
+
+   - an output shared by several services (typically `Get` and `GetById`) goes in
+     `Services.Abstractions/Responses/<Entity>ServiceResponse.cs`.
+5. Registration is automatic (section 5.3).
+
+### 6.5 Add a paginated service
+
+1. Mark the implementation with `[PaginationHandlerFor<TEntity>]`. The generator then produces
+   `IQueryable<TEntity>.ProcessPaginationRequest(...)` handling filtering, sorting and paging on every entity
+   property (supported filter types: `string`, `Guid`, `int`, `bool`, `DateTime`, `DateTimeOffset`).
+2. Use it in the service:
+
+   ```csharp
+   return await _db.Users
+       .AsNoTracking()
+       .ProcessPaginationRequest(query.PaginationService, out var countAsync)
+       .Select(UserProjection.ToUserServiceResponse)
+       .ToPagedResponseAsync(query.PaginationService.PageNumber, query.PaginationService.PageSize, countAsync, ct);
+   ```
+
+3. The contract returns `PaginationServiceResponse<TResponse>` and takes a `Request` record wrapping a
+   `PaginationServiceRequest`.
+
+### 6.6 Projections
+
+Projections live in `Src/Services/MyApp.Services/ServiceProjections/<Entity>Projection.cs`, as pairs:
+
+```csharp
+internal static readonly Expression<Func<User, UserServiceResponse>> ToUserServiceResponse = user => new ... { };
+internal static readonly Func<User, UserServiceResponse> ToUserServiceResponseFunc = ToUserServiceResponse.Compile();
+```
+
+- Use the `Expression` in `IQueryable.Select(...)` so EF Core only selects the needed columns.
+- Use the compiled `Func` on in-memory objects.
+
+### 6.7 Add an error message
+
+1. Add the key in `ServiceConstant.Error` (`public const string my_error = nameof(my_error);`, snake_case).
+2. Add the translation in `Src/Services/MyApp.Services/Resources/SharedResource.resx` (English) and
+   `SharedResource.fr.resx` (French).
+3. Return it with `_localizer.GetString(ServiceConstant.Error.my_error)`.
+
+Supported cultures: `en` (default) and `fr`.
+
+### 6.8 Cache
+
+- Inject `HybridCache` directly (no custom cache abstraction).
+- Keys and tags are defined in `ServiceConstant.Cache` (`UserKey(id)`, `UserTag`).
+- Read with `GetOrCreateAsync`, write with `SetAsync`, invalidate with `RemoveAsync` or `RemoveByTagAsync`.
+- Never cache EF entities. Cache a dedicated model from `Src/Services/MyApp.Services/CacheModels/` built with a
+  projection (`UserProjection.ToCacheUser`).
+- A given key always stores the same type, whichever service writes it.
+- `GetOrCreateAsync` also caches a `null` result. Make sure the service that creates the data overwrites the key.
+
+### 6.9 Add an endpoint
+
+1. If the feature is a new area, add an API builder in `Endpoints/ApiBuilder.cs`. Always create the versioned API
+   with `NewAppVersionedApi(...)`, never `NewVersionedApi(...)` directly: it adds the conventions shared by every
+   endpoint, such as automatic validation.
+
+   ```csharp
+   public sealed class ProductApiBuilder(IVersionedEndpointRouteBuilder builder) : VersionedApiBuilder(builder);
+
+   public static ProductApiBuilder MapProduct(this IEndpointRouteBuilder builder)
+   {
+       return new ProductApiBuilder(builder.NewAppVersionedApi("Product").RequireAuthorization());
+   }
+   ```
+
+2. Create `Endpoints/<Area>Endpoint.cs` with a `ToV1()` extension declaring routes on a versioned group, and the
+   handlers in a `private static class V1`:
+
+   ```csharp
+   var api = builder.MapGroup("/products").HasApiVersion(1.0);
+
+   api.MapGet("{id}", V1.GetById)
+       .Produces<ProductApiResponse>()
+       .Produces<ProblemHttpResult>(StatusCodes.Status404NotFound);
+   ```
+
+3. A handler injects the service with `[FromServices]`, calls it, then maps the union with a `switch`:
+
+   ```csharp
+   return result switch
+   {
+       ServiceErrorResponse error => EndpointHelper.FormatErrorResponse(error),
+       ProductServiceResponse response => TypedResults.Ok(new ProductApiResponse(response))
+   };
+   ```
+
+4. Register it in `UseAppEndpoints()` (`ApiEndpointConfiguration.cs`): `app.MapProduct().ToV1();`.
+5. Declare every possible status code with `.Produces...` so the OpenAPI document is accurate.
+6. Paginated lists use the `QUERY` HTTP method with the pagination request in the body:
+   `api.MapMethods(string.Empty, ["QUERY"], V1.Get)`.
+7. Admin-only routes add `.RequireAuthorization(ApiConstant.AuthorizationPolicies.Admin)`.
+
+A new version adds a `ToV2()` and a `V2` class next to the existing ones.
+
+### 6.10 API contracts
+
+API contracts are separate from service contracts and live in `Host.Api`:
+
+- `Requests/<Name>ApiRequest.cs`: `sealed record` with a `ToServiceRequest()` method converting it to the service
+  request. Its FluentValidation validator is a nested `sealed class Validator : AbstractValidator<...>`.
+- Validation is automatic: `AddAppValidation()` registers every validator of the API assembly, and `ValidationFilter`
+  (added by `NewAppVersionedApi`) validates every handler argument that has a validator before the handler runs.
+  Invalid input returns a `400` validation problem (`EndpointHelper.FormatValidationErrorResponse`). Never inject
+  `IValidator<T>` nor call `Validate` in a handler.
+- `Responses/<Name>ApiResponse.cs`: `sealed record` with a constructor taking the service response.
+
+Services never return API types and endpoints never expose service types.
+
+## 7. Cross-cutting concerns
+
+- **Authentication**: JWT bearer, authority and audience from `Api:Auth`. HTTPS metadata is only disabled in
+  development. Current user data is read through `ClaimsPrincipalExtension` (`user.CurrentId`,
+  `user.CurrentUserName`, `user.CurrentEmail`).
+- **Authorization**: policies are declared in `AuthorizationConfiguration`, names and roles in `ApiConstant`.
+- **Antiforgery**: header `X-XSRF-TOKEN`, cookie `XSRF-TOKEN`, token issued by `GET /misc/anti-forgery-token`.
+- **CORS**: default policy registered in `AddAppCors()`, allowed origins from `Api:Cors:Origins`, credentials
+  allowed, `Content-Disposition` exposed.
+- **Errors**: unhandled exceptions are logged and returned as `500`. Validation errors are returned as `400`
+  validation problems (section 6.10). Business errors go through
+  `ServiceErrorResponse` and are returned as RFC 7807 problem details by `EndpointHelper.FormatErrorResponse`.
+- **Soft deletion**: entities implementing `ISoftDeletable` are filtered by the named filter
+  `ModelConstant.SoftDeletionFilter`. To read deleted rows, use
+  `.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])` and explain why in a comment.
+- **Versioning**: read from the query string or the `X-Api-Version` header, default `1.0`.
+- **OpenAPI / Scalar**: mapped in development only, one document per API version, UI at `/scalar`.
+- **Health checks**: mapped in every environment by `MapDefaultEndpoint`. `/health` runs every check (disk storage,
+  PostgreSQL, Redis) and returns a detailed JSON report; `/alive` only runs the checks tagged
+  `ServiceDefaultConstant.LiveTag` (the `self` check), for liveness probes.
+- **File storage**: `IFileStorageService` works with file names relative to `Api:Services:DataPath`; every method
+  takes and returns such names. Names resolving outside of that folder (absolute paths, `..`) are rejected with an
+  `ArgumentException`.
+- **Logging**: Serilog (console, file, OpenTelemetry sink), OTLP export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
+
+## 8. Code conventions
+
+- File-scoped namespaces matching the folder path. Nullable reference types and implicit usings are enabled.
+- Classes are `sealed` unless designed for inheritance. Entities are not sealed (lazy loading proxies).
+- Services and specifications use explicit constructors with `private readonly` fields.
+- Use the C# 14 `extension` block syntax for new extension methods.
+- Results are modelled with C# 15 unions (`ServiceResponse`) and consumed with exhaustive `switch` expressions.
+- Prefer pattern matching (including list patterns) over chains of `if` when it reads better.
+- Naming suffixes:
+
+  | Suffix                    | Meaning                                  | Project                  |
+  |---------------------------|------------------------------------------|--------------------------|
+  | `ApiRequest` / `ApiResponse` | HTTP contracts                        | Host.Api                 |
+  | `ServiceRequest` / `ServiceResponse` | service contracts             | Services.Abstractions    |
+  | `Spec`                    | specification                            | Domain.Specifications    |
+  | `Projection`              | expression projections                   | Services                 |
+  | `Configuration`           | host configuration extensions            | Host.Api                 |
+  | `Option`                  | configuration schema classes             | Host.Api, Services       |
+  | `Endpoint`                | endpoint group                           | Host.Api                 |
+
+- Constants are grouped in a static `<Layer>Constant` class (`ApiConstant`, `ServiceConstant`, `ModelConstant`).
+- Remove unused `using` directives.
+
+## 9. Git and CI
+
+- Commit messages follow Conventional Commits: `feat:`, `fix:`, `refactor:`, `perf:`, `chore:`, optional scope
+  (`refactor(generator): ...`).
+- Work on a branch, merge into `main` through a pull request.
+- `.github/workflows/pull_request.yml`: restore and build on every pull request.
+- `.github/workflows/create_docker_image.yml`: on a published release, builds `docker/myApp/Dockerfile` for
+  `linux/amd64` and `linux/arm64` and pushes it to `ghcr.io`.
+
+## 10. Known pitfalls
+
+- Migrations and SQL scripts run automatically in `Development` only. Other environments must apply them explicitly
+  (`dotnet ef database update`, generated SQL script or bundle, see section 2).
+- A SQL script placed in a folder that does not match the exact migration file name (timestamp included) is silently
+  ignored.
+- Statements forbidden inside a transaction (`CREATE INDEX CONCURRENTLY`, `VACUUM`...) fail unless the script name
+  ends with `.no-transaction.sql`.
+- Script order is ordinal on the relative path: without numeric prefixes, `10_x.sql` runs before `2_x.sql`.
+- Adding an interface to `Services.Abstractions` without exactly one implementation in `Services` makes startup fail
+  (section 5.3).
+- Missing required configuration makes startup fail with the list of missing `Api:...` keys (section 4).
