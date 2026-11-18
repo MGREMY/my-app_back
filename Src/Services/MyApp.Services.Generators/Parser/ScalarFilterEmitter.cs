@@ -26,17 +26,19 @@ namespace MyApp.Services.Generators.Parser;
 //       var property = FilterExpressionHelper.Bind((User x) => x.UpdatedAtUtc, target); // from PaginationGenerator
 //
 //       // --- emitted by this class ---------------------------------------------------------------------
-//       global::System.DateTimeOffset? parsedValue = null;                      // nullable: null by default
-//       if (DateTimeOffset.TryParse(request.Value, ..., out var parsed))
-//           parsedValue = parsed.ToUniversalTime();
-//       else if (request.Value is not "", null or "null")                       // anything else is an error
+//       if (request.Value is null)                                              // JSON null only
+//           return Equal ? property IS NULL : NotEqual ? property IS NOT NULL : 400;
+//
+//       if (!DateTimeOffset.TryParse(request.Value, ..., out var parsed))      // "", "null", "abc" -> 400
 //           throw new InvalidPaginationRequestException(...);
+//       var parsedValue = parsed.ToUniversalTime();
 //
 //       var value = FilterExpressionHelper.Value(parsedValue, property.Type);   // @p0, typed as the property
 //
 //       return request.FilterOperator switch
 //       {
 //           Equal       => Expression.Equal(property, value),                   // x.UpdatedAtUtc == @p0
+//           NotEqual    => property != null && property != value,               // a null never matches NotEqual
 //           GreaterThan => Expression.GreaterThan(property, value),             // only for Comparable types
 //           ...
 //           _           => throw new InvalidPaginationRequestException(...),    // operator not allowed for the type
@@ -117,25 +119,70 @@ public static class ScalarFilterEmitter
     }
 
     /// <summary>
+    ///     Code handling a JSON <c>null</c> value (<c>request.Value is null</c>), common to every type.
+    /// </summary>
+    /// <remarks>
+    ///     Only a JSON <c>null</c> targets <c>NULL</c>: <c>""</c> and <c>"null"</c> are ordinary values. On a nullable
+    ///     property, <c>Equal</c> becomes <c>IS NULL</c> and <c>NotEqual</c> <c>IS NOT NULL</c>; any other operator
+    ///     needs a value. On a non-nullable property, a null value is always rejected.
+    /// </remarks>
+    private static string EmitNullValue(ScalarInfo info)
+    {
+        if (!info.IsNullable)
+            return """
+                   if (request.Value is null)
+                       throw new InvalidPaginationRequestException($"A value is required to filter on {request.PropertyName}");
+                   """;
+
+        return """
+               if (request.Value is null)
+               {
+                   var nullValue = Expression.Constant(null, property.Type);
+
+                   return request.FilterOperator switch
+                   {
+                       FilterServiceRequest.Operator.Equal => Expression.Equal(property, nullValue),
+                       FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, nullValue),
+                       _ => throw new InvalidPaginationRequestException($"Operator {request.FilterOperator} needs a value for {request.PropertyName}"),
+                   };
+               }
+               """;
+    }
+
+    /// <summary>
+    ///     Negative comparison (<c>NotEqual</c>, <c>NotContains</c>) with a non-null value.
+    /// </summary>
+    /// <remarks>
+    ///     A negative comparison assumes the property is not null: on a nullable property, rows (or collection items)
+    ///     whose value is null do not match, like SQL <c>&lt;&gt;</c>. Without the explicit check, EF Core applies C#
+    ///     semantics (<c>null != 10</c> is true) and a null item would match <c>posts.$all.likes != 10</c>.
+    /// </remarks>
+    /// <param name="info">Scalar description.</param>
+    /// <param name="comparison">Expression of the negative comparison, using <c>property</c> and <c>value</c>.</param>
+    private static string NotNullAnd(ScalarInfo info, string comparison)
+    {
+        return info.IsNullable
+            ? $"Expression.AndAlso(Expression.NotEqual(property, Expression.Constant(null, property.Type)), {comparison})"
+            : comparison;
+    }
+
+    /// <summary>
     ///     String properties: the value is used as is. Text operators are case-insensitive
     ///     (<c>lower(property) LIKE lower(value)</c> in SQL).
     /// </summary>
     private static string EmitString(ScalarInfo info)
     {
-        var nullCheck = info.IsNullable
-            ? string.Empty
-            : "if (request.Value is null) throw new InvalidPaginationRequestException($\"A value is required to filter on {request.PropertyName}\");";
-
         return $$"""
-                 {{nullCheck}}
+                 {{EmitNullValue(info)}}
+
                  var value = FilterExpressionHelper.Value(request.Value, property.Type);
 
                  return request.FilterOperator switch
                  {
                      FilterServiceRequest.Operator.Equal => Expression.Equal(property, value),
-                     FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, value),
+                     FilterServiceRequest.Operator.NotEqual => {{NotNullAnd(info, "Expression.NotEqual(property, value)")}},
                      FilterServiceRequest.Operator.Contains => FilterExpressionHelper.Bind((string p, string v) => p.ToLower().Contains(v.ToLower()), property, value),
-                     FilterServiceRequest.Operator.NotContains => Expression.Not(FilterExpressionHelper.Bind((string p, string v) => p.ToLower().Contains(v.ToLower()), property, value)),
+                     FilterServiceRequest.Operator.NotContains => {{NotNullAnd(info, "Expression.Not(FilterExpressionHelper.Bind((string p, string v) => p.ToLower().Contains(v.ToLower()), property, value))")}},
                      FilterServiceRequest.Operator.StartWith => FilterExpressionHelper.Bind((string p, string v) => p.ToLower().StartsWith(v.ToLower()), property, value),
                      FilterServiceRequest.Operator.EndWith => FilterExpressionHelper.Bind((string p, string v) => p.ToLower().EndsWith(v.ToLower()), property, value),
                      _ => throw new InvalidPaginationRequestException($"Operator {request.FilterOperator} is not supported for {request.PropertyName}"),
@@ -145,25 +192,10 @@ public static class ScalarFilterEmitter
 
     /// <summary>
     ///     Non-string properties: <c>request.Value</c> is parsed into the property type first.
-    ///     For nullable properties, <c>null</c>, an empty value or <c>"null"</c> means <c>IS NULL</c>.
+    ///     A value that cannot be parsed (including <c>""</c> and <c>"null"</c>) is rejected.
     /// </summary>
     private static string EmitParsed(ScalarInfo info)
     {
-        // Parsing block: produces a local "parsedValue" of the property type (T or T?)
-        var parse = info.IsNullable
-            ? $$"""
-                {{info.TypeName}}? parsedValue = null;
-                if ({{info.Parse}})
-                    parsedValue = {{info.Converted}};
-                else if (!string.IsNullOrEmpty(request.Value) && !string.Equals(request.Value, "null", StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidPaginationRequestException($"Can't convert {request.Value} to {typeof({{info.TypeName}})} for {request.PropertyName}");
-                """
-            : $$"""
-                if (!{{info.Parse}})
-                    throw new InvalidPaginationRequestException($"Can't convert {request.Value} to {typeof({{info.TypeName}})} for {request.PropertyName}");
-                var parsedValue = {{info.Converted}};
-                """;
-
         // Ordering operators are only emitted for Comparable types: for the others, they fall into the default arm
         // of the switch and are rejected at runtime (Expression.GreaterThan on a Guid would throw anyway)
         var comparisons = info.Operators == OperatorSet.Comparable
@@ -176,7 +208,11 @@ public static class ScalarFilterEmitter
             : string.Empty;
 
         return $$"""
-                 {{parse}}
+                 {{EmitNullValue(info)}}
+
+                 if (!{{info.Parse}})
+                     throw new InvalidPaginationRequestException($"Can't convert '{request.Value}' to {typeof({{info.TypeName}})} for {request.PropertyName}");
+                 var parsedValue = {{info.Converted}};
 
                  // Closure-based value: EF Core sends it as a SQL parameter instead of inlining a literal
                  var value = FilterExpressionHelper.Value(parsedValue, property.Type);
@@ -184,7 +220,7 @@ public static class ScalarFilterEmitter
                  return request.FilterOperator switch
                  {
                      FilterServiceRequest.Operator.Equal => Expression.Equal(property, value),
-                     FilterServiceRequest.Operator.NotEqual => Expression.NotEqual(property, value),
+                     FilterServiceRequest.Operator.NotEqual => {{NotNullAnd(info, "Expression.NotEqual(property, value)")}},
                      {{comparisons}}
                      _ => throw new InvalidPaginationRequestException($"Operator {request.FilterOperator} is not supported for {request.PropertyName}"),
                  };

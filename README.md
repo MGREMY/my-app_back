@@ -170,25 +170,29 @@ Content-Type: application/json
   "pageSize": 15,
   "sortRequests": [
     { "propertyName": "role.name", "isDescending": true },
-    { "propertyName": "userName", "isDescending": false }
+    { "propertyName": "id", "isDescending": false }
   ],
   "filterRequests": [
     { "propertyName": "posts.likes", "filterOperator": 4, "value": "10", "filterLogic": 0 },
     {
       "propertyName": "userName", "filterOperator": 6, "value": "ali", "filterLogic": 0,
       "filters": [
-        { "propertyName": "updatedAtUtc", "filterOperator": 0, "value": "null", "filterLogic": 1 }
+        { "propertyName": "updatedAtUtc", "filterOperator": 0, "value": null, "filterLogic": 1 }
       ]
     }
   ]
 }
 ```
 
+The paths of this example (`role`, `posts`) are illustrations: use the properties of your own entities.
+
 ### Property names
 
-- Case-insensitive, `_` ignored: `userName`, `UserName` and `user_name` are the same property.
+- Case-insensitive, `_` ignored: `userName`, `UserName` and `user_name` are the same property. A property named after
+  a C# keyword keeps its `@`: `@event`.
 - Dotted paths follow navigation properties: `role.name` (reference), `posts.likes` (collection: at least one post
-  matches), `posts.tags.label` (nested collections). At most 4 navigations per filter path.
+  matches), `posts.tags.label` (nested collections). At most 4 navigations per filter path; going through a
+  collection counts as one.
 - `$count` after a collection filters on its number of items, with the numeric operators: `posts.$count` equal to
   `0` returns rows without any post, `posts.$count` greater than `2` rows with at least 3 posts.
 - By default, a filter through a collection matches when **at least one** item matches. A quantifier right after the
@@ -204,8 +208,12 @@ Content-Type: application/json
   (`posts.$none.author.role.name`). Note that inverting the operator is not the same as `$none`: `posts.title` not
   equal to `x` means "at least one post whose title is not x". To require at least one post with `$all`, add a
   `posts.$count` greater than `0` filter.
+- Collections of values (a list of tags, of numbers...) are filtered on the collection itself, the item being the
+  value: `tags` equal to `ef` (at least one tag is `ef`), `tags.$none` contains `x`, `tags.$all` starts with `a`,
+  `tags.$count` greater than `2`.
 - `$` segments are only valid right after a collection.
-- Sorting accepts scalar properties and references up to 3 levels (`role.name`), not collections.
+- Sorting accepts the properties of the supported types (see Values), through references up to 3 levels
+  (`role.name`, `manager.manager.name`), never through collections.
 
 ### Operators and logic
 
@@ -225,18 +233,29 @@ Content-Type: application/json
 `filterLogic` is `0` (`And`) or `1` (`Or`): it tells how a filter is combined with the previous one. Nested `filters`
 are grouped together and combined with their parent, which allows expressions such as `A AND (B OR C)`.
 
+`NotEqual` and `NotContains` with a value only match rows where the property has a value: a `null` property does
+not match (like SQL `<>`), including inside `$all` and `$none`.
+
 ### Values
 
-- Supported types: strings, `bool`, integers, decimals, enums (by name), `Guid`, dates (ISO 8601) and their nullable
-  versions.
-- On a nullable property, `null`, an empty value or `"null"` matches rows where the value is null.
+- Supported types: strings, `bool`, `int`, `long`, `decimal`, `double`, enums (by name), `Guid`, `DateTime`,
+  `DateTimeOffset`, `DateOnly` (ISO 8601) and their nullable versions, and collections of these types.
+- Only a JSON `null` (`"value": null`) targets null values: with `Equal` it matches rows where the property is null,
+  with `NotEqual` rows where it is not null. Other operators need a value.
+- `""` and `"null"` are ordinary values: on a string property they match the empty string and the text `null`; on
+  other types they cannot be parsed and return `400`.
 - Numbers and dates use the invariant culture (`12.5`, `2026-11-18T09:30:00Z`); dates are compared in UTC.
 
 ### Errors
 
-An unknown property, an operator not supported by the property type or an unparsable value returns
-`400 Bad Request` with the reason in the problem `detail`. Without `sortRequests`, rows come in database order: send
-a sort to get stable pages.
+An unknown property, an operator not supported by the property type, a missing or unparsable value, or a path too
+deep returns `400 Bad Request` with the reason in the problem `detail`.
+
+### Stable pages
+
+Without `sortRequests`, rows come in database order. With a sort, rows having the same values for every sort key
+have no guaranteed order either, so they can move between pages. End the sort with a unique key, such as `id`, to
+get stable pages.
 
 ## Project structure
 

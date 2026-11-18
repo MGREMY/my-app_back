@@ -15,4 +15,10 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.12.0" PrivateAssets="all"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- Release tracking of the diagnostics reported by the generator (PAG001, PAG002) -->
+        <AdditionalFiles Include="AnalyzerReleases.Shipped.md"/>
+        <AdditionalFiles Include="AnalyzerReleases.Unshipped.md"/>
+    </ItemGroup>
+
 </Project>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using MyApp.Services.Generators.Parser;
 
@@ -127,6 +128,24 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
 
     /// <summary>Namespace of the generated filter builders and helper (internal plumbing).</summary>
     private const string GeneratedNamespace = "MyApp.Services.Generated.Filtering";
+
+    /// <summary>Two properties of an entity normalize to the same path segment: only the first one is usable.</summary>
+    private static readonly DiagnosticDescriptor LabelCollision = new(
+        "PAG001",
+        "Pagination property name collision",
+        "Properties '{0}' and '{1}' of '{2}' have the same normalized name '{3}': only '{0}' can be used in filters and sorts",
+        "Pagination",
+        DiagnosticSeverity.Warning,
+        true);
+
+    /// <summary>Two paginated roots share the same simple name: the extensions class of the second one is suffixed.</summary>
+    private static readonly DiagnosticDescriptor ExtensionsRenamed = new(
+        "PAG002",
+        "Pagination extensions renamed",
+        "Paginated entity '{0}' has the same name as another paginated entity: its extensions are generated as '{1}'",
+        "Pagination",
+        DiagnosticSeverity.Info,
+        true);
 
     /// <summary>Source of the <c>[PaginationHandlerFor&lt;TEntity&gt;]</c> attribute, added to the compilation.</summary>
     /// <remarks>
@@ -346,11 +365,31 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
 
             // Builder names are all known before emitting, because a builder calls the builders of its navigations
             foreach (var pair in builderNames)
-                spc.AddSource($"{pair.Value}.g.cs", EmitFilterBuilder(pair.Key, pair.Value, builderNames));
+                spc.AddSource($"{pair.Value}.g.cs", EmitFilterBuilder(pair.Key, pair.Value, builderNames, spc.ReportDiagnostic));
 
+            // Public entry points, one per root. Two roots with the same simple name (Billing.Invoice / Sales.Invoice)
+            // would generate the same class in MyApp.Services: the second one is suffixed. Services never write this
+            // class name (they call the ProcessPaginationRequest extension), so the suffix is invisible to them.
+            var usedExtensionNames = new HashSet<string>(StringComparer.Ordinal);
             foreach (var root in roots)
+            {
+                var extensionsName = root.Name + "PaginationExtensions";
+                for (var i = 2; !usedExtensionNames.Add(extensionsName); i++)
+                    extensionsName = $"{root.Name}{i}PaginationExtensions";
+
+                if (extensionsName != root.Name + "PaginationExtensions")
+                {
+                    // Info only (no warning): the generated code is valid, this is just a trace
+                    var location = targets
+                        .First(x => SymbolEqualityComparer.Default.Equals(x.Entity, root))
+                        .Class.Locations.FirstOrDefault();
+                    spc.ReportDiagnostic(Diagnostic.Create(ExtensionsRenamed, location,
+                        root.ToDisplayString(), extensionsName));
+                }
+
                 spc.AddSource($"{builderNames[root]}.paginationHandler.g.cs",
-                    EmitPaginationExtensions(root, builderNames[root]));
+                    EmitPaginationExtensions(root, builderNames[root], extensionsName));
+            }
         });
     }
 
@@ -361,28 +400,38 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
     /// <param name="entity">Entity the builder filters.</param>
     /// <param name="builderName">Generated class name.</param>
     /// <param name="builderNames">Builder name of every reachable entity, used for navigation cases.</param>
+    /// <param name="report">Reports the name collisions (PAG001).</param>
     private static string EmitFilterBuilder(
         ITypeSymbol entity,
         string builderName,
-        Dictionary<ITypeSymbol, string> builderNames)
+        Dictionary<ITypeSymbol, string> builderNames,
+        Action<Diagnostic> report)
     {
         var entityFullName = entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        var usedLabels = new HashSet<string>(StringComparer.Ordinal);
+        var usedLabels = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
         var cases = new List<string>();
 
         foreach (var property in GetProperties(entity))
         {
             var kind = Classify(property, entity.ContainingAssembly, out var navigationType);
-            if (kind is PropertyKind.Other or PropertyKind.Ignored) continue;
+            if (kind is PropertyKind.Ignored) continue;
 
-            // "UserName" -> "username". Two properties normalizing to the same label (UserName / User_Name):
-            // only the first one is reachable, the second would be a duplicate case label (compile error).
-            var label = NormalizeLabel(property.Name);
-            if (!usedLabels.Add(label)) continue;
+            // "UserName" -> "username", "@class" -> "@class". Two properties normalizing to the same label
+            // (UserName / User_Name): only the first one is reachable (a second case label would not compile),
+            // and a warning tells which one is lost.
+            var label = NormalizeLabel(property);
+            if (usedLabels.TryGetValue(label, out var first))
+            {
+                report(Diagnostic.Create(LabelCollision, property.Locations.FirstOrDefault(),
+                    first.Name, property.Name, entity.ToDisplayString(), label));
+                continue;
+            }
+
+            usedLabels[label] = property;
 
             // Generated expression of "target.Property", e.g. Bind((User x) => x.Role, target).
             // target is whatever expression of type Entity the builder receives (x, x1, x.Author...).
-            var access = $"FilterExpressionHelper.Bind(({entityFullName} x) => x.{property.Name}, target)";
+            var access = $"FilterExpressionHelper.Bind(({entityFullName} x) => x.{Identifier(property)}, target)";
 
             switch (kind)
             {
@@ -426,6 +475,10 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                                 {
                                     if (rest is null) throw new InvalidPaginationRequestException($"{request.PropertyName} is a collection, filter on one of its properties or on its {FilterExpressionHelper.CountSegment} instead");
 
+                                    // Going through the collection counts as one navigation, whatever follows it
+                                    if (depth + 1 > FilterExpressionHelper.MaxDepth)
+                                        throw new InvalidPaginationRequestException($"Filter path {request.PropertyName} is too deep");
+
                                     // "posts.$count": condition on the number of items (SQL COUNT subquery)
                                     if (rest == FilterExpressionHelper.CountSegment)
                                     {
@@ -448,6 +501,48 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                                         FilterExpressionHelper.Quantifier.All => FilterExpressionHelper.All<{{itemFullName}}>({{access}}, item, predicate),
                                         _ => FilterExpressionHelper.Any<{{itemFullName}}>({{access}}, item, predicate),
                                     };
+                                }
+                                """);
+                    break;
+
+                // Collection of values (List<string>, TimeOnly[]...): the item is the value itself, so the path ends
+                // with the collection or its quantifier: "tags" (at least one), "tags.$none", "tags.$all", or
+                // "tags.$count". The comparison is the one of the element type, built against each item.
+                case PropertyKind.PrimitiveCollection:
+                    var elementFullName = navigationType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    cases.Add($$"""
+                                case "{{label}}":
+                                {
+                                    // Going through the collection counts as one navigation, like entity collections
+                                    if (depth + 1 > FilterExpressionHelper.MaxDepth)
+                                        throw new InvalidPaginationRequestException($"Filter path {request.PropertyName} is too deep");
+
+                                    // "tags.$count": condition on the number of values
+                                    if (rest == FilterExpressionHelper.CountSegment)
+                                    {
+                                        var property = FilterExpressionHelper.Count<{{elementFullName}}>({{access}});
+                                        {{ScalarFilterEmitter.EmitCount()}}
+                                    }
+
+                                    // "tags" / "tags.$none" / "tags.$all": nothing may follow, the item is a value
+                                    var quantifier = FilterExpressionHelper.ReadQuantifier(rest ?? string.Empty, out var itemPath);
+                                    if (itemPath.Length != 0) throw new InvalidPaginationRequestException($"{request.PropertyName}: the items of this collection are values, filter on the collection itself");
+
+                                    var item = Expression.Parameter(typeof({{elementFullName}}), "x" + (depth + 1));
+                                    var predicate = CompareItem(item);
+
+                                    return quantifier switch
+                                    {
+                                        FilterExpressionHelper.Quantifier.None => Expression.Not(FilterExpressionHelper.Any<{{elementFullName}}>({{access}}, item, predicate)),
+                                        FilterExpressionHelper.Quantifier.All => FilterExpressionHelper.All<{{elementFullName}}>({{access}}, item, predicate),
+                                        _ => FilterExpressionHelper.Any<{{elementFullName}}>({{access}}, item, predicate),
+                                    };
+
+                                    // Same comparison code as a scalar property of the element type, "property" being one item
+                                    Expression CompareItem(Expression property)
+                                    {
+                                        {{ScalarFilterEmitter.Emit(navigationType)}}
+                                    }
                                 }
                                 """);
                     break;
@@ -507,13 +602,14 @@ internal static class {{builderName}}
     /// </summary>
     /// <param name="entity">Root entity.</param>
     /// <param name="builderName">Name of the root entity filter builder.</param>
-    private static string EmitPaginationExtensions(ITypeSymbol entity, string builderName)
+    /// <param name="extensionsName">Name of the generated public class (suffixed on name collision).</param>
+    private static string EmitPaginationExtensions(ITypeSymbol entity, string builderName, string extensionsName)
     {
         var entityFullName = entity.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         // Every sortable path of the root, e.g. ("username", "x.UserName"), ("role.name", "x.Role.Name")
         var sortPaths = new List<(string Label, string Access)>();
-        CollectSortPaths(entity, "x", "", 0, [entity], sortPaths);
+        CollectSortPaths(entity, "x", "", 0, sortPaths);
 
         // One case per sortable path. Emitted twice below: the first sort request uses OrderBy, the next ones ThenBy
         // (the method names are parameters because the lambdas are the same).
@@ -545,7 +641,7 @@ using t1 = {{entityFullName}};
 namespace MyApp.Services;
 
 /// <summary>Filtering, sorting and paging for <see cref="{{entityFullName.Replace("global::", "")}}"/> queries.</summary>
-public static class {{entity.Name}}PaginationExtensions
+public static class {{extensionsName}}
 {
     /// <summary>
     ///     Apply the filters, then the sorts, then the paging of <paramref name="request"/> to <paramref name="query"/>.
@@ -677,8 +773,10 @@ public static class {{entity.Name}}PaginationExtensions
     ///     (<c>"role.name"</c> → <c>x =&gt; x.Role.Name</c>), because sorting needs a strongly typed key selector.
     /// </summary>
     /// <remarks>
-    ///     Only reference navigations are followed (sorting through a collection is meaningless), up to
-    ///     <see cref="MaxSortDepth" /> levels, without entering an entity already on the current path (cycles).
+    ///     Only scalars declared in <see cref="ScalarFilterEmitter" /> are sortable (the same types as filters: an
+    ///     unknown struct such as JsonElement could not be translated by EF Core). Only reference navigations are
+    ///     followed (sorting through a collection is meaningless), up to <see cref="MaxSortDepth" /> levels.
+    ///     Self references are allowed (<c>manager.manager.name</c>): the depth limit is what stops cycles.
     ///     Example for User -> Role: ("id", "x.Id"), ("username", "x.UserName"), ("role.id", "x.Role.Id"),
     ///     ("role.name", "x.Role.Name").
     /// </remarks>
@@ -686,39 +784,32 @@ public static class {{entity.Name}}PaginationExtensions
     /// <param name="access">C# member access leading to <paramref name="type" /> (e.g. <c>x.Role</c>).</param>
     /// <param name="labelPrefix">Normalized path leading to <paramref name="type" /> (e.g. <c>role.</c>).</param>
     /// <param name="depth">Number of navigations already followed.</param>
-    /// <param name="visiting">Entities on the current path, used to stop cycles.</param>
     /// <param name="result">Collected (normalized label, member access) pairs.</param>
     private static void CollectSortPaths(
         ITypeSymbol type, string access, string labelPrefix, int depth,
-        List<ITypeSymbol> visiting, List<(string Label, string Access)> result)
+        List<(string Label, string Access)> result)
     {
         var usedLabels = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var property in GetProperties(type))
         {
-            var label = labelPrefix + NormalizeLabel(property.Name);
+            // Collisions are reported once by EmitFilterBuilder: here the first property silently wins as well
+            var label = labelPrefix + NormalizeLabel(property);
             if (!usedLabels.Add(label)) continue;
+
+            var memberAccess = $"{access}.{Identifier(property)}";
 
             switch (Classify(property, type.ContainingAssembly, out var navigationType))
             {
-                // Anything that is a single value can be an ORDER BY key, even if it is not filterable
                 case PropertyKind.Scalar:
-                case PropertyKind.Other:
-                    result.Add((label, $"{access}.{property.Name}"));
+                    result.Add((label, memberAccess));
                     break;
 
-                // Depth-first into the reference: "visiting" is the current path only (added, then removed),
-                // so the same entity can appear in two different branches but never twice in one path.
-                case PropertyKind.Reference
-                    when depth < MaxSortDepth
-                         && !visiting.Contains(navigationType!, SymbolEqualityComparer.Default):
-                    visiting.Add(navigationType!);
-                    CollectSortPaths(navigationType!, $"{access}.{property.Name}", label + ".", depth + 1, visiting,
-                        result);
-                    visiting.RemoveAt(visiting.Count - 1);
+                case PropertyKind.Reference when depth < MaxSortDepth:
+                    CollectSortPaths(navigationType!, memberAccess, label + ".", depth + 1, result);
                     break;
 
-                // Collections and ignored properties are not sortable
+                // Collections (of entities or of values) and ignored properties are not sortable
             }
         }
     }
@@ -752,11 +843,14 @@ public static class {{entity.Name}}PaginationExtensions
     /// </summary>
     /// <param name="property">Property to classify.</param>
     /// <param name="modelAssembly">Assembly of the entities (navigations must point to a class of this assembly).</param>
-    /// <param name="navigationType">Target entity for <see cref="PropertyKind.Reference" /> and <see cref="PropertyKind.Collection" />.</param>
+    /// <param name="navigationType">
+    ///     Target entity for <see cref="PropertyKind.Reference" /> and <see cref="PropertyKind.Collection" />,
+    ///     element type for <see cref="PropertyKind.PrimitiveCollection" />.
+    /// </param>
     /// <remarks>
     ///     The checks are ordered: supported scalars first (so a type declared in <see cref="ScalarFilterEmitter" />
     ///     always wins), then strings (a string is an IEnumerable&lt;char&gt;, it must never become a collection),
-    ///     then references, then collections.
+    ///     then references, then collections. Anything else is ignored: neither filterable nor sortable.
     /// </remarks>
     private static PropertyKind Classify(
         IPropertySymbol property,
@@ -767,7 +861,7 @@ public static class {{entity.Name}}PaginationExtensions
         var type = property.Type;
 
         if (ScalarFilterEmitter.IsSupported(type)) return PropertyKind.Scalar;
-        if (type.SpecialType == SpecialType.System_String) return PropertyKind.Other;
+        if (type.SpecialType == SpecialType.System_String) return PropertyKind.Ignored;
 
         // "Role?" and "Role" are the same entity: drop the nullable annotation so symbol comparisons match
         if (IsModelEntity(type, modelAssembly))
@@ -776,17 +870,28 @@ public static class {{entity.Name}}PaginationExtensions
             return PropertyKind.Reference;
         }
 
+        // byte[] is a binary column (bytea / varbinary), never a collection of values
+        if (type is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_Byte }) return PropertyKind.Ignored;
+
         if (TryGetEnumerableElement(type, out var element))
         {
-            // ICollection<string>, List<int>... are not navigations: skipped
-            if (!IsModelEntity(element, modelAssembly)) return PropertyKind.Ignored;
+            if (IsModelEntity(element, modelAssembly))
+            {
+                navigationType = element.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+                return PropertyKind.Collection;
+            }
 
-            navigationType = element.WithNullableAnnotation(NullableAnnotation.NotAnnotated);
-            return PropertyKind.Collection;
+            // List<string>, TimeOnly[]...: filterable when the element type is a supported scalar.
+            // The nullable annotation is kept: List<string?> items can be null.
+            if (ScalarFilterEmitter.IsSupported(element))
+            {
+                navigationType = element;
+                return PropertyKind.PrimitiveCollection;
+            }
         }
 
-        // Unsupported structs (TimeSpan, short...) can still be sorted; other classes are skipped
-        return type.TypeKind == TypeKind.Class ? PropertyKind.Ignored : PropertyKind.Other;
+        // Unsupported types (TimeSpan, JsonElement, Dictionary...): skipped until declared in ScalarFilterEmitter
+        return PropertyKind.Ignored;
     }
 
     /// <summary>
@@ -828,10 +933,22 @@ public static class {{entity.Name}}PaginationExtensions
     ///     Single normalized label per property, matched against <c>FilterExpressionHelper.NormalizePath</c>:
     ///     covers PascalCase, camelCase, snake_case, _underscoreCamelCase, lower and UPPER case at once.
     /// </summary>
-    /// <remarks>Must stay identical to <c>FilterExpressionHelper.NormalizePath</c>, otherwise no label matches.</remarks>
-    private static string NormalizeLabel(string propertyName)
+    /// <remarks>
+    ///     Must stay identical to <c>FilterExpressionHelper.NormalizePath</c>, otherwise no label matches.
+    ///     A property named after a C# keyword keeps its <c>@</c> (<c>@class</c>): requests must use <c>"@class"</c>.
+    /// </remarks>
+    private static string NormalizeLabel(IPropertySymbol property)
     {
-        return propertyName.Replace("_", string.Empty).ToLowerInvariant();
+        return Identifier(property).Replace("_", string.Empty).ToLowerInvariant();
+    }
+
+    /// <summary>
+    ///     C# identifier of a property in the generated code: <c>@</c> prefix for reserved keywords.
+    /// </summary>
+    /// <remarks>Roslyn returns <c>class</c> for a property declared as <c>@class</c>; <c>x.class</c> would not compile.</remarks>
+    private static string Identifier(IPropertySymbol property)
+    {
+        return SyntaxFacts.GetKeywordKind(property.Name) != SyntaxKind.None ? "@" + property.Name : property.Name;
     }
 
     /// <summary>A class decorated with <c>[PaginationHandlerFor&lt;TEntity&gt;]</c> and its entity.</summary>
@@ -856,10 +973,10 @@ public static class {{entity.Name}}PaginationExtensions
         /// <summary>Collection navigation to another model entity (filter = EXISTS, not sortable).</summary>
         Collection,
 
-        /// <summary>Anything else that is not a class: sortable but not filterable.</summary>
-        Other,
+        /// <summary>Collection of supported scalars (List&lt;string&gt;...): filterable on its values, not sortable.</summary>
+        PrimitiveCollection,
 
-        /// <summary>Classes outside the model and collections of non-entities: skipped.</summary>
+        /// <summary>Anything else (unsupported types, classes outside the model, blobs): neither filterable nor sortable.</summary>
         Ignored
     }
 }

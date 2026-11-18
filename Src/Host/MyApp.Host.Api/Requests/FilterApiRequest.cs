@@ -5,7 +5,7 @@ namespace MyApp.Host.Api.Requests;
 public sealed record FilterApiRequest(
     string PropertyName,
     FilterApiRequest.Operator FilterOperator,
-    string Value,
+    string? Value,
     FilterApiRequest.Logic FilterLogic,
     IEnumerable<FilterApiRequest>? Filters = null)
 {
