@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using MyApp.Services.Abstractions.Responses;
 
 namespace MyApp.Services.Extensions;
@@ -39,7 +40,7 @@ public static class QueryableExtension
                 HasPreviousPage = pageNumber > 1,
                 HasNextPage = pageNumber < totalPages,
                 TotalPages = totalPages,
-                Data = query.ToArray()
+                Data = await query.ToArrayAsync(ct)
             };
         }
     }

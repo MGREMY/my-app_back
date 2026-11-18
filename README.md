@@ -156,6 +156,72 @@ development, `dotnet ef database update`, the generated SQL script and migration
 The classes live in `Src/Domain/MyApp.Domain.Models/SqlScriptMigrations/`. Generated migration files never need to be
 edited by hand.
 
+## Pagination, filtering and sorting
+
+List endpoints use the `QUERY` HTTP method with the pagination request in the body. Filtering, sorting and paging are
+generated at build time from the entity, including its navigation properties: there is nothing to write per property.
+
+```http
+QUERY /users
+Content-Type: application/json
+
+{
+  "pageNumber": 1,
+  "pageSize": 15,
+  "sortRequests": [
+    { "propertyName": "role.name", "isDescending": true },
+    { "propertyName": "userName", "isDescending": false }
+  ],
+  "filterRequests": [
+    { "propertyName": "posts.likes", "filterOperator": 4, "value": "10", "filterLogic": 0 },
+    {
+      "propertyName": "userName", "filterOperator": 6, "value": "ali", "filterLogic": 0,
+      "filters": [
+        { "propertyName": "updatedAtUtc", "filterOperator": 0, "value": "null", "filterLogic": 1 }
+      ]
+    }
+  ]
+}
+```
+
+### Property names
+
+- Case-insensitive, `_` ignored: `userName`, `UserName` and `user_name` are the same property.
+- Dotted paths follow navigation properties: `role.name` (reference), `posts.likes` (collection: at least one post
+  matches), `posts.tags.label` (nested collections). At most 4 navigations per filter path.
+- Sorting accepts scalar properties and references up to 3 levels (`role.name`), not collections.
+
+### Operators and logic
+
+| `filterOperator` | Name                 | Types                       |
+|------------------|----------------------|-----------------------------|
+| `0`              | `Equal`              | all                         |
+| `1`              | `NotEqual`           | all                         |
+| `2`              | `LessThan`           | numbers, dates              |
+| `3`              | `LessThanOrEqual`    | numbers, dates              |
+| `4`              | `GreaterThan`        | numbers, dates              |
+| `5`              | `GreaterThanOrEqual` | numbers, dates              |
+| `6`              | `Contains`           | strings (case-insensitive)  |
+| `7`              | `NotContains`        | strings (case-insensitive)  |
+| `8`              | `StartWith`          | strings (case-insensitive)  |
+| `9`              | `EndWith`            | strings (case-insensitive)  |
+
+`filterLogic` is `0` (`And`) or `1` (`Or`): it tells how a filter is combined with the previous one. Nested `filters`
+are grouped together and combined with their parent, which allows expressions such as `A AND (B OR C)`.
+
+### Values
+
+- Supported types: strings, `bool`, integers, decimals, enums (by name), `Guid`, dates (ISO 8601) and their nullable
+  versions.
+- On a nullable property, `null`, an empty value or `"null"` matches rows where the value is null.
+- Numbers and dates use the invariant culture (`12.5`, `2026-11-18T09:30:00Z`); dates are compared in UTC.
+
+### Errors
+
+An unknown property, an operator not supported by the property type or an unparsable value returns
+`400 Bad Request` with the reason in the problem `detail`. Without `sortRequests`, rows come in database order: send
+a sort to get stable pages.
+
 ## Project structure
 
 ```

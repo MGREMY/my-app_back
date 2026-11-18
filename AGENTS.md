@@ -375,8 +375,9 @@ One service is one use case. Naming: `<Entity><Action>` (`UserGetById`, `UserDel
 ### 6.5 Add a paginated service
 
 1. Mark the implementation with `[PaginationHandlerFor<TEntity>]`. The generator then produces
-   `IQueryable<TEntity>.ProcessPaginationRequest(...)` handling filtering, sorting and paging on every entity
-   property (supported filter types: `string`, `Guid`, `int`, `bool`, `DateTime`, `DateTimeOffset`).
+   `IQueryable<TEntity>.ProcessPaginationRequest(...)` (class `{Entity}PaginationExtensions`, namespace
+   `MyApp.Services`) handling filtering, sorting and paging. Nothing else to declare: new entity properties and
+   navigations are picked up at the next build.
 2. Use it in the service:
 
    ```csharp
@@ -389,6 +390,45 @@ One service is one use case. Naming: `<Entity><Action>` (`UserGetById`, `UserDel
 
 3. The contract returns `PaginationServiceResponse<TResponse>` and takes a `Request` record wrapping a
    `PaginationServiceRequest`.
+
+What the generated code supports:
+
+| Feature            | Behaviour                                                                                          |
+|--------------------|----------------------------------------------------------------------------------------------------|
+| Property paths     | Dotted and case-insensitive, `_` ignored: `userName`, `UserName`, `user_name`, `role.name`.        |
+| Inherited members  | Properties of base classes and interfaces are included (`Id`, `CreatedAtUtc`...).                  |
+| Filter types       | `string`, `bool`, `int`, `long`, `decimal`, `double`, enums, `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, and their nullable versions. |
+| Reference filters  | `role.name` becomes a join on the navigation.                                                      |
+| Collection filters | `posts.likes` becomes `EXISTS (...)` (at least one item matches); collections can be nested (`posts.tags.label`). |
+| Navigation depth   | At most 4 navigations in a filter path. Cycles (`posts.author.role.name`) are allowed.             |
+| Sorting            | Scalar properties and reference navigations up to 3 levels (`role.name`). Not through collections. |
+| Null values        | On a nullable property, `null`, an empty value or `"null"` means `IS NULL`.                         |
+| Values             | Parsed with the invariant culture, dates converted to UTC, sent as SQL parameters.                  |
+| Errors             | Unknown path, unsupported operator or unparsable value throws `InvalidPaginationRequestException`, returned as `400` by the API. |
+
+Operators by type:
+
+| Type                                 | Operators                                                                 |
+|--------------------------------------|---------------------------------------------------------------------------|
+| `string`                             | `Equal`, `NotEqual`, `Contains`, `NotContains`, `StartWith`, `EndWith` (text operators are case-insensitive) |
+| Numbers, dates                       | `Equal`, `NotEqual`, `GreaterThan`, `GreaterThanOrEqual`, `LessThan`, `LessThanOrEqual` |
+| `bool`, enums, `Guid`                | `Equal`, `NotEqual`                                                       |
+
+Navigations are only followed into classes declared in the same assembly as the root entity (`MyApp.Domain.Models`),
+so framework types are never walked. Without sort request, the order of the rows is the database one: clients must
+send a sort to get stable pages.
+
+How the generator is organized (`Src/Services/MyApp.Services.Generators/`):
+
+- `PaginationGenerator.cs`: finds the `[PaginationHandlerFor<TEntity>]` roots, walks the navigation graph and emits
+  one `{Entity}FilterBuilder` per reachable entity (internal, namespace `MyApp.Services.Generated.Filtering`), the
+  shared `FilterExpressionHelper`, and the `{Entity}PaginationExtensions` of each root.
+- `Parser/ScalarFilterEmitter.cs`: emits the parsing and comparison code for each scalar type. Add a type there to
+  make it filterable.
+
+To inspect the generated code, build with
+`dotnet build Src/Services/MyApp.Services --no-incremental -p:EmitCompilerGeneratedFiles=true` and look under
+`Src/Services/MyApp.Services/obj/Debug/net11.0/generated/`.
 
 ### 6.6 Projections
 
@@ -489,7 +529,8 @@ Services never return API types and endpoints never expose service types.
 - **CORS**: default policy registered in `AddAppCors()`, allowed origins from `Api:Cors:Origins`, credentials
   allowed, `Content-Disposition` exposed.
 - **Errors**: unhandled exceptions are logged and returned as `500`. Validation errors are returned as `400`
-  validation problems (section 6.10). Business errors go through
+  validation problems (section 6.10), invalid pagination requests (`InvalidPaginationRequestException`) as `400`
+  problems (section 6.5). Business errors go through
   `ServiceErrorResponse` and are returned as RFC 7807 problem details by `EndpointHelper.FormatErrorResponse`.
 - **Soft deletion**: entities implementing `ISoftDeletable` are filtered by the named filter
   `ModelConstant.SoftDeletionFilter`. To read deleted rows, use

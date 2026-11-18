@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using MyApp.Host.Api.Helpers;
+using MyApp.Services.Abstractions.Requests;
 
 namespace MyApp.Host.Api.Extension.Configuration;
 
@@ -57,6 +58,14 @@ public static partial class ExceptionHandlerConfiguration
                         case ValidationException validationException:
                             await EndpointHelper.FormatValidationErrorResponse(validationException.Errors)
                                 .ExecuteAsync(ctx);
+                            break;
+                        // Thrown by the generated pagination code: always a client error
+                        case InvalidPaginationRequestException paginationException:
+                            await TypedResults.Problem(
+                                statusCode: StatusCodes.Status400BadRequest,
+                                title: "Invalid pagination request",
+                                detail: paginationException.Message
+                            ).ExecuteAsync(ctx);
                             break;
                         default:
                         {
