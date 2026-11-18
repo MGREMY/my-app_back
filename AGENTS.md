@@ -496,7 +496,12 @@ Services never return API types and endpoints never expose service types.
   `.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])` and explain why in a comment.
 - **Versioning**: read from the query string or the `X-Api-Version` header, default `1.0`.
 - **OpenAPI / Scalar**: mapped in development only, one document per API version, UI at `/scalar`.
-- **Health checks**: disk storage, PostgreSQL and Redis, exposed by `MapDefaultEndpoint`.
+- **Health checks**: mapped in every environment by `MapDefaultEndpoint`. `/health` runs every check (disk storage,
+  PostgreSQL, Redis) and returns a detailed JSON report; `/alive` only runs the checks tagged
+  `ServiceDefaultConstant.LiveTag` (the `self` check), for liveness probes.
+- **File storage**: `IFileStorageService` works with file names relative to `Api:Services:DataPath`; every method
+  takes and returns such names. Names resolving outside of that folder (absolute paths, `..`) are rejected with an
+  `ArgumentException`.
 - **Logging**: Serilog (console, file, OpenTelemetry sink), OTLP export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
 
 ## 8. Code conventions

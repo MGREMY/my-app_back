@@ -234,6 +234,8 @@ supports real arrays; keep secrets in environment variables, which override it:
 Notes:
 
 - The HTTP port is set to `8080` by `docker/myApp/entrypoint.sh`.
+- Health endpoints are available in every environment: `/alive` for liveness probes (the process responds) and
+  `/health` for readiness (PostgreSQL, Redis and disk checks, detailed JSON report).
 - Use an absolute `DataPath` backed by a volume, otherwise stored files are lost when the container is recreated.
   The container runs as the `app` user, which owns `/app`.
 - Migrations are not applied at startup outside `Development`: apply them beforehand (see

@@ -12,7 +12,7 @@ internal static class HealthCheckConfiguration
         {
             builder.Services
                 .AddHealthChecks()
-                .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+                .AddCheck("self", () => HealthCheckResult.Healthy(), [ServiceDefaultConstant.LiveTag]);
 
             return builder;
         }

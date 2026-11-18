@@ -46,18 +46,17 @@ public static class Extensions
             string healthEndpointPath,
             string aliveEndpointPath)
         {
-            if (application.Environment.IsDevelopment())
+            // Mapped in every environment so orchestrators (Docker, Kubernetes...) can probe the API
+            application.MapHealthChecks(healthEndpointPath, new HealthCheckOptions
             {
-                application.MapHealthChecks(healthEndpointPath, new HealthCheckOptions
-                {
-                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-                });
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
 
-                application.MapHealthChecks(aliveEndpointPath, new HealthCheckOptions
-                {
-                    Predicate = r => r.Tags.Contains("self")
-                });
-            }
+            // Liveness only runs the checks tagged "live" (the "self" check), not the dependencies
+            application.MapHealthChecks(aliveEndpointPath, new HealthCheckOptions
+            {
+                Predicate = r => r.Tags.Contains(ServiceDefaultConstant.LiveTag)
+            });
 
             return application;
         }

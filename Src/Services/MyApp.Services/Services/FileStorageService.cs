@@ -3,24 +3,26 @@ using MyApp.Services.Abstractions;
 
 namespace MyApp.Services.Services;
 
-internal class FileStorageService : IFileStorageService
+/// <summary>
+///     Stores files under <see cref="ServiceOption.DataPath" />.
+///     Every method takes and returns file names relative to that folder.
+/// </summary>
+internal sealed class FileStorageService : IFileStorageService
 {
-    private readonly ServiceOption _options;
+    private readonly string _rootPath;
 
     public FileStorageService(IOptions<ServiceOption> options)
     {
-        _options = options.Value;
+        _rootPath = Path.GetFullPath(options.Value.DataPath);
 
-        Directory.CreateDirectory(options.Value.DataPath);
+        Directory.CreateDirectory(_rootPath);
     }
 
     public Task<FileStream> GetAsync(string fileName, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var filePath = Path.Combine(_options.DataPath, fileName);
-
-        return Task.FromResult(File.OpenRead(filePath));
+        return Task.FromResult(File.OpenRead(GetSafePath(fileName)));
     }
 
     public Task<string> CreateAsync(CancellationToken ct = default)
@@ -28,11 +30,10 @@ internal class FileStorageService : IFileStorageService
         ct.ThrowIfCancellationRequested();
 
         var fileName = Guid.NewGuid().ToString();
-        var filePath = Path.Combine(_options.DataPath, fileName);
 
-        using var _ = File.Create(filePath);
+        using var _ = File.Create(GetSafePath(fileName));
 
-        return Task.FromResult(filePath);
+        return Task.FromResult(fileName);
     }
 
     public async Task<string> SaveAsync(
@@ -44,7 +45,7 @@ internal class FileStorageService : IFileStorageService
         stream.Seek(0, SeekOrigin.Begin);
 
         fileName ??= Guid.NewGuid().ToString();
-        var filePath = Path.Combine(_options.DataPath, fileName);
+        var filePath = GetSafePath(fileName);
 
         await using var fileStream = append switch
         {
@@ -72,19 +73,36 @@ internal class FileStorageService : IFileStorageService
     {
         ct.ThrowIfCancellationRequested();
 
-        var filePath = Path.Combine(_options.DataPath, fileName);
-
-        return Task.FromResult(File.Exists(filePath));
+        return Task.FromResult(File.Exists(GetSafePath(fileName)));
     }
 
     public Task DeleteAsync(string fileName, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
-        var filePath = Path.Combine(_options.DataPath, fileName);
-
-        File.Delete(filePath);
+        File.Delete(GetSafePath(fileName));
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    ///     Resolve <paramref name="fileName" /> inside the storage folder.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    ///     If the resolved path is outside the storage folder (absolute path, <c>..</c> segments...)
+    /// </exception>
+    private string GetSafePath(string fileName)
+    {
+        var fullPath = Path.GetFullPath(Path.Combine(_rootPath, fileName));
+        var relativePath = Path.GetRelativePath(_rootPath, fullPath);
+
+        var isOutside = relativePath is "." or ".."
+                        || relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                        || Path.IsPathRooted(relativePath);
+
+        if (isOutside)
+            throw new ArgumentException($@"File name '{fileName}' resolves outside of the storage folder.", fileName);
+
+        return fullPath;
     }
 }
