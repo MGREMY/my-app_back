@@ -111,6 +111,58 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
               /// </summary>
               public const string CountSegment = "$count";
 
+              /// <summary>Reserved path segment: no item of the collection matches ("posts.$none.title").</summary>
+              public const string NoneSegment = "$none";
+
+              /// <summary>Reserved path segment: every item of the collection matches ("posts.$all.likes"). True on an empty collection.</summary>
+              public const string AllSegment = "$all";
+
+              /// <summary>How a filter on a collection is applied to its items.</summary>
+              public enum Quantifier
+              {
+                  /// <summary>At least one item matches (default, EXISTS).</summary>
+                  Any,
+
+                  /// <summary>No item matches (NOT EXISTS).</summary>
+                  None,
+
+                  /// <summary>Every item matches (NOT EXISTS ... WHERE NOT condition).</summary>
+                  All
+              }
+
+              /// <summary>
+              ///     Read the optional quantifier at the start of <paramref name="path"/> (the path after a collection).
+              /// </summary>
+              /// <param name="path">Normalized path relative to the collection, e.g. "$none.title" or "title"</param>
+              /// <param name="itemPath">Path relative to an item, without the quantifier (empty if nothing follows it)</param>
+              public static Quantifier ReadQuantifier(string path, out string itemPath)
+              {
+                  foreach (var (segment, quantifier) in new[] { (NoneSegment, Quantifier.None), (AllSegment, Quantifier.All) })
+                  {
+                      if (path == segment)
+                      {
+                          itemPath = string.Empty;
+                          return quantifier;
+                      }
+
+                      if (path.StartsWith(segment + ".", StringComparison.Ordinal))
+                      {
+                          itemPath = path.Substring(segment.Length + 1);
+                          return quantifier;
+                      }
+                  }
+
+                  itemPath = path;
+                  return Quantifier.Any;
+              }
+
+              /// <summary>source.All(item => predicate), translated by EF Core to NOT EXISTS (... WHERE NOT predicate).</summary>
+              public static Expression All<TItem>(Expression source, ParameterExpression item, Expression predicate)
+                  => Bind(
+                      (IEnumerable<TItem> s, Func<TItem, bool> p) => s.All(p),
+                      source,
+                      Expression.Lambda<Func<TItem, bool>>(predicate, item));
+
               /// <summary>source.Count(), translated by EF Core to a COUNT subquery.</summary>
               public static Expression Count<TItem>(Expression source)
                   => Bind((IEnumerable<TItem> s) => s.Count(), source);
@@ -255,9 +307,19 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                                         {{ScalarFilterEmitter.EmitCount()}}
                                     }
 
+                                    // Optional quantifier: "posts.$none.title", "posts.$all.likes" (default: at least one item)
+                                    var quantifier = FilterExpressionHelper.ReadQuantifier(rest, out var itemPath);
+                                    if (itemPath.Length == 0) throw new InvalidPaginationRequestException($"{request.PropertyName} must be followed by one of the item properties");
+
                                     var item = Expression.Parameter(typeof({{itemFullName}}), "x" + (depth + 1));
-                                    var predicate = {{builderNames[navigationType]}}.Build(item, rest, request, depth + 1);
-                                    return FilterExpressionHelper.Any<{{itemFullName}}>({{access}}, item, predicate);
+                                    var predicate = {{builderNames[navigationType]}}.Build(item, itemPath, request, depth + 1);
+
+                                    return quantifier switch
+                                    {
+                                        FilterExpressionHelper.Quantifier.None => Expression.Not(FilterExpressionHelper.Any<{{itemFullName}}>({{access}}, item, predicate)),
+                                        FilterExpressionHelper.Quantifier.All => FilterExpressionHelper.All<{{itemFullName}}>({{access}}, item, predicate),
+                                        _ => FilterExpressionHelper.Any<{{itemFullName}}>({{access}}, item, predicate),
+                                    };
                                 }
                                 """);
                     break;

@@ -191,8 +191,20 @@ Content-Type: application/json
   matches), `posts.tags.label` (nested collections). At most 4 navigations per filter path.
 - `$count` after a collection filters on its number of items, with the numeric operators: `posts.$count` equal to
   `0` returns rows without any post, `posts.$count` greater than `2` rows with at least 3 posts.
-- Collections only support "at least one item matches" and `$count`: `posts.title` not equal to `x` means "at least
-  one post whose title is not x".
+- By default, a filter through a collection matches when **at least one** item matches. A quantifier right after the
+  collection changes that:
+
+  | Path                    | Meaning                                                           |
+  |-------------------------|-------------------------------------------------------------------|
+  | `posts.title`           | at least one post matches                                         |
+  | `posts.$none.title`     | no post matches                                                   |
+  | `posts.$all.likes`      | every post matches (also true when there is no post)              |
+
+  Quantifiers can be nested (`posts.$all.tags.$none.label`) and followed by references
+  (`posts.$none.author.role.name`). Note that inverting the operator is not the same as `$none`: `posts.title` not
+  equal to `x` means "at least one post whose title is not x". To require at least one post with `$all`, add a
+  `posts.$count` greater than `0` filter.
+- `$` segments are only valid right after a collection.
 - Sorting accepts scalar properties and references up to 3 levels (`role.name`), not collections.
 
 ### Operators and logic

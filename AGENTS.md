@@ -400,6 +400,7 @@ What the generated code supports:
 | Filter types       | `string`, `bool`, `int`, `long`, `decimal`, `double`, enums, `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, and their nullable versions. |
 | Reference filters  | `role.name` becomes a join on the navigation.                                                      |
 | Collection filters | `posts.likes` becomes `EXISTS (...)` (at least one item matches); collections can be nested (`posts.tags.label`). |
+| Collection quantifiers | `posts.$none.title` (no item matches, `NOT EXISTS`) and `posts.$all.likes` (every item matches, true on an empty collection). Without quantifier, at least one item must match. Quantifiers can be nested: `posts.$all.tags.$none.label`. |
 | Collection count   | `posts.$count` filters on the number of items (`COUNT` subquery), with the numeric operators: `posts.$count = 0` (no post), `posts.tags.$count > 2`. |
 | Navigation depth   | At most 4 navigations in a filter path. Cycles (`posts.author.role.name`) are allowed.             |
 | Sorting            | Scalar properties and reference navigations up to 3 levels (`role.name`). Not through collections. |
@@ -429,9 +430,12 @@ How the generator is organized (`Src/Services/MyApp.Services.Generators/`):
 
 Known limits of the generated code:
 
-- Collections only support "at least one item matches" (`EXISTS`) and `$count`. There is no "all items match":
-  `posts.title != "x"` means "at least one post whose title is not x", not "no post titled x" (use
-  `posts.$count` combined with another filter, or a dedicated service, for that).
+- Without quantifier, inverting the operator does not invert the meaning: `posts.title != "x"` means "at least one
+  post whose title is not x". Use `posts.$none.title = "x"` for "no post titled x".
+- `$all` is true on an empty collection: combine it with `posts.$count > 0` to require at least one item. An item
+  whose property is `null` does not match a `$all` comparison (unless the filter is on `null`).
+- `$` segments are reserved and only valid right after a collection (`role.$none.name` is rejected). `$count` ends the
+  path; `$none` / `$all` must be followed by an item property.
 - Collections of primitives (`string[]`, `List<int>`, PostgreSQL arrays) are ignored.
 - A filter takes a single value: no `In [a, b, c]` (combine `Equal` filters with `Or`).
 - Logic is evaluated left to right without precedence: `A OR B AND C` is `(A OR B) AND C`. Use nested `filters` for
