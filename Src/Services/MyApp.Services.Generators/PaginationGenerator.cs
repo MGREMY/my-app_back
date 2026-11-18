@@ -342,19 +342,16 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
             // filter builder, generated once (cycles stop here) and reused by every entity pointing to it.
             // Example: roots = [User] -> queue User, then Role and Post (navigations of User), then Tag (from Post).
             // Post.Author points back to User, which is already known: nothing more is enqueued.
-            var builderNames = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
-            var usedNames = new HashSet<string>(StringComparer.Ordinal);
+            var discovered = new List<ITypeSymbol>();
+            var known = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
             var queue = new Queue<ITypeSymbol>(roots);
 
             while (queue.Count > 0)
             {
                 var type = queue.Dequeue();
-                if (builderNames.ContainsKey(type)) continue;
+                if (!known.Add(type)) continue;
 
-                // Two entities with the same name in different namespaces get distinct builder names
-                var name = type.Name + "FilterBuilder";
-                for (var i = 2; !usedNames.Add(name); i++) name = $"{type.Name}{i}FilterBuilder";
-                builderNames[type] = name;
+                discovered.Add(type);
 
                 foreach (var property in GetProperties(type))
                 {
@@ -363,6 +360,10 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                 }
             }
 
+            // Names are assigned once every entity is known (see AssignUniqueNames): two entities with the same name
+            // in different namespaces get distinct builder names.
+            var builderNames = AssignUniqueNames(discovered, "FilterBuilder");
+
             // Builder names are all known before emitting, because a builder calls the builders of its navigations
             foreach (var pair in builderNames)
                 spc.AddSource($"{pair.Value}.g.cs", EmitFilterBuilder(pair.Key, pair.Value, builderNames, spc.ReportDiagnostic));
@@ -370,12 +371,11 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
             // Public entry points, one per root. Two roots with the same simple name (Billing.Invoice / Sales.Invoice)
             // would generate the same class in MyApp.Services: the second one is suffixed. Services never write this
             // class name (they call the ProcessPaginationRequest extension), so the suffix is invisible to them.
-            var usedExtensionNames = new HashSet<string>(StringComparer.Ordinal);
+            var extensionsNames = AssignUniqueNames(roots, "PaginationExtensions");
+
             foreach (var root in roots)
             {
-                var extensionsName = root.Name + "PaginationExtensions";
-                for (var i = 2; !usedExtensionNames.Add(extensionsName); i++)
-                    extensionsName = $"{root.Name}{i}PaginationExtensions";
+                var extensionsName = extensionsNames[root];
 
                 if (extensionsName != root.Name + "PaginationExtensions")
                 {
@@ -391,6 +391,45 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
                     EmitPaginationExtensions(root, builderNames[root], extensionsName));
             }
         });
+    }
+
+    /// <summary>
+    ///     Give every type a generated class name <c>{Type.Name}{suffix}</c>, unique among <paramref name="types" />.
+    /// </summary>
+    /// <remarks>
+    ///     Every default name is reserved before any suffix is assigned, so a suffixed name never takes the default
+    ///     name of another type: with <c>Sales.Customer</c>, <c>Billing.Customer</c> and <c>Warehouse.Customer2</c>,
+    ///     the second one becomes <c>Customer3...</c> and <c>Customer2</c> keeps its own name. The first type of each
+    ///     default name keeps it, the next ones get the first free number starting at 2.
+    /// </remarks>
+    /// <param name="types">Types in generation order (the first one of each name keeps the default name).</param>
+    /// <param name="suffix">Class name suffix, e.g. <c>FilterBuilder</c>.</param>
+    private static Dictionary<ITypeSymbol, string> AssignUniqueNames(IReadOnlyList<ITypeSymbol> types, string suffix)
+    {
+        var reserved = new HashSet<string>(types.Select(x => x.Name + suffix), StringComparer.Ordinal);
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        var names = new Dictionary<ITypeSymbol, string>(SymbolEqualityComparer.Default);
+
+        foreach (var type in types)
+        {
+            var name = type.Name + suffix;
+
+            // Default name already taken by a type with the same simple name: first number that is neither
+            // used nor the default name of another type
+            if (!used.Add(name))
+                for (var i = 2;; i++)
+                {
+                    var candidate = $"{type.Name}{i}{suffix}";
+                    if (reserved.Contains(candidate) || !used.Add(candidate)) continue;
+
+                    name = candidate;
+                    break;
+                }
+
+            names[type] = name;
+        }
+
+        return names;
     }
 
     /// <summary>
