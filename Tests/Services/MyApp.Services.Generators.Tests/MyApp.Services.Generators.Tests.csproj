@@ -1,9 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
-        <!-- Test models of this project are compiled with the generator; its generated code uses the abstractions -->
-        <ProjectReference Include="..\..\..\Src\Services\MyApp.Services.Generators\MyApp.Services.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <!--
+            The generator runs on this project (TestModels/ declares [PaginationHandlerFor<TEntity>] handlers) and is also
+            referenced as a library, so the diagnostics tests can run it in memory with CSharpGeneratorDriver.
+        -->
+        <ProjectReference Include="..\..\..\Src\Services\MyApp.Services.Generators\MyApp.Services.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true"/>
+        <!-- The generated code uses the pagination requests of the abstractions -->
         <ProjectReference Include="..\..\..\Src\Services\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Same versions as Src/Domain/MyApp.Domain.Models and Src/Services/MyApp.Services.Generators -->
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.12.0"/>
     </ItemGroup>
 
 </Project>
