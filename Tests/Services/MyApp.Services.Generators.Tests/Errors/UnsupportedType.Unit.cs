@@ -40,9 +40,6 @@ public sealed partial class UnsupportedTypeTests
             AssertIgnored(GeneratorRunner.Run(Model(property)), path, value);
         }
 
-        // Bug: a multidimensional array (int[,]) is treated as a collection of values: a filter on it throws
-        // ArgumentException (500, Enumerable.Any cannot take an int[,]) instead of InvalidPaginationRequestException
-        // (400)
         [Fact]
         public void Generator_MultidimensionalArray_IsIgnored()
         {

@@ -49,8 +49,6 @@ public sealed partial class UserDeleteByIdTests
             error.Message.ShouldBe(SharedResource.user_not_found);
         }
 
-        // Bug: the soft deletion filter hides the deleted user, so UserDeleteById returns 404 user_not_found instead of
-        // 400 user_already_deleted
         [Fact]
         public async Task ExecuteAsync_AlreadyDeletedUser_Returns400UserAlreadyDeleted()
         {

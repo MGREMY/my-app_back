@@ -73,8 +73,6 @@ public sealed partial class UserEndpointTests
                 "FilterRequests[0].FilterOperator"),
             new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", logic: (FilterApiRequest.Logic)2)]),
                 "FilterRequests[0].FilterLogic"),
-            // Bug: the validator only checks top-level filters, so an invalid nested filter reaches the generated code
-            // and is not returned as a 400 validation problem.
             new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", nested: [InvalidFilter("email"), InvalidFilter("")])]),
                 "FilterRequests[0].Filters[1].PropertyName")
         ];
@@ -150,8 +148,6 @@ public sealed partial class UserEndpointTests
             problem.Title.ShouldBe(SharedResource.user_not_found);
         }
 
-        // Bug: the route binding failure of a non-GUID id returns a 400 without body instead of an RFC 7807 problem
-        // (application/problem+json).
         [Fact]
         public async Task GetById_NotAGuid_Returns400Problem()
         {
@@ -197,8 +193,6 @@ public sealed partial class UserEndpointTests
             (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_not_found);
         }
 
-        // Bug: the soft deletion filter hides the deleted user, so DELETE returns 404 user_not_found instead of 400
-        // user_already_deleted.
         [Fact]
         public async Task DeleteById_AlreadyDeletedUser_Returns400AlreadyDeletedProblem()
         {
@@ -210,8 +204,6 @@ public sealed partial class UserEndpointTests
             (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_already_deleted);
         }
 
-        // Bug: nothing prevents an admin from deleting their own account: DELETE returns 204 and soft-deletes the
-        // admin.
         [Fact]
         public async Task DeleteById_AdminDeletingOwnAccount_Returns400ProblemAndKeepsUser()
         {

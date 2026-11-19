@@ -53,8 +53,6 @@ public sealed partial class ValueCollectionFilterTests
             { "holidays", Operator.NotEqual, "2024-12-25", [Carol, Dave] }
         };
 
-        // Bug: Any(p => p != @value) on a collection of values (text[], date[]) is not translated by EF Core / Npgsql:
-        // InvalidOperationException (500) instead of a result
         [Theory]
         [MemberData(nameof(AnyNotEqualCases))]
         public async Task Filter_ValueCollectionAnyNotEqual_ReturnsMatchingAuthors(string path, Operator op, string value, string[] expected)

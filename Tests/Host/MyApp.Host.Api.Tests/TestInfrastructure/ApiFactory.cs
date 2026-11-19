@@ -37,32 +37,11 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     private readonly Lock _lock = new();
     private ContainersFixture? _containers;
     private Task? _start;
-    private Task<string>? _openApiDocument;
 
     public Task EnsureStartedAsync(ContainersFixture containers)
     {
         lock (_lock)
             return _start ??= StartAsync(containers);
-    }
-
-    /// <summary>
-    /// The OpenAPI document (<c>/openapi/v1.json</c>) as served in Development, the only environment mapping it: read
-    /// once from a Development variant of this host (same settings and authentication).
-    /// </summary>
-    public Task<string> GetOpenApiDocumentAsync()
-    {
-        lock (_lock)
-            return _openApiDocument ??= ReadOpenApiDocumentAsync();
-    }
-
-    private async Task<string> ReadOpenApiDocumentAsync()
-    {
-        await using var development = WithWebHostBuilder(builder => builder.UseEnvironment(Environments.Development));
-        using var client = development.CreateClient();
-        using var response = await client.GetAsync("/openapi/v1.json");
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadAsStringAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)

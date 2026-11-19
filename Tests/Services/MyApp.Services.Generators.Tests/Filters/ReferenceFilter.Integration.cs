@@ -37,8 +37,6 @@ public sealed partial class ReferenceFilterTests
             names.ShouldBe(expected);
         }
 
-        // Bug: a negative operator on a non-nullable property reached through a missing optional reference matches (C#
-        // null semantics), contrary to AGENTS.md 6.5: Bob without country is returned
         [Fact]
         public async Task Filter_NotEqualThroughMissingReference_DoesNotMatch()
         {
@@ -48,8 +46,6 @@ public sealed partial class ReferenceFilterTests
             names.ShouldBe([Carol, Eve]);
         }
 
-        // Bug: a negative operator on a non-nullable property reached through a missing optional reference matches (C#
-        // null semantics), contrary to AGENTS.md 6.5: Bob without country is returned
         [Fact]
         public async Task Filter_NotContainsThroughMissingReference_DoesNotMatch()
         {

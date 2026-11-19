@@ -107,7 +107,6 @@ public sealed partial class FileStorageServiceTests
             File.Exists(Path.Combine(_dataPath, "inside.txt")).ShouldBeTrue();
         }
 
-        // Bug: SaveAsync returns the file name as given ("sub/../inside.txt") instead of the normalized relative name
         [Fact]
         public async Task SaveAsync_NameWithInnerParentSegment_ReturnsNormalizedName()
         {
@@ -199,7 +198,6 @@ public sealed partial class FileStorageServiceTests
             await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync(outside, Ct));
         }
 
-        // Bug: GetSafePath passes the file name value as ArgumentException.paramName instead of nameof(fileName)
         [Fact]
         public async Task ExistsAsync_NameOutsideFolder_ReportsFileNameParameter()
         {

@@ -42,8 +42,6 @@ public sealed partial class AuthEndpointTests
             user.UpdatedAtUtc.ShouldBeNull();
         }
 
-        // Bug: the user name is read from the "name" claim (full name, "John Doe" is stored) instead of the Keycloak
-        // username (preferred_username).
         [Fact]
         public async Task SyncUser_TokenWithUsernameAndFullName_StoresTheUsername()
         {
@@ -55,8 +53,6 @@ public sealed partial class AuthEndpointTests
             (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem().UserName.ShouldBe("jdoe");
         }
 
-        // Bug: a token without preferred_username is accepted (204): the user name falls back to the "name" claim
-        // instead of the request being rejected with a 400 problem.
         [Fact]
         public async Task SyncUser_TokenWithoutUsername_Returns400ProblemAndCreatesNothing()
         {
@@ -69,8 +65,6 @@ public sealed partial class AuthEndpointTests
             (await FindUsersIncludingDeletedAsync("auth-1")).ShouldBeEmpty();
         }
 
-        // Bug: CurrentEmail throws InvalidOperationException when the token has no email claim: the API returns 500
-        // instead of a 400 problem.
         [Fact]
         public async Task SyncUser_TokenWithoutEmail_Returns400ProblemAndCreatesNothing()
         {

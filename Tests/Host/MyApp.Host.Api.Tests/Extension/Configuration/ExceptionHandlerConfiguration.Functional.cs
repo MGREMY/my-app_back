@@ -20,8 +20,6 @@ public sealed partial class ExceptionHandlerConfigurationTests
             (await response.Content.ReadAsStringAsync(Ct)).ShouldNotContain(ApiFactory.ExceptionProbeMessage);
         }
 
-        // Bug: the exception handler returns TypedResults.InternalServerError(), a 500 without body, instead of an RFC
-        // 7807 problem (application/problem+json).
         [Fact]
         public async Task UnhandledException_Returns500Problem()
         {
