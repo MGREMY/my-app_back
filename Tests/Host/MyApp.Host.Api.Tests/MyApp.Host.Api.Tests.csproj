@@ -6,4 +6,13 @@
         <ProjectReference Include="..\..\..\Src\Host\MyApp.Host.Api\MyApp.Host.Api.csproj"/>
     </ItemGroup>
 
+    <!-- Usings of the Web SDK, which this test project (Microsoft.NET.Sdk) does not get implicitly -->
+    <ItemGroup>
+        <Using Include="Microsoft.AspNetCore.Builder"/>
+        <Using Include="Microsoft.AspNetCore.Http"/>
+        <Using Include="Microsoft.Extensions.DependencyInjection"/>
+        <Using Include="Microsoft.Extensions.Hosting"/>
+        <Using Include="Microsoft.Extensions.Logging"/>
+    </ItemGroup>
+
 </Project>
