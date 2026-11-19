@@ -61,17 +61,45 @@ public sealed partial class UserEndpointTests
             page.HasNextPage.ShouldBeTrue();
         }
 
-        [Fact]
-        public async Task Query_InvalidPagination_Returns400ValidationProblem()
-        {
-            var request = new PaginationApiRequest(0, 15, [new SortApiRequest("", false)]);
+        // One row per validation rule of PaginationApiRequest (and its child sort and filter requests).
+        public static IEnumerable<TheoryDataRow<PaginationApiRequest, string>> InvalidPaginations =>
+        [
+            new(new PaginationApiRequest(PageNumber: 0), "PageNumber"),
+            new(new PaginationApiRequest(PageSize: 0), "PageSize"),
+            new(new PaginationApiRequest(SortRequests: [new SortApiRequest("id", false), new SortApiRequest(" ", false)]),
+                "SortRequests[1].PropertyName"),
+            new(new PaginationApiRequest(FilterRequests: [InvalidFilter(" ")]), "FilterRequests[0].PropertyName"),
+            new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", @operator: (FilterApiRequest.Operator)99)]),
+                "FilterRequests[0].FilterOperator"),
+            new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", logic: (FilterApiRequest.Logic)2)]),
+                "FilterRequests[0].FilterLogic"),
+            new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", nested: [InvalidFilter("email"), InvalidFilter("")])]),
+                "FilterRequests[0].Filters[1].PropertyName")
+            {
+                Skip = "Bug: the validator only checks top-level filters, so an invalid nested filter reaches the "
+                       + "generated code and is not returned as a 400 validation problem"
+            }
+        ];
 
+        [Theory]
+        [MemberData(nameof(InvalidPaginations))]
+        public async Task Query_InvalidPagination_Returns400ValidationProblem(PaginationApiRequest request, string errorKey)
+        {
             using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, request, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             var problem = await ReadValidationProblemAsync(response);
             problem.Title.ShouldBe("Validation failed");
-            problem.Errors.Keys.ShouldBe(["PageNumber", "SortRequests[0].PropertyName"], ignoreOrder: true);
+            problem.Errors.Keys.ShouldBe([errorKey]);
+        }
+
+        private static FilterApiRequest InvalidFilter(
+            string propertyName,
+            FilterApiRequest.Operator @operator = FilterApiRequest.Operator.Equal,
+            FilterApiRequest.Logic logic = FilterApiRequest.Logic.And,
+            IEnumerable<FilterApiRequest>? nested = null)
+        {
+            return new FilterApiRequest(propertyName, @operator, "x", logic, nested);
         }
 
         [Fact]

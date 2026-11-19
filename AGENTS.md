@@ -746,7 +746,7 @@ Services never return API types and endpoints never expose service types.
 
 | Level       | Trait                  | What is real                                                                                  | Docker |
 |-------------|------------------------|-----------------------------------------------------------------------------------------------|--------|
-| Unit        | `Category=Unit`        | The tested class only, in memory: specifications, validators, `GetAppConfig()`, DI composition, `FileStorageService` on a temporary folder, generator diagnostics (`CSharpGeneratorDriver`). | no |
+| Unit        | `Category=Unit`        | Code out of reach of HTTP, or with too many cases for it, in memory: specifications, `FileStorageService` on a temporary folder, migration script ordering, generator diagnostics (`CSharpGeneratorDriver`) and the rejection of invalid pagination requests. | no |
 | Integration | `Category=Integration` | The real layer on PostgreSQL and Redis containers: the host composition (`AddMyAppPersistence`, `AddMyAppCache`, `AddMyAppServices`), the generated pagination code, migrations and SQL scripts. | yes |
 | Functional  | `Category=Functional`  | The whole API (`Program`) over HTTP with `WebApplicationFactory`, on the containers. Only authentication is replaced (section 9.5). | yes |
 
@@ -762,6 +762,10 @@ What deserves a test:
   method, on an internal cache, and no test re-implementing the algorithm it checks. Internal classes are tested
   through their public entry point. A class deliberately left without tests carries
   `[ExcludeFromCodeCoverage(Justification = "...")]`.
+- **Unit only where HTTP cannot reach or has too many cases.** Anything an endpoint exercises (request validators,
+  claims, problem formatting, configuration, DI composition) is tested functionally. Filters and sorts are split by
+  what needs a database: rejecting an invalid request is a unit test, the rows returned are checked on PostgreSQL
+  (the result depends on the SQL translation: nulls, case, `LIKE`, `EXISTS`).
 - **No test for a missing feature** ("page size is not capped"): document it instead.
 
 ### 9.4 Shared infrastructure
