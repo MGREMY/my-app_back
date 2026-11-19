@@ -13,14 +13,6 @@ public sealed partial class SortTests
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {
-        [Fact]
-        public async Task Sort_Ascending_ReturnsAscendingOrder()
-        {
-            var names = await SortAsync(Asc("name"));
-
-            names.ShouldBe(All);
-        }
-
         // Followers and birthDate follow their own orders: a sort on the wrong column is detected
         public static TheoryData<string, string[]> ScalarOrders() => new()
         {
@@ -93,55 +85,20 @@ public sealed partial class SortTests
             names.ShouldBe(expected);
         }
 
-        [Fact]
-        public async Task Sort_ThroughReference_JoinsTheNavigation()
+        // Bob has no country, Alice no mentor: a missing reference is ordered like a null column.
+        // Mentors: Eve -> Dave, Dave -> Carol, Carol -> Bob, Bob -> Alice. Three mentors is the maximum depth.
+        [Theory]
+        [InlineData("Country.Name", false, new[] { Eve, Alice, Dave, Carol, Bob })]
+        [InlineData("country.name", true, new[] { Bob, Carol, Alice, Dave, Eve })]
+        [InlineData("country.continent.name", false, new[] { Eve, Carol, Alice, Dave, Bob })]
+        [InlineData("mentor.name", false, new[] { Bob, Carol, Dave, Eve, Alice })]
+        [InlineData("mentor.name", true, new[] { Alice, Eve, Dave, Carol, Bob })]
+        [InlineData("mentor.mentor.mentor.name", false, new[] { Dave, Eve, Alice, Bob, Carol })]
+        public async Task Sort_ThroughReferences_FollowsTheNavigations(string path, bool descending, string[] expected)
         {
-            var names = await SortAsync(Asc("Country.Name"), Asc("name"));
+            var names = await SortAsync(descending ? Desc(path) : Asc(path), Asc("name"));
 
-            names.ShouldBe([Eve, Alice, Dave, Carol, Bob]);
-        }
-
-        [Fact]
-        public async Task Sort_DescendingThroughReference_PutsMissingReferenceFirst()
-        {
-            // Bob has no country: null first when descending, like a null column
-            var names = await SortAsync(Desc("country.name"), Asc("name"));
-
-            names.ShouldBe([Bob, Carol, Alice, Dave, Eve]);
-        }
-
-        [Fact]
-        public async Task Sort_DescendingThroughSelfReference_FollowsTheMentor()
-        {
-            // Mentors: Eve -> Dave, Dave -> Carol, Carol -> Bob, Bob -> Alice, Alice none (first)
-            var names = await SortAsync(Desc("mentor.name"));
-
-            names.ShouldBe([Alice, Eve, Dave, Carol, Bob]);
-        }
-
-        [Fact]
-        public async Task Sort_ThroughTwoReferences_JoinsBothNavigations()
-        {
-            var names = await SortAsync(Asc("country.continent.name"), Asc("name"));
-
-            names.ShouldBe([Eve, Carol, Alice, Dave, Bob]);
-        }
-
-        [Fact]
-        public async Task Sort_ThroughSelfReference_FollowsTheMentor()
-        {
-            var names = await SortAsync(Asc("mentor.name"));
-
-            names.ShouldBe([Bob, Carol, Dave, Eve, Alice]);
-        }
-
-        [Fact]
-        public async Task Sort_ThroughThreeSelfReferences_IsTheMaximumDepth()
-        {
-            // Dave -> Carol -> Bob -> Alice, Eve -> Dave -> Carol -> Bob, the others have no third mentor
-            var names = await SortAsync(Asc("mentor.mentor.mentor.name"), Asc("name"));
-
-            names.ShouldBe([Dave, Eve, Alice, Bob, Carol]);
+            names.ShouldBe(expected);
         }
     }
 }

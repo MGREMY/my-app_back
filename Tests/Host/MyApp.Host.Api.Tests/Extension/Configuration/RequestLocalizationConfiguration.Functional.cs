@@ -38,14 +38,6 @@ public sealed partial class RequestLocalizationConfigurationTests
         }
 
         [Fact]
-        public async Task Error_FrenchCulture_ReportsContentLanguage()
-        {
-            using var response = await CreateClient().AsUser().WithCulture("fr").GetAsync($"/users/{Guid.NewGuid()}", Ct);
-
-            response.Content.Headers.ContentLanguage.ShouldContain("fr");
-        }
-
-        [Fact]
         public async Task ServiceError_FrenchCulture_ReturnsFrenchMessage()
         {
             await SeedUserAsync("auth-1", deleted: true);

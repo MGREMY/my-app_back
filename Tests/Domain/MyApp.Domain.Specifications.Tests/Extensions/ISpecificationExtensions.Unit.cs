@@ -11,30 +11,6 @@ public sealed partial class ISpecificationExtensionsTests
         private static readonly ISpecification<Item> Positive = new ItemIsPositiveSpec();
         private static readonly ISpecification<Item> Even = new ItemIsEvenSpec();
 
-        [Fact]
-        public void And_TwoSpecifications_ReturnsAndSpecification()
-        {
-            var result = Positive.And(Even);
-
-            result.ShouldBeOfType<AndSpecification<Item>>();
-        }
-
-        [Fact]
-        public void Or_TwoSpecifications_ReturnsOrSpecification()
-        {
-            var result = Positive.Or(Even);
-
-            result.ShouldBeOfType<OrSpecification<Item>>();
-        }
-
-        [Fact]
-        public void Not_Specification_ReturnsNotSpecification()
-        {
-            var result = Positive.Not();
-
-            result.ShouldBeOfType<NotSpecification<Item>>();
-        }
-
         [Theory]
         [InlineData(2, false)] // NOT (true AND true)
         [InlineData(1, true)] // NOT (true AND false)

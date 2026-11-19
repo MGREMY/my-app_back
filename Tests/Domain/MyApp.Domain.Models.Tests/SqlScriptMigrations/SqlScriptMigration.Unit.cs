@@ -76,17 +76,6 @@ public sealed partial class SqlScriptMigrationTests
         }
 
         [Fact]
-        public void UpOperations_ReadTwice_ReturnsSameOperations()
-        {
-            var migration = new ScriptedMigration();
-
-            var first = migration.UpOperations;
-            var second = migration.UpOperations;
-
-            second.ShouldBeSameAs(first);
-        }
-
-        [Fact]
         public void UpOperations_WithoutMigrationAttribute_ThrowsInvalidOperationException()
         {
             var migration = new MigrationWithoutAttribute();
@@ -94,18 +83,6 @@ public sealed partial class SqlScriptMigrationTests
             var exception = Should.Throw<InvalidOperationException>(() => migration.UpOperations);
 
             exception.Message.ShouldContain(nameof(MigrationWithoutAttribute));
-        }
-
-        [Fact]
-        public void GenerateScript_Idempotent_ContainsScriptsAroundMigration()
-        {
-            var script = GenerateIdempotentScript();
-
-            var positions = new[] { "Before/01_create_log.sql", "CREATE TABLE scripted_entity", "After/03_last.sql" }
-                .Select(x => script.IndexOf(x, StringComparison.Ordinal))
-                .ToArray();
-            positions.ShouldAllBe(x => x >= 0);
-            positions.ShouldBeInOrder();
         }
 
         [Fact]

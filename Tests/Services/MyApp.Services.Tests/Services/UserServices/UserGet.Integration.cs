@@ -45,18 +45,6 @@ public sealed partial class UserGetTests
         }
 
         [Fact]
-        public async Task ExecuteAsync_PageAfterLast_ReturnsEmptyData()
-        {
-            await SeedUsersAsync();
-
-            var page = await GetAsync(new PaginationServiceRequest(5, 2, ByUserName, []));
-
-            page.Data.ShouldBeEmpty();
-            page.TotalPages.ShouldBe(2);
-            page.HasNextPage.ShouldBeFalse();
-        }
-
-        [Fact]
         public async Task ExecuteAsync_EmptyTable_ReturnsNoPage()
         {
             var page = await GetAsync(new PaginationServiceRequest(1, 10, [], []));
@@ -77,16 +65,6 @@ public sealed partial class UserGetTests
         }
 
         [Fact]
-        public async Task ExecuteAsync_DescendingSort_ReturnsReverseOrder()
-        {
-            await SeedUsersAsync();
-
-            var page = await GetAsync(new PaginationServiceRequest(1, 2, [new SortServiceRequest("userName", true)], []));
-
-            page.Data.Select(x => x.UserName).ShouldBe(["user-d", "user-c"]);
-        }
-
-        [Fact]
         public async Task ExecuteAsync_Filter_CountsAndReturnsMatchingUsersOnly()
         {
             await SeedUsersAsync();
@@ -98,15 +76,6 @@ public sealed partial class UserGetTests
             page.Data.ShouldHaveSingleItem().UserName.ShouldBe("user-b");
             page.TotalPages.ShouldBe(1);
             page.HasNextPage.ShouldBeFalse();
-        }
-
-        [Fact]
-        public async Task ExecuteAsync_UnknownProperty_ThrowsInvalidPaginationRequestException()
-        {
-            var filter = new FilterServiceRequest("unknown", FilterServiceRequest.Operator.Equal, "x", FilterServiceRequest.Logic.And, []);
-
-            await Should.ThrowAsync<InvalidPaginationRequestException>(
-                () => GetAsync(new PaginationServiceRequest(1, 10, [], [filter])));
         }
 
         private async Task SeedUsersAsync()

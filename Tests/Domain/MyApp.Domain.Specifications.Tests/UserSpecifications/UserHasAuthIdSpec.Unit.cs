@@ -25,16 +25,5 @@ public sealed partial class UserHasAuthIdSpecTests
 
             result.ShouldBeFalse();
         }
-
-        [Fact]
-        public void Spec_ComposedWithUserHasIdSpec_ReturnsUserMatchingBoth()
-        {
-            var id = Guid.NewGuid();
-            var users = new[] { UserTestData.Create(id, "a"), UserTestData.Create(Guid.NewGuid(), "b") };
-
-            var result = users.AsQueryable().Spec(new UserHasAuthIdSpec("a").And(new UserHasIdSpec(id))).ToArray();
-
-            result.ShouldHaveSingleItem().AuthId.ShouldBe("a");
-        }
     }
 }

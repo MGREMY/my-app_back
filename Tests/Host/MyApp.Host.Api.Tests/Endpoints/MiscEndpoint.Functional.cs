@@ -22,15 +22,6 @@ public sealed partial class MiscEndpointTests
             ApiClientAuthExtensions.AntiforgeryCookie(response).ShouldNotBeNullOrEmpty();
         }
 
-        [Fact]
-        public async Task AntiforgeryProbe_NoToken_IsRejected()
-        {
-            // Control of the probe used below: a POST without token is invalid.
-            using var response = await CreateClient().PostAsync(ApiFactory.AntiforgeryProbePath, null, Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        }
-
         [Fact(Skip = "Bug: GetAndStoreTokens only stores the cookie token in the XSRF-TOKEN cookie; the request token is "
                      + "never returned, so a SPA copying the cookie into X-XSRF-TOKEN sends the cookie token twice and "
                      + "validation fails (tokens swapped). The endpoint should also return/issue tokens.RequestToken.")]

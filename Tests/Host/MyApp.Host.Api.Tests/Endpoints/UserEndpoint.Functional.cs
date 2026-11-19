@@ -62,50 +62,6 @@ public sealed partial class UserEndpointTests
         }
 
         [Fact]
-        public async Task Query_SoftDeletedUser_IsNotListed()
-        {
-            await SeedUserAsync("alive");
-            await SeedUserAsync("gone", deleted: true);
-
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, new PaginationApiRequest(), Ct);
-
-            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
-            page.Data.ShouldHaveSingleItem().UserName.ShouldBe("user-alive");
-        }
-
-        [Fact]
-        public async Task Query_PageBeyondTheLast_Returns200WithEmptyData()
-        {
-            await SeedUserAsync("a");
-            await SeedUserAsync("b");
-
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, new PaginationApiRequest(3, 1, ByUserName), Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.OK);
-            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
-            page.Data.ShouldBeEmpty();
-            page.PageNumber.ShouldBe(3);
-            page.TotalPages.ShouldBe(2);
-            page.HasNextPage.ShouldBeFalse();
-        }
-
-        [Fact]
-        public async Task Query_LargePageSize_IsNotCapped()
-        {
-            // There is no maximum page size.
-            await SeedUserAsync("a");
-            await SeedUserAsync("b");
-
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, new PaginationApiRequest(1, 100_000, ByUserName), Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.OK);
-            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
-            page.PageSize.ShouldBe(100_000);
-            page.Data.Length.ShouldBe(2);
-            page.TotalPages.ShouldBe(1);
-        }
-
-        [Fact]
         public async Task Query_InvalidPagination_Returns400ValidationProblem()
         {
             var request = new PaginationApiRequest(0, 15, [new SortApiRequest("", false)]);
@@ -133,44 +89,11 @@ public sealed partial class UserEndpointTests
         }
 
         [Fact]
-        public async Task Query_UnknownSortProperty_Returns400InvalidPaginationProblem()
-        {
-            using var response = await CreateClient().AsUser()
-                .QueryAsJsonAsync(Route, new PaginationApiRequest(SortRequests: [new SortApiRequest("unknown", false)]), Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-            (await ReadProblemAsync(response)).Title.ShouldBe("Invalid pagination request");
-        }
-
-        [Fact]
-        public async Task Query_UnparsableFilterValue_Returns400InvalidPaginationProblem()
-        {
-            var request = new PaginationApiRequest(FilterRequests:
-                [new FilterApiRequest("createdAtUtc", FilterApiRequest.Operator.GreaterThan, "not-a-date", FilterApiRequest.Logic.And)]);
-
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, request, Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-            (await ReadProblemAsync(response)).Title.ShouldBe("Invalid pagination request");
-        }
-
-        [Fact]
         public async Task Query_Anonymous_Returns401()
         {
             using var response = await CreateClient().AsAnonymous().QueryAsJsonAsync(Route, new PaginationApiRequest(), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
-        }
-
-        [Fact]
-        public async Task Post_ListRoute_Returns405()
-        {
-            // Paginated lists only answer the QUERY method.
-            using var response = await CreateClient().AsUser().PostAsJsonAsync(Route, new PaginationApiRequest(), Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
-            // RFC 9110: a 405 lists the methods the resource supports.
-            response.Content.Headers.Allow.ShouldBe(["QUERY"]);
         }
 
         // GET /users/{id}
@@ -199,24 +122,6 @@ public sealed partial class UserEndpointTests
             var problem = await ReadProblemAsync(response);
             problem.Status.ShouldBe(404);
             problem.Title.ShouldBe(SharedResource.user_not_found);
-        }
-
-        [Fact]
-        public async Task GetById_SoftDeletedUser_Returns404()
-        {
-            var user = await SeedUserAsync("auth-1", deleted: true);
-
-            using var response = await CreateClient().AsUser().GetAsync(ById(user.Id), Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        }
-
-        [Fact]
-        public async Task GetById_NotAGuid_Returns400()
-        {
-            using var response = await CreateClient().AsUser().GetAsync(ById("not-a-guid"), Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         }
 
         [Fact(Skip = "Bug: the route binding failure of a non-GUID id returns a 400 without body instead of an "

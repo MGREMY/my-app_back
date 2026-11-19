@@ -39,11 +39,5 @@ public sealed partial class EndpointHelperTests
             result.ProblemDetails.Errors["PageNumber"].ShouldBe(["too small", "not a number"]);
             result.ProblemDetails.Errors["PageSize"].ShouldBe(["too small"]);
         }
-
-        [Fact]
-        public void FormatValidationErrorResponse_NoFailure_ReturnsEmptyErrors()
-        {
-            EndpointHelper.FormatValidationErrorResponse([]).ProblemDetails.Errors.ShouldBeEmpty();
-        }
     }
 }

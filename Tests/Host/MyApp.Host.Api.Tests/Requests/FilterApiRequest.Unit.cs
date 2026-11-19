@@ -10,26 +10,6 @@ public sealed partial class FilterApiRequestTests
     public sealed class Unit
     {
         [Fact]
-        public void ToServiceRequest_Filter_MapsEveryField()
-        {
-            var request = new FilterApiRequest("userName", FilterApiRequest.Operator.Contains, "jo", FilterApiRequest.Logic.Or)
-                .ToServiceRequest();
-
-            request.PropertyName.ShouldBe("userName");
-            request.FilterOperator.ShouldBe(FilterServiceRequest.Operator.Contains);
-            request.Value.ShouldBe("jo");
-            request.FilterLogic.ShouldBe(FilterServiceRequest.Logic.Or);
-            request.Filters.ShouldBeEmpty();
-        }
-
-        [Fact]
-        public void ToServiceRequest_NullValue_KeepsNull()
-        {
-            new FilterApiRequest("email", FilterApiRequest.Operator.Equal, null, FilterApiRequest.Logic.And)
-                .ToServiceRequest().Value.ShouldBeNull();
-        }
-
-        [Fact]
         public void ToServiceRequest_NestedFilters_MapsThemRecursively()
         {
             var request = new FilterApiRequest("userName", FilterApiRequest.Operator.Equal, "a", FilterApiRequest.Logic.And,

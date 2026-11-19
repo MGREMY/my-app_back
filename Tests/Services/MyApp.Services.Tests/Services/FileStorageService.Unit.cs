@@ -161,21 +161,18 @@ public sealed partial class FileStorageServiceTests
 
         [Theory]
         [MemberData(nameof(OutsideNames))]
-        public async Task GetAsync_NameOutsideFolder_ThrowsArgumentException(string name)
-        {
-            await Should.ThrowAsync<ArgumentException>(() => _storage.GetAsync(name, Ct));
-        }
-
-        [Theory]
-        [MemberData(nameof(OutsideNames))]
-        public async Task SaveAsync_NameOutsideFolder_ThrowsArgumentExceptionWithoutWriting(string name)
+        public async Task AnyMethod_NameOutsideFolder_ThrowsArgumentExceptionWithoutTouchingFiles(string name)
         {
             // Every relative name resolves under _root (the parent of the data folder): snapshot it. A rooted name
             // targets an existing file elsewhere: check it was not rewritten.
+            await File.WriteAllTextAsync(Path.Combine(_root, "outside.txt"), "keep", Ct);
             var before = SnapshotRoot();
             var rootedTarget = Path.IsPathRooted(name) && File.Exists(name) ? File.GetLastWriteTimeUtc(name) : (DateTime?)null;
 
+            await Should.ThrowAsync<ArgumentException>(() => _storage.GetAsync(name, Ct));
+            await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync(name, Ct));
             await Should.ThrowAsync<ArgumentException>(() => _storage.SaveAsync("x"u8.ToArray(), name, ct: Ct));
+            await Should.ThrowAsync<ArgumentException>(() => _storage.DeleteAsync(name, Ct));
 
             SnapshotRoot().ShouldBe(before);
             if (rootedTarget is { } lastWrite)
@@ -190,25 +187,6 @@ public sealed partial class FileStorageServiceTests
                 .Select(x => x is FileInfo file ? $"{file.FullName}:{file.Length}" : x.FullName)
                 .Order(StringComparer.Ordinal)
                 .ToArray();
-        }
-
-        [Theory]
-        [MemberData(nameof(OutsideNames))]
-        public async Task ExistsAsync_NameOutsideFolder_ThrowsArgumentException(string name)
-        {
-            await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync(name, Ct));
-        }
-
-        [Theory]
-        [MemberData(nameof(OutsideNames))]
-        public async Task DeleteAsync_NameOutsideFolder_ThrowsArgumentExceptionWithoutDeleting(string name)
-        {
-            var outside = Path.Combine(_root, "outside.txt");
-            await File.WriteAllTextAsync(outside, "keep", Ct);
-
-            await Should.ThrowAsync<ArgumentException>(() => _storage.DeleteAsync(name, Ct));
-
-            File.Exists(outside).ShouldBeTrue();
         }
 
         [Fact]
@@ -226,15 +204,6 @@ public sealed partial class FileStorageServiceTests
             var exception = await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync("../outside.txt", Ct));
 
             exception.ParamName.ShouldBe("fileName");
-        }
-
-        [Fact]
-        public async Task ExistsAsync_CanceledToken_ThrowsOperationCanceledException()
-        {
-            using var cts = new CancellationTokenSource();
-            await cts.CancelAsync();
-
-            await Should.ThrowAsync<OperationCanceledException>(() => _storage.ExistsAsync("file.txt", cts.Token));
         }
     }
 }

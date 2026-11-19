@@ -35,19 +35,6 @@ public sealed partial class AuthSyncUserTests
         }
 
         [Fact]
-        public async Task ExecuteAsync_NewAuthId_CachesCreatedUser()
-        {
-            await SyncAsync(new IAuthSyncUser.Request("auth-1", "john", "john@example.test"));
-            var id = await WithDbAsync(db => db.Users.Select(x => x.Id).SingleAsync(Ct));
-            await RenameInDatabaseAsync(id, "renamed");
-
-            // Fresh instance: the value can only come from the Redis entry written by the sync.
-            var result = await GetByIdAsync(id, CreateProvider());
-
-            result.Value.ShouldBeOfType<UserServiceResponse>().UserName.ShouldBe("john");
-        }
-
-        [Fact]
         public async Task ExecuteAsync_ExistingAuthId_DoesNotCreateAnotherUser()
         {
             var user = await SeedUserAsync("auth-1");
@@ -57,18 +44,6 @@ public sealed partial class AuthSyncUserTests
             result.Value.ShouldBeOfType<ServiceSuccessResponse>();
             var ids = await WithDbAsync(db => db.Users.Select(x => x.Id).ToListAsync(Ct));
             ids.ShouldBe([user.Id]);
-        }
-
-        [Fact]
-        public async Task ExecuteAsync_ExistingAuthId_RefreshesCacheFromDatabase()
-        {
-            var user = await SeedUserAsync("auth-1");
-            await GetByIdAsync(user.Id);
-            await RenameInDatabaseAsync(user.Id, "renamed");
-
-            await SyncAsync(new IAuthSyncUser.Request("auth-1", user.UserName, user.Email));
-
-            (await GetByIdAsync(user.Id)).Value.ShouldBeOfType<UserServiceResponse>().UserName.ShouldBe("renamed");
         }
 
         [Fact]
@@ -131,16 +106,6 @@ public sealed partial class AuthSyncUserTests
             error.Message.ShouldBe(SharedResource.user_already_deleted);
             var ids = await WithDbAsync(db => db.Users.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter]).Select(x => x.Id).ToListAsync(Ct));
             ids.ShouldBe([user.Id]);
-        }
-
-        [Fact]
-        public async Task ExecuteAsync_SoftDeletedUser_DoesNotCacheUser()
-        {
-            var user = await SeedUserAsync("auth-1", deleted: true);
-
-            await SyncAsync(new IAuthSyncUser.Request("auth-1", "john", "john@example.test"));
-
-            (await GetByIdAsync(user.Id, CreateProvider())).Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
         }
 
         private Task<ServiceResponse> SyncAsync(IAuthSyncUser.Request request)

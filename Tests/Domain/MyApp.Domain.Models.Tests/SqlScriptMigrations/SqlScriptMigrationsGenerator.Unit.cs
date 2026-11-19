@@ -48,15 +48,5 @@ public sealed partial class SqlScriptMigrationsGeneratorTests
                 $"public partial class {MigrationName} : global::{typeof(SqlScriptMigration).FullName}");
             migration.MigrationCode.ShouldNotContain($"{MigrationName} : Migration");
         }
-
-        [Fact]
-        public void Select_CSharp_ReturnsGeneratorRegisteredByDesignTimeServices()
-        {
-            var generator = _services.GetRequiredService<IMigrationsCodeGeneratorSelector>().Select(language: null);
-
-            var code = generator.GenerateMigration("MyApp.Domain.Models.Migrations", MigrationName, [], []);
-
-            code.ShouldContain($"public partial class {MigrationName} : global::{typeof(SqlScriptMigration).FullName}");
-        }
     }
 }

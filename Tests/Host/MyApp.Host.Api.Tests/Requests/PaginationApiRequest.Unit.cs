@@ -17,12 +17,6 @@ public sealed partial class PaginationApiRequestTests
             _validator.TestValidate(new PaginationApiRequest()).ShouldNotHaveAnyValidationErrors();
         }
 
-        [Fact]
-        public void Validator_EmptySortAndFilterLists_IsValid()
-        {
-            _validator.TestValidate(new PaginationApiRequest(SortRequests: [], FilterRequests: [])).ShouldNotHaveAnyValidationErrors();
-        }
-
         [Theory]
         [InlineData(0)]
         [InlineData(-1)]
@@ -39,16 +33,6 @@ public sealed partial class PaginationApiRequestTests
         {
             _validator.TestValidate(new PaginationApiRequest(PageSize: pageSize))
                 .ShouldHaveValidationErrorFor(x => x.PageSize);
-        }
-
-        [Fact]
-        public void Validator_ValidSortsAndFilters_IsValid()
-        {
-            var request = new PaginationApiRequest(
-                SortRequests: [new SortApiRequest("userName", true), new SortApiRequest("id", false)],
-                FilterRequests: [Filter("userName"), Filter("email", value: null)]);
-
-            _validator.TestValidate(request).ShouldNotHaveAnyValidationErrors();
         }
 
         [Theory]
@@ -110,17 +94,6 @@ public sealed partial class PaginationApiRequestTests
             var request = new PaginationApiRequest(FilterRequests: [Filter("userName", nested: [Filter("email", logic: FilterApiRequest.Logic.Or)])]);
 
             _validator.TestValidate(request).ShouldNotHaveAnyValidationErrors();
-        }
-
-        [Fact]
-        public void ToServiceRequest_FullRequest_MapsEveryField()
-        {
-            var request = new PaginationApiRequest(3, 25, [new SortApiRequest("userName", true)], [Filter("email")]).ToServiceRequest();
-
-            request.PageNumber.ShouldBe(3);
-            request.PageSize.ShouldBe(25);
-            request.SortRequests.ShouldHaveSingleItem().PropertyName.ShouldBe("userName");
-            request.FilterRequests.ShouldHaveSingleItem().PropertyName.ShouldBe("email");
         }
 
         [Fact]

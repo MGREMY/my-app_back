@@ -46,18 +46,6 @@ public sealed partial class ExtensionTests
 
         [Theory]
         [MemberData(nameof(ServiceInterfaces))]
-        public void AddMyAppServices_AbstractionInterface_ResolvesImplementationOfServicesAssembly(Type serviceInterface)
-        {
-            using var provider = Build();
-            using var scope = provider.CreateScope();
-
-            var service = scope.ServiceProvider.GetRequiredService(serviceInterface);
-
-            service.GetType().Assembly.ShouldBe(typeof(Extension).Assembly);
-        }
-
-        [Theory]
-        [MemberData(nameof(ServiceInterfaces))]
         public void AddMyAppServices_AbstractionInterface_RegistersSingleScopedImplementation(Type serviceInterface)
         {
             var services = new ServiceCollection().AddMyAppServices(_ => { });
@@ -66,57 +54,6 @@ public sealed partial class ExtensionTests
 
             descriptor.Lifetime.ShouldBe(ServiceLifetime.Scoped);
             descriptor.ImplementationType.ShouldNotBeNull().IsAssignableTo(serviceInterface).ShouldBeTrue();
-        }
-
-        [Fact]
-        public void AddMyAppServices_Abstractions_EveryInterfaceHasExactlyOneImplementation()
-        {
-            // The rule enforced at startup: a second implementation (or none) would make AddMyAppServices throw.
-            // This mirrors the production scan on purpose: AddMyAppServices hard-codes the scanned assemblies
-            // (typeof(Extension).Assembly, typeof(ServiceResponse).Assembly), so its "none" / "several" error branches
-            // cannot be exercised from a test without changing Src. This test gives a readable failure listing every
-            // offending interface instead of the first InvalidOperationException.
-            var implementations = typeof(Extension).Assembly.DefinedTypes
-                .Where(x => x is { IsClass: true, IsAbstract: false })
-                .ToArray();
-
-            var counts = ServiceInterfaces
-                .Select(x => (Interface: x.Data, Count: implementations.Count(i => i.ImplementedInterfaces.Contains(x.Data))))
-                .Where(x => x.Count != 1)
-                .Select(x => $"{x.Interface.FullName}: {x.Count}");
-
-            counts.ShouldBeEmpty();
-        }
-
-        [Theory]
-        [InlineData(typeof(IService<>))]
-        [InlineData(typeof(IService<,>))]
-        [InlineData(typeof(IServiceAsync<>))]
-        [InlineData(typeof(IServiceAsync<,>))]
-        public void AddMyAppServices_OpenGenericInterface_IsNotRegistered(Type openGeneric)
-        {
-            var services = new ServiceCollection().AddMyAppServices(_ => { });
-
-            services.ShouldNotContain(x => x.ServiceType == openGeneric);
-        }
-
-        [Fact]
-        public void AddMyAppServices_Options_ConfiguresServiceOption()
-        {
-            using var provider = Build();
-
-            var options = provider.GetRequiredService<IOptions<ServiceOption>>().Value;
-
-            options.DataPath.ShouldBe(_dataPath);
-        }
-
-        [Fact]
-        public void AddMyAppCache_Resolved_UsesHybridCacheWithRedisDistributedCache()
-        {
-            using var provider = Build();
-
-            provider.GetRequiredService<HybridCache>().ShouldNotBeNull();
-            provider.GetRequiredService<IDistributedCache>().ShouldBeAssignableTo<RedisCache>();
         }
 
         private ServiceProvider Build()

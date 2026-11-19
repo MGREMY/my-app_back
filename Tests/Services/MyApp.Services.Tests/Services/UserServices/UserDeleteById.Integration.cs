@@ -28,17 +28,6 @@ public sealed partial class UserDeleteByIdTests
         }
 
         [Fact]
-        public async Task ExecuteAsync_CachedUser_InvalidatesCache()
-        {
-            var user = await SeedUserAsync("auth-1");
-            await GetByIdAsync(user.Id);
-
-            await DeleteAsync(user.Id);
-
-            (await GetByIdAsync(user.Id)).Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
-        }
-
-        [Fact]
         public async Task ExecuteAsync_UserCachedInRedis_RemovesRedisEntry()
         {
             var user = await SeedUserAsync("auth-1");

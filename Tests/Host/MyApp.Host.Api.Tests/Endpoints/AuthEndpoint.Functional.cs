@@ -28,17 +28,6 @@ public sealed partial class AuthEndpointTests
         }
 
         [Fact]
-        public async Task SyncUser_ExistingUser_Returns204WithoutDuplicate()
-        {
-            await SeedUserAsync("auth-1");
-
-            using var response = await CreateClient().AsUser("auth-1").PostAsync(SyncUserRoute, null, Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-            (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
-        }
-
-        [Fact]
         public async Task SyncUser_ExistingUserWithChangedIdentity_KeepsStoredInfo()
         {
             // sync-user only inserts on the first call: it never updates an existing user.
@@ -51,22 +40,6 @@ public sealed partial class AuthEndpointTests
             user.UserName.ShouldBe("old-name");
             user.Email.ShouldBe(seeded.Email);
             user.UpdatedAtUtc.ShouldBeNull();
-        }
-
-        [Fact]
-        public async Task SyncUser_ThenGetById_ReturnsSyncedUser()
-        {
-            var client = CreateClient().AsUser("auth-1", "john", "john@example.test");
-            (await client.PostAsync(SyncUserRoute, null, Ct)).StatusCode.ShouldBe(HttpStatusCode.NoContent);
-            var user = (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
-
-            using var response = await client.GetAsync($"/users/{user.Id}", Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.OK);
-            var body = (await response.Content.ReadFromJsonAsync<UserResponse>(Ct)).ShouldNotBeNull();
-            body.Id.ShouldBe(user.Id);
-            body.UserName.ShouldBe("john");
-            body.Email.ShouldBe("john@example.test");
         }
 
         [Fact(Skip = "Bug: the user name is read from the \"name\" claim (full name, \"John Doe\" is stored) instead of "
@@ -105,29 +78,6 @@ public sealed partial class AuthEndpointTests
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             (await ReadProblemAsync(response)).Status.ShouldBe(400);
             (await FindUsersIncludingDeletedAsync("auth-1")).ShouldBeEmpty();
-        }
-
-        [Fact(Skip = "Bug: concurrent first syncs of the same AuthId race between the existence check and the insert; "
-                     + "the losers hit the unique index on auth_id and get 500 instead of 409. The race is "
-                     + "non-deterministic: the test can pass by chance.")]
-        public async Task SyncUser_ConcurrentFirstSyncs_OneCreatesTheUserOthersGet204Or409()
-        {
-            const int requestCount = 10;
-            var clients = Enumerable.Range(0, requestCount).Select(_ => CreateClient().AsUser("auth-1", "john")).ToArray();
-
-            var responses = await Task.WhenAll(clients.Select(client => client.PostAsync(SyncUserRoute, null, Ct)));
-
-            try
-            {
-                responses.Select(x => x.StatusCode).ShouldAllBe(x => x == HttpStatusCode.NoContent || x == HttpStatusCode.Conflict);
-                responses.ShouldContain(x => x.StatusCode == HttpStatusCode.NoContent);
-                (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
-            }
-            finally
-            {
-                foreach (var response in responses)
-                    response.Dispose();
-            }
         }
 
         [Fact]

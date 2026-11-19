@@ -752,6 +752,18 @@ Services never return API types and endpoints never expose service types.
 
 Service and generator tests never depend on authentication.
 
+What deserves a test:
+
+- **Our code, not the frameworks.** No test that EF Core maps a column, that ASP.NET routing returns `405`, that
+  the DI container binds options or that a library honours its own contract.
+- **One behaviour, one level.** Business rules are tested on the service (integration). Functional tests only check
+  what HTTP adds: status codes, authentication and authorization, problem details, localization.
+- **Behaviour, not implementation.** No assertion on the shape of an expression tree, on the type returned by a
+  method, on an internal cache, and no test re-implementing the algorithm it checks. Internal classes are tested
+  through their public entry point. A class deliberately left without tests carries
+  `[ExcludeFromCodeCoverage(Justification = "...")]`.
+- **No test for a missing feature** ("page size is not capped"): document it instead.
+
 ### 9.4 Shared infrastructure
 
 `MyApp.Tests.Shared` (a library, not a test project):

@@ -33,30 +33,6 @@ public sealed partial class ApiEndpointConfigurationTests
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         }
 
-        [Fact]
-        public async Task Request_SupportedVersionInHeader_Succeeds()
-        {
-            using var response = await CreateClient().WithApiVersionHeader("1.0").GetAsync(Route, Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-        }
-
-        [Fact]
-        public async Task Request_UnsupportedVersionInQueryString_Returns400()
-        {
-            using var response = await CreateClient().GetAsync($"{Route}?api-version=2.0", Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        }
-
-        [Fact]
-        public async Task Request_UnsupportedVersionInHeader_Returns400()
-        {
-            using var response = await CreateClient().WithApiVersionHeader("2.0").GetAsync(Route, Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        }
-
         [Theory(Skip = "Bug: an unsupported API version returns a 400 without body (no Content-Type) instead of an "
                        + "RFC 7807 problem (application/problem+json).")]
         [InlineData(true)]

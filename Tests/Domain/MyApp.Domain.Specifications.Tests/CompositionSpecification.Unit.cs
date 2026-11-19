@@ -52,26 +52,6 @@ public sealed partial class CompositionSpecificationTests
         }
 
         [Fact]
-        public void AndCriteria_TwoSpecifications_UsesShortCircuitAndAlso()
-        {
-            var spec = new AndSpecification<Item>(Positive, Even);
-
-            var criteria = spec.Criteria;
-
-            criteria.Body.NodeType.ShouldBe(ExpressionType.AndAlso);
-        }
-
-        [Fact]
-        public void OrCriteria_TwoSpecifications_UsesShortCircuitOrElse()
-        {
-            var spec = new OrSpecification<Item>(Positive, Even);
-
-            var criteria = spec.Criteria;
-
-            criteria.Body.NodeType.ShouldBe(ExpressionType.OrElse);
-        }
-
-        [Fact]
         public void AndCriteria_LeftFalse_DoesNotEvaluateRight()
         {
             var spec = new AndSpecification<Item>(new ItemHasNameSpec(), new ItemHasLongNameSpec());
@@ -112,18 +92,6 @@ public sealed partial class CompositionSpecificationTests
             predicate(new Item(1, Children: [-1, 2])).ShouldBeTrue();
             predicate(new Item(1, Children: [-1, -2])).ShouldBeFalse();
             predicate(new Item(-1, Children: [2])).ShouldBeFalse();
-        }
-
-        [Fact]
-        public void NotCriteria_ComposedSpecification_ProducesBoundLambda()
-        {
-            var spec = new NotSpecification<Item>(new AndSpecification<Item>(Positive, Even));
-
-            var criteria = spec.Criteria;
-
-            var parameter = criteria.Parameters.ShouldHaveSingleItem();
-            CollectParameters(criteria.Body).ShouldAllBe(x => ReferenceEquals(x, parameter));
-            criteria.Compile()(new Item(2)).ShouldBeFalse();
         }
 
         [Fact]

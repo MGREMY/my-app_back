@@ -64,17 +64,6 @@ public sealed partial class SqlScriptMigrationTests
         }
 
         [Fact]
-        public async Task MigrateAsync_WithScripts_RecordsMigrationInHistory()
-        {
-            await using var context = ScriptedMigrationDbContext.Create(_database.ConnectionString);
-
-            await context.Database.MigrateAsync(TestContext.Current.CancellationToken);
-
-            var applied = await context.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken);
-            applied.ShouldBe([ScriptedMigration.Id]);
-        }
-
-        [Fact]
         public async Task MigrateAsync_AppliedTwice_DoesNotRunScriptsAgain()
         {
             await using var context = ScriptedMigrationDbContext.Create(_database.ConnectionString);
@@ -98,22 +87,6 @@ public sealed partial class SqlScriptMigrationTests
             tables.ShouldBe([0L]);
             var applied = await context.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken);
             applied.ShouldBeEmpty();
-        }
-
-        [Fact]
-        public async Task MigrateAsync_FailingNoTransactionScript_LeavesMigrationPartiallyAppliedWithWarning()
-        {
-            var warnings = new List<string>();
-            await using var context = PartialMigrationDbContext.Create(_database.ConnectionString, warnings);
-
-            await Should.ThrowAsync<PostgresException>(() => context.Database.MigrateAsync(TestContext.Current.CancellationToken));
-
-            // Operations before the script outside of the transaction were committed, the history was not written.
-            var log = await QueryAsync<string>("SELECT name FROM partial_log");
-            log.ShouldBe(["migration"]);
-            var applied = await context.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken);
-            applied.ShouldBeEmpty();
-            warnings.ShouldHaveSingleItem().ShouldContain("After/01_fail.no-transaction.sql");
         }
 
         [Fact(Skip = "Bug: the idempotent script wraps the .no-transaction.sql script in a DO block, where PostgreSQL " +
