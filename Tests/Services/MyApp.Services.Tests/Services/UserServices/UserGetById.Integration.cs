@@ -1,5 +1,7 @@
+using MyApp.Domain.Models.Models;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Responses;
+using MyApp.Services.Abstractions.Services.AuthServices;
 using MyApp.Services.Abstractions.Services.UserServices;
 using MyApp.Services.Resources;
 using MyApp.Services.Tests.TestInfrastructure;
@@ -75,23 +77,46 @@ public sealed partial class UserGetByIdTests
         [Fact]
         public async Task ExecuteAsync_UnknownIdCreatedAfterFirstCall_KeepsReturning404FromCachedNull()
         {
-            // Documented behaviour (AGENTS.md 6.8): GetOrCreateAsync caches the null result.
+            // Documents the current, accepted behaviour (AGENTS.md 6.8): GetOrCreateAsync caches the null result, so a
+            // row added without going through a service stays invisible until the entry expires. This may change with
+            // a future cache rework; update this test then.
+            var user = await CacheNullThenInsertInDatabaseAsync();
+
+            var result = await GetByIdAsync(user.Id);
+
+            result.Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_CachedNullThenUserSynced_ReturnsUser()
+        {
+            // AGENTS.md 6.8: the service that creates the data (AuthSyncUser) must overwrite the cached null. The id
+            // is generated on insert, so the null is cached for a row that is then put back in the database.
+            var user = await CacheNullThenInsertInDatabaseAsync();
+
+            await RunAsync<IAuthSyncUser, ServiceResponse>(x => x.ExecuteAsync(new IAuthSyncUser.Request(user.AuthId, user.UserName, user.Email), Ct));
+
+            (await GetByIdAsync(user.Id)).Value.ShouldBeOfType<UserServiceResponse>().Id.ShouldBe(user.Id);
+            (await GetByIdAsync(user.Id, CreateProvider())).Value.ShouldBeOfType<UserServiceResponse>().Id.ShouldBe(user.Id);
+        }
+
+        /// <summary>Caches a null result for the id of a user, then inserts that user in the database only.</summary>
+        private async Task<User> CacheNullThenInsertInDatabaseAsync()
+        {
             var user = await SeedUserAsync("auth-1");
             await WithDbAsync(async db =>
             {
                 db.Users.Remove(user);
                 return await db.SaveChangesAsync(Ct);
             });
-            await GetByIdAsync(user.Id);
+            (await GetByIdAsync(user.Id)).Value.ShouldBeOfType<ServiceErrorResponse>();
             await WithDbAsync(async db =>
             {
                 db.Users.Add(new() { Id = user.Id, AuthId = user.AuthId, UserName = user.UserName, Email = user.Email, CreatedAtUtc = user.CreatedAtUtc });
                 return await db.SaveChangesAsync(Ct);
             });
 
-            var result = await GetByIdAsync(user.Id);
-
-            result.Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
+            return user;
         }
 
         private Task<ServiceResponse<UserServiceResponse>> GetByIdAsync(Guid id, Microsoft.Extensions.DependencyInjection.ServiceProvider? provider = null)

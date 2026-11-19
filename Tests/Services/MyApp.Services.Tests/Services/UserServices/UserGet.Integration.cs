@@ -92,10 +92,12 @@ public sealed partial class UserGetTests
             await SeedUsersAsync();
             var filter = new FilterServiceRequest("email", FilterServiceRequest.Operator.EndWith, "b@example.test", FilterServiceRequest.Logic.And, []);
 
-            var page = await GetAsync(new PaginationServiceRequest(1, 10, ByUserName, [filter]));
+            // Page size 1: an unfiltered count (4 active users) would give 4 pages and a next page.
+            var page = await GetAsync(new PaginationServiceRequest(1, 1, ByUserName, [filter]));
 
             page.Data.ShouldHaveSingleItem().UserName.ShouldBe("user-b");
             page.TotalPages.ShouldBe(1);
+            page.HasNextPage.ShouldBeFalse();
         }
 
         [Fact]

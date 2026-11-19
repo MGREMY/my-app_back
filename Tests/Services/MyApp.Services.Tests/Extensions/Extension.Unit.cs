@@ -32,8 +32,16 @@ public sealed partial class ExtensionTests
         {
             // ValidateOnBuild + ValidateScopes: every registered service can be built with scoped lifetimes respected.
             using var provider = Build();
+            using var scope = provider.CreateScope();
+            using var otherScope = provider.CreateScope();
 
-            provider.ShouldNotBeNull();
+            foreach (var serviceInterface in ServiceInterfaces.Select(x => x.Data))
+            {
+                var service = scope.ServiceProvider.GetRequiredService(serviceInterface);
+
+                scope.ServiceProvider.GetRequiredService(serviceInterface).ShouldBeSameAs(service, serviceInterface.FullName);
+                otherScope.ServiceProvider.GetRequiredService(serviceInterface).ShouldNotBeSameAs(service, serviceInterface.FullName);
+            }
         }
 
         [Theory]
@@ -64,6 +72,10 @@ public sealed partial class ExtensionTests
         public void AddMyAppServices_Abstractions_EveryInterfaceHasExactlyOneImplementation()
         {
             // The rule enforced at startup: a second implementation (or none) would make AddMyAppServices throw.
+            // This mirrors the production scan on purpose: AddMyAppServices hard-codes the scanned assemblies
+            // (typeof(Extension).Assembly, typeof(ServiceResponse).Assembly), so its "none" / "several" error branches
+            // cannot be exercised from a test without changing Src. This test gives a readable failure listing every
+            // offending interface instead of the first InvalidOperationException.
             var implementations = typeof(Extension).Assembly.DefinedTypes
                 .Where(x => x is { IsClass: true, IsAbstract: false })
                 .ToArray();

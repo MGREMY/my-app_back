@@ -102,10 +102,19 @@ public sealed partial class FileStorageServiceTests
         {
             Directory.CreateDirectory(Path.Combine(_dataPath, "sub"));
 
+            await _storage.SaveAsync("x"u8.ToArray(), "sub/../inside.txt", ct: Ct);
+
+            File.Exists(Path.Combine(_dataPath, "inside.txt")).ShouldBeTrue();
+        }
+
+        [Fact(Skip = "Bug: SaveAsync returns the file name as given (\"sub/../inside.txt\") instead of the normalized relative name")]
+        public async Task SaveAsync_NameWithInnerParentSegment_ReturnsNormalizedName()
+        {
+            Directory.CreateDirectory(Path.Combine(_dataPath, "sub"));
+
             var name = await _storage.SaveAsync("x"u8.ToArray(), "sub/../inside.txt", ct: Ct);
 
-            name.ShouldBe("sub/../inside.txt");
-            File.Exists(Path.Combine(_dataPath, "inside.txt")).ShouldBeTrue();
+            name.ShouldBe("inside.txt");
         }
 
         [Fact]
@@ -161,9 +170,26 @@ public sealed partial class FileStorageServiceTests
         [MemberData(nameof(OutsideNames))]
         public async Task SaveAsync_NameOutsideFolder_ThrowsArgumentExceptionWithoutWriting(string name)
         {
+            // Every relative name resolves under _root (the parent of the data folder): snapshot it. A rooted name
+            // targets an existing file elsewhere: check it was not rewritten.
+            var before = SnapshotRoot();
+            var rootedTarget = Path.IsPathRooted(name) && File.Exists(name) ? File.GetLastWriteTimeUtc(name) : (DateTime?)null;
+
             await Should.ThrowAsync<ArgumentException>(() => _storage.SaveAsync("x"u8.ToArray(), name, ct: Ct));
 
-            File.Exists(Path.Combine(_root, "outside.txt")).ShouldBeFalse();
+            SnapshotRoot().ShouldBe(before);
+            if (rootedTarget is { } lastWrite)
+                File.GetLastWriteTimeUtc(name).ShouldBe(lastWrite);
+        }
+
+        /// <summary>Every directory and file under <see cref="_root" />, with file sizes.</summary>
+        private string[] SnapshotRoot()
+        {
+            return new DirectoryInfo(_root)
+                .EnumerateFileSystemInfos("*", SearchOption.AllDirectories)
+                .Select(x => x is FileInfo file ? $"{file.FullName}:{file.Length}" : x.FullName)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
         }
 
         [Theory]

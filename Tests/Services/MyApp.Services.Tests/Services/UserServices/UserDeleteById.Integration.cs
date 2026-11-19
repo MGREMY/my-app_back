@@ -60,14 +60,26 @@ public sealed partial class UserDeleteByIdTests
             error.Message.ShouldBe(SharedResource.user_not_found);
         }
 
-        [Fact]
-        public async Task ExecuteAsync_AlreadyDeletedUser_Returns404AndKeepsDeletionDate()
+        [Fact(Skip = "Bug: the soft deletion filter hides the deleted user, so UserDeleteById returns 404 user_not_found instead of 400 user_already_deleted")]
+        public async Task ExecuteAsync_AlreadyDeletedUser_Returns400UserAlreadyDeleted()
         {
             var user = await SeedUserAsync("auth-1", deleted: true);
 
             var result = await DeleteAsync(user.Id);
 
-            result.Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
+            var error = result.Value.ShouldBeOfType<ServiceErrorResponse>();
+            error.StatusCode.ShouldBe(400);
+            error.Message.ShouldBe(SharedResource.user_already_deleted);
+        }
+
+        [Fact]
+        public async Task ExecuteAsync_AlreadyDeletedUser_KeepsDeletionDate()
+        {
+            var user = await SeedUserAsync("auth-1", deleted: true);
+
+            var result = await DeleteAsync(user.Id);
+
+            result.Value.ShouldBeOfType<ServiceErrorResponse>();
             var stored = (await FindUserIncludingDeletedAsync(user.Id)).ShouldNotBeNull();
             stored.DeletedAtUtc.ShouldNotBeNull().ShouldBe(user.DeletedAtUtc!.Value, TimeSpan.FromMilliseconds(1));
         }
