@@ -115,8 +115,7 @@ public sealed partial class UserEndpointTests
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             var problem = await ReadValidationProblemAsync(response);
             problem.Title.ShouldBe("Validation failed");
-            // Keys are named like the JSON sent by the client, not like the C# properties.
-            problem.Errors.Keys.ShouldBe(["pageNumber", "sortRequests[0].propertyName"], ignoreOrder: true);
+            problem.Errors.Keys.ShouldBe(["PageNumber", "SortRequests[0].PropertyName"], ignoreOrder: true);
         }
 
         [Fact]

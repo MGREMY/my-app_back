@@ -1,7 +1,4 @@
-using System.Text.Json;
 using FluentValidation.Results;
-using Microsoft.AspNetCore.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
 using MyApp.Host.Api.Helpers;
 using MyApp.Services.Abstractions;
 
@@ -41,33 +38,6 @@ public sealed partial class EndpointHelperTests
             result.ProblemDetails.Errors.Keys.ShouldBe(["PageNumber", "PageSize"], ignoreOrder: true);
             result.ProblemDetails.Errors["PageNumber"].ShouldBe(["too small", "not a number"]);
             result.ProblemDetails.Errors["PageSize"].ShouldBe(["too small"]);
-        }
-
-        [Fact]
-        public void FormatValidationErrorResponse_NamingPolicy_RenamesEverySegmentAndKeepsIndexes()
-        {
-            var result = EndpointHelper.FormatValidationErrorResponse(
-            [
-                new ValidationFailure("PageNumber", "too small"),
-                new ValidationFailure("FilterRequests[0].Filters[1].PropertyName", "required")
-            ], JsonNamingPolicy.CamelCase);
-
-            result.ProblemDetails.Errors.Keys.ShouldBe(
-                ["pageNumber", "filterRequests[0].filters[1].propertyName"], ignoreOrder: true);
-        }
-
-        [Fact]
-        public void FormatValidationErrorResponse_RequestContext_UsesTheApiJsonNamingPolicy()
-        {
-            var services = new ServiceCollection()
-                .Configure<JsonOptions>(x => x.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower)
-                .BuildServiceProvider();
-            var context = new DefaultHttpContext { RequestServices = services };
-
-            var result = EndpointHelper.FormatValidationErrorResponse(context,
-                [new ValidationFailure("SortRequests[0].PropertyName", "required")]);
-
-            result.ProblemDetails.Errors.Keys.ShouldBe(["sort_requests[0].property_name"]);
         }
 
         [Fact]

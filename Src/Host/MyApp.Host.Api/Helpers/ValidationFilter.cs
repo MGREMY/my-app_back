@@ -38,7 +38,7 @@ internal static class ValidationFilter
                 var result = await validator.ValidateAsync(new ValidationContext<object>(argument), ct);
 
                 if (!result.IsValid)
-                    return EndpointHelper.FormatValidationErrorResponse(invocationContext.HttpContext, result.Errors);
+                    return EndpointHelper.FormatValidationErrorResponse(result.Errors);
             }
 
             return await next(invocationContext);
