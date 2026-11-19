@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Shared test infrastructure (categories, conventions, containers, database): a library, not a test project -->
+
+    <ItemGroup>
+        <PackageReference Include="xunit.v3.extensibility.core" Version="4.0.3"/>
+        <PackageReference Include="Shouldly" Version="4.3.0"/>
+        <PackageReference Include="Testcontainers.PostgreSql" Version="4.17.0"/>
+        <PackageReference Include="Testcontainers.Redis" Version="4.17.0"/>
+        <PackageReference Include="Respawn" Version="7.0.0"/>
+        <PackageReference Include="Npgsql" Version="10.0.3"/>
+        <!-- Same version as Src/Domain/MyApp.Domain.Models -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.15"/>
+    </ItemGroup>
+
+</Project>

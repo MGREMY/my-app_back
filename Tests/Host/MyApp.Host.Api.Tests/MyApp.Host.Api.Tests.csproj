@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="11.0.0"/>
+
+        <ProjectReference Include="..\..\..\Src\Host\MyApp.Host.Api\MyApp.Host.Api.csproj"/>
+    </ItemGroup>
+
+</Project>

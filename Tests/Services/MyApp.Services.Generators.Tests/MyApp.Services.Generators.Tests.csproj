@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <!-- Test models of this project are compiled with the generator; its generated code uses the abstractions -->
+        <ProjectReference Include="..\..\..\Src\Services\MyApp.Services.Generators\MyApp.Services.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Src\Services\MyApp.Services.Abstractions\MyApp.Services.Abstractions.csproj"/>
+    </ItemGroup>
+
+</Project>

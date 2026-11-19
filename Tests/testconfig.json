@@ -1,0 +1,11 @@
+{
+  "platformOptions": {
+    "Coverlet": {
+      "include": "[MyApp.*]*",
+      "exclude": "[*.Tests]*,[MyApp.Tests.Shared]*",
+      "excludeByAttribute": "ExcludeFromCodeCoverage,ExcludeFromCodeCoverageAttribute,GeneratedCodeAttribute,CompilerGeneratedAttribute",
+      "excludeByFile": "**/Migrations/*.cs",
+      "format": "cobertura,opencover"
+    }
+  }
+}
