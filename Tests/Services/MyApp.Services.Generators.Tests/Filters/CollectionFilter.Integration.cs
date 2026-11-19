@@ -6,8 +6,9 @@ using static MyApp.Services.Generators.Tests.TestModels.PaginationTestData;
 namespace MyApp.Services.Generators.Tests.Filters;
 
 /// <summary>
-/// Collections of entities, posts (likes) [tags]: Alice "Intro to EF" (10) [ef, intro] and "Advanced LINQ" (50) [linq],
-/// Bob none, Carol "Cooking" (5) [], Dave "EF tips" (null) [ef] and "Travel" (20) [], Eve "Music" (30) [music, ef].
+/// Collections of entities, posts "subtitle" (likes) [tags]: Alice "Intro to EF" "Basics" (10) [ef, intro] and
+/// "Advanced LINQ" null (50) [linq], Bob none, Carol "Cooking" "Recipes" (5) [], Dave "EF tips" "Tips" (null) [ef] and
+/// "Travel" "Trips" (20) [], Eve "Music" null (30) [music, ef].
 /// </summary>
 public sealed partial class CollectionFilterTests
 {
@@ -41,6 +42,15 @@ public sealed partial class CollectionFilterTests
             { "posts.tags.$all.label", Operator.Equal, "ef", [Carol, Dave] },
             { "posts.$none.tags.label", Operator.Equal, "ef", [Bob, Carol] },
             { "posts.$all.tags.$none.label", Operator.Equal, "ef", [Bob, Carol] },
+            // Quantifiers followed by references
+            { "posts.$none.author.name", Operator.Equal, Alice, [Bob, Carol, Dave, Eve] },
+            { "posts.$none.author.mentor.name", Operator.Equal, Carol, [Alice, Bob, Carol, Eve] },
+            { "posts.$all.author.isActive", Operator.Equal, "true", [Alice, Bob, Carol, Eve] },
+            // Negative string operators: a null item (subtitle) never matches, inside $all / $none too
+            { "posts.subtitle", Operator.NotContains, "rec", [Alice, Dave] },
+            { "posts.$all.subtitle", Operator.NotContains, "rec", [Bob, Dave] },
+            { "posts.$none.subtitle", Operator.NotContains, "rec", [Bob, Carol, Eve] },
+            { "posts.$all.subtitle", Operator.NotEqual, "Tips", [Bob, Carol] },
             // Back to the root entity (cycle), up to four navigations
             { "posts.author.name", Operator.Equal, Alice, [Alice] },
             { "posts.author.mentor.name", Operator.Equal, Carol, [Dave] },
@@ -52,6 +62,27 @@ public sealed partial class CollectionFilterTests
         public async Task Filter_ThroughCollection_ReturnsMatchingAuthors(string path, Operator op, string value, string[] expected)
         {
             var names = await FilterAsync(Requests.Filter(path, op, value));
+
+            names.ShouldBe(expected);
+        }
+
+        // A JSON null targets the null items (likes of Dave's "EF tips", subtitles of Alice's "Advanced LINQ" and Eve's "Music")
+        public static TheoryData<string, Operator, string[]> NullCases() => new()
+        {
+            { "posts.likes", Operator.Equal, [Dave] },
+            { "posts.likes", Operator.NotEqual, [Alice, Carol, Dave, Eve] },
+            { "posts.$all.likes", Operator.NotEqual, [Alice, Bob, Carol, Eve] },
+            { "posts.$none.likes", Operator.Equal, [Alice, Bob, Carol, Eve] },
+            { "posts.$all.likes", Operator.Equal, [Bob] },
+            { "posts.subtitle", Operator.Equal, [Alice, Eve] },
+            { "posts.$none.subtitle", Operator.Equal, [Bob, Carol, Dave] }
+        };
+
+        [Theory]
+        [MemberData(nameof(NullCases))]
+        public async Task Filter_NullThroughCollection_TargetsNullItems(string path, Operator op, string[] expected)
+        {
+            var names = await FilterAsync(Requests.Filter(path, op, null));
 
             names.ShouldBe(expected);
         }

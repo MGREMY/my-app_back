@@ -1,3 +1,4 @@
+using System.Globalization;
 using MyApp.Services.Abstractions.Requests;
 using MyApp.Services.Generators.Tests.TestModels;
 using static MyApp.Services.Abstractions.Requests.FilterServiceRequest;
@@ -27,6 +28,9 @@ public sealed partial class FilterErrorTests
             { "timeout", Operator.Equal, "01:00:00" },
             { "class", Operator.Equal, "admin" },
             { "auditNote", Operator.Equal, "audited" },
+            // A class of another assembly (System.Uri) is never followed as a navigation, nor filtered as a scalar
+            { "website", Operator.Equal, "https://alice.example/" },
+            { "website.host", Operator.Equal, "alice.example" },
             // A scalar ends the path, a navigation needs one
             { "name.length", Operator.Equal, "5" },
             { "country", Operator.Equal, "France" },
@@ -91,6 +95,46 @@ public sealed partial class FilterErrorTests
             var request = Page(filters: [Filter(path, op, value)]);
 
             Should.Throw<InvalidPaginationRequestException>(() => Authors.ProcessPaginationRequest(request, out _));
+        }
+
+        // An enum value must be the name of a defined member, with its exact case
+        public static TheoryData<string, string> InvalidEnumValues() => new()
+        {
+            { "status", "archived" },
+            { "status", "PUBLISHED" },
+            { "status", "1" },
+            { "status", "42" },
+            { "previousStatus", "draft" },
+            { "previousStatus", "0" }
+        };
+
+        [Theory(Skip = "Bug: enums are parsed with Enum.TryParse(ignoreCase: true), so a wrong case (\"archived\"), a numeric value (\"1\") and even an undefined value (\"42\") are accepted instead of returning 400")]
+        [MemberData(nameof(InvalidEnumValues))]
+        public void ProcessPaginationRequest_EnumValueNotADefinedName_ThrowsInvalidPaginationRequestException(string path, string value)
+        {
+            var request = Page(filters: [Filter(path, Operator.Equal, value)]);
+
+            Should.Throw<InvalidPaginationRequestException>(() => Authors.ProcessPaginationRequest(request, out _));
+        }
+
+        [Theory(Skip = "Bug: numbers are parsed with the invariant culture's default styles, which allow thousands separators: \"3,25\" is read as 325 instead of being rejected")]
+        [InlineData("balance", "3,25")]
+        [InlineData("score", "3,5")]
+        public void ProcessPaginationRequest_DecimalCommaUnderAnotherCulture_ThrowsInvalidPaginationRequestException(string path, string value)
+        {
+            // fr-FR uses "," as decimal separator, but values are parsed with the invariant culture only
+            var culture = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+            try
+            {
+                var request = Page(filters: [Filter(path, Operator.Equal, value)]);
+
+                Should.Throw<InvalidPaginationRequestException>(() => Authors.ProcessPaginationRequest(request, out _));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = culture;
+            }
         }
 
         [Fact]

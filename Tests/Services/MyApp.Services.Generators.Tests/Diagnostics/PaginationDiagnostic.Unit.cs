@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using MyApp.Services.Generators.Tests.TestInfrastructure;
+using static MyApp.Services.Abstractions.Requests.FilterServiceRequest;
+using static MyApp.Services.Generators.Tests.TestInfrastructure.Requests;
 
 namespace MyApp.Services.Generators.Tests.Diagnostics;
 
@@ -79,6 +81,37 @@ public sealed partial class PaginationDiagnosticTests
             diagnostic.GetMessage().ShouldContain($"'{first}' and '{second}' of 'Sample.User' have the same normalized name '{label}'");
             diagnostic.Location.SourceTree!.ToString().Substring(diagnostic.Location.SourceSpan.Start, second.Length).ShouldBe(second);
             result.CompilationErrors.ShouldBeEmpty();
+        }
+
+        [Theory]
+        [InlineData("username")]
+        [InlineData("user_name")]
+        [InlineData("UserName")]
+        public void Generator_NormalizedNameCollision_OnlyTheFirstPropertyIsUsable(string path)
+        {
+            var result = GeneratorRunner.Run(
+                """
+                namespace Sample;
+
+                public class User
+                {
+                    public Guid Id { get; set; }
+                    public string UserName { get; set; } = "";
+                    public string User_Name { get; set; } = "";
+                }
+
+                [MyApp.Services.PaginationHandlerFor<User>]
+                public sealed class UserHandler;
+                """);
+            var first = result.Create("Sample.User", ("UserName", "a"), ("User_Name", "b"));
+            var second = result.Create("Sample.User", ("UserName", "b"), ("User_Name", "a"));
+
+            // Every spelling targets UserName, the first declared property: User_Name is unreachable
+            var filtered = result.Paginate("Sample.User", [first, second], Page(filters: [Filter(path, Operator.Equal, "a")]));
+            var sorted = result.Paginate("Sample.User", [second, first], Page(sorts: [Asc(path)]));
+
+            filtered.ShouldBe([first]);
+            sorted.ShouldBe([first, second]);
         }
 
         [Fact]

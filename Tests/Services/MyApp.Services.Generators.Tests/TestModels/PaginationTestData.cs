@@ -4,6 +4,8 @@ namespace MyApp.Services.Generators.Tests.TestModels;
 /// Dataset shared by every integration test (read-only). Five authors, ranked 1 to 5 in name order:
 /// <list type="bullet">
 /// <item>every comparable scalar is <c>f(rank)</c> (Age = 10 x rank...), its nullable twin is the same value, or null for Bob and Eve;</item>
+/// <item>except Followers (and Views) and BirthDate (and DeathDate), which follow their own orders
+/// (<see cref="FollowersOrder" />, <see cref="BirthDateOrder" />), so a sort on the wrong column is detected;</item>
 /// <item>Bob has no country, no post, no tag and no holiday (empty collections);</item>
 /// <item>mentors form a chain: Bob -> Alice, Carol -> Bob, Dave -> Carol, Eve -> Dave.</item>
 /// </list>
@@ -17,6 +19,12 @@ public static class PaginationTestData
     public const string Eve = nameof(Eve);
 
     public static readonly string[] All = [Alice, Bob, Carol, Dave, Eve];
+
+    /// <summary>Authors by ascending Followers (and Views): different from the name order and from each other.</summary>
+    public static readonly string[] FollowersOrder = [Eve, Dave, Alice, Bob, Carol];
+
+    /// <summary>Authors by ascending BirthDate (and DeathDate).</summary>
+    public static readonly string[] BirthDateOrder = [Bob, Eve, Dave, Carol, Alice];
 
     /// <summary>Rank of each author: the value of the comparable scalars is derived from it.</summary>
     public static int RankOf(string name)
@@ -41,7 +49,9 @@ public static class PaginationTestData
         alice.Tags = ["ef", "dotnet"];
         alice.Holidays = [new DateOnly(2024, 12, 25)];
         alice.Avatar = [1, 2, 3];
-        alice.Posts = [NewPost("Intro to EF", 10, "ef", "intro"), NewPost("Advanced LINQ", 50, "linq")];
+        alice.Motto = "50% off";
+        alice.Website = new Uri("https://alice.example/");
+        alice.Posts = [NewPost("Intro to EF", "Basics", 10, "ef", "intro"), NewPost("Advanced LINQ", null, 50, "linq")];
 
         var bob = NewAuthor(Bob, isActive: false, isVerified: null, AuthorStatus.Published, null, null);
         bob.Mentor = alice;
@@ -50,20 +60,23 @@ public static class PaginationTestData
         carol.Nickname = "";
         carol.Tags = ["cooking"];
         carol.Holidays = [new DateOnly(2024, 7, 14), new DateOnly(2024, 12, 25)];
-        carol.Posts = [NewPost("Cooking", 5)];
+        carol.Motto = "500 days";
+        carol.Posts = [NewPost("Cooking", "Recipes", 5)];
         carol.Mentor = bob;
 
         var dave = NewAuthor(Dave, isActive: false, isVerified: true, AuthorStatus.Published, AuthorStatus.Published, france);
         dave.Nickname = "null";
         dave.Tags = ["EF", "travel"];
         dave.Holidays = [new DateOnly(2024, 1, 1)];
-        dave.Posts = [NewPost("EF tips", null, "ef"), NewPost("Travel", 20)];
+        dave.Motto = "a_c";
+        dave.Posts = [NewPost("EF tips", "Tips", null, "ef"), NewPost("Travel", "Trips", 20)];
         dave.Mentor = carol;
 
         var eve = NewAuthor(Eve, isActive: true, isVerified: null, AuthorStatus.Draft, null, canada);
         eve.Nickname = "ALIEN";
         eve.Tags = ["music", "ef"];
-        eve.Posts = [NewPost("Music", 30, "music", "ef")];
+        eve.Motto = "abc";
+        eve.Posts = [NewPost("Music", null, 30, "music", "ef")];
         eve.Mentor = dave;
 
         db.Authors.AddRange(alice, bob, carol, dave, eve);
@@ -78,7 +91,8 @@ public static class PaginationTestData
 
         var createdAt = new DateTime(2024, 1, rank, 10, 0, 0, DateTimeKind.Utc);
         var joinedAt = new DateTimeOffset(2024, rank, 1, 8, 0, 0, TimeSpan.Zero);
-        var birthDate = new DateOnly(1990, 1, rank);
+        var birthDate = new DateOnly(1990, 1, Array.IndexOf(BirthDateOrder, name) + 1);
+        var followers = 1_000_000_000_000L * (Array.IndexOf(FollowersOrder, name) + 1);
 
         return new Author
         {
@@ -91,8 +105,8 @@ public static class PaginationTestData
             ExternalRef = hasNullables ? ExternalId(rank) : null,
             Age = 10 * rank,
             Rank = hasNullables ? 10 * rank : null,
-            Followers = 1_000_000_000_000L * rank,
-            Views = hasNullables ? 1_000_000_000_000L * rank : null,
+            Followers = followers,
+            Views = hasNullables ? followers : null,
             Balance = rank + 0.25m,
             Bonus = hasNullables ? rank + 0.25m : null,
             Score = rank + 0.5,
@@ -108,11 +122,12 @@ public static class PaginationTestData
         };
     }
 
-    private static Post NewPost(string title, int? likes, params string[] tags)
+    private static Post NewPost(string title, string? subtitle, int? likes, params string[] tags)
     {
         return new Post
         {
             Title = title,
+            Subtitle = subtitle,
             Likes = likes,
             AuthorId = Guid.Empty,
             Tags = tags.Select(x => new Tag { Label = x, PostId = Guid.Empty }).ToList()

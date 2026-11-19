@@ -22,11 +22,20 @@ public interface IAudited
     string? AuditNote { get; }
 }
 
+/// <summary>Implemented implicitly by <see cref="Author" />: the property is declared on the class, so it is filterable.</summary>
+public interface IHasMotto
+{
+    string? Motto { get; }
+}
+
 /// <summary>Paginated root: one scalar of every supported type (and its nullable version) plus every kind of navigation.</summary>
-public class Author : TestEntity, IAudited
+public class Author : TestEntity, IAudited, IHasMotto
 {
     public required string Name { get; set; }
     public string? Nickname { get; set; }
+
+    // Values containing the LIKE wildcards "%" and "_"
+    public string? Motto { get; set; }
 
     // A property named after a C# keyword keeps its "@" in paths: "@class"
     public string? @class { get; set; }
@@ -61,6 +70,9 @@ public class Author : TestEntity, IAudited
     public byte[]? Avatar { get; set; }
     public TimeSpan Timeout { get; set; }
 
+    // Class of another assembly: never followed as a navigation
+    public Uri? Website { get; set; }
+
     public Guid? CountryId { get; set; }
     public virtual Country? Country { get; set; } = null;
     public Guid? MentorId { get; set; }
@@ -85,6 +97,7 @@ public class Continent : TestEntity
 public class Post : TestEntity
 {
     public required string Title { get; set; }
+    public string? Subtitle { get; set; }
     public int? Likes { get; set; }
     public required Guid AuthorId { get; set; }
     public virtual Author Author { get; set; } = null!;

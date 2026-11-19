@@ -21,29 +21,49 @@ public sealed partial class SortTests
             names.ShouldBe(All);
         }
 
+        // Followers and birthDate follow their own orders: a sort on the wrong column is detected
+        public static TheoryData<string, string[]> ScalarOrders() => new()
+        {
+            { "name", All },
+            { "age", All },
+            { "followers", FollowersOrder },
+            { "balance", All },
+            { "score", All },
+            { "createdAt", All },
+            { "joinedAt", All },
+            { "birthDate", BirthDateOrder },
+            { "externalId", All }
+        };
+
         [Theory]
-        [InlineData("name")]
-        [InlineData("age")]
-        [InlineData("followers")]
-        [InlineData("balance")]
-        [InlineData("score")]
-        [InlineData("createdAt")]
-        [InlineData("joinedAt")]
-        [InlineData("birthDate")]
-        [InlineData("externalId")]
-        public async Task Sort_DescendingOnScalar_ReturnsReverseOrder(string path)
+        [MemberData(nameof(ScalarOrders))]
+        public async Task Sort_AscendingOnScalar_ReturnsTheColumnOrder(string path, string[] expected)
+        {
+            var names = await SortAsync(Asc(path));
+
+            names.ShouldBe(expected);
+        }
+
+        [Theory]
+        [MemberData(nameof(ScalarOrders))]
+        public async Task Sort_DescendingOnScalar_ReturnsReverseOrder(string path, string[] expected)
         {
             var names = await SortAsync(Desc(path));
 
-            names.ShouldBe(All.Reverse());
+            names.ShouldBe(expected.Reverse());
         }
 
-        [Fact]
-        public async Task Sort_NullableProperty_PutsNullsLastWhenAscending()
+        // Nulls follow PostgreSQL: last when ascending, first when descending (Bob and Eve have no rank / views)
+        [Theory]
+        [InlineData("rank", false, new[] { Alice, Carol, Dave, Bob, Eve })]
+        [InlineData("rank", true, new[] { Bob, Eve, Dave, Carol, Alice })]
+        [InlineData("views", false, new[] { Dave, Alice, Carol, Bob, Eve })]
+        [InlineData("views", true, new[] { Bob, Eve, Carol, Alice, Dave })]
+        public async Task Sort_NullableProperty_FollowsPostgreSqlNullsOrdering(string path, bool descending, string[] expected)
         {
-            var names = await SortAsync(Asc("rank"), Asc("name"));
+            var names = await SortAsync(descending ? Desc(path) : Asc(path), Asc("name"));
 
-            names.ShouldBe([Alice, Carol, Dave, Bob, Eve]);
+            names.ShouldBe(expected);
         }
 
         [Fact]
@@ -79,6 +99,24 @@ public sealed partial class SortTests
             var names = await SortAsync(Asc("Country.Name"), Asc("name"));
 
             names.ShouldBe([Eve, Alice, Dave, Carol, Bob]);
+        }
+
+        [Fact]
+        public async Task Sort_DescendingThroughReference_PutsMissingReferenceFirst()
+        {
+            // Bob has no country: null first when descending, like a null column
+            var names = await SortAsync(Desc("country.name"), Asc("name"));
+
+            names.ShouldBe([Bob, Carol, Alice, Dave, Eve]);
+        }
+
+        [Fact]
+        public async Task Sort_DescendingThroughSelfReference_FollowsTheMentor()
+        {
+            // Mentors: Eve -> Dave, Dave -> Carol, Carol -> Bob, Bob -> Alice, Alice none (first)
+            var names = await SortAsync(Desc("mentor.name"));
+
+            names.ShouldBe([Alice, Eve, Dave, Carol, Bob]);
         }
 
         [Fact]

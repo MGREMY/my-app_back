@@ -48,6 +48,15 @@ public sealed partial class PropertyPathFilterTests
             names.ShouldBe([Carol]);
         }
 
+        [Fact]
+        public async Task Filter_PropertyImplementingAnInterface_IsFilterable()
+        {
+            // Author.Motto implicitly implements IHasMotto.Motto (the explicit IAudited.AuditNote is not filterable)
+            var names = await FilterAsync(Requests.Filter("motto", Operator.Equal, "abc"));
+
+            names.ShouldBe([Eve]);
+        }
+
         [Theory]
         [InlineData("@class")]
         [InlineData("@CLASS")]

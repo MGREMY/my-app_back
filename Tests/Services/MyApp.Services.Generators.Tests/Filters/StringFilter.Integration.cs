@@ -7,7 +7,8 @@ namespace MyApp.Services.Generators.Tests.Filters;
 
 /// <summary>
 /// Strings (nicknames: Alice "Ali", Bob null, Carol "", Dave "null", Eve "ALIEN"): case-sensitive Equal, case-insensitive
-/// text operators, "" and "null" as ordinary values, negative operators never matching a null property.
+/// text operators, "" and "null" as ordinary values, negative operators never matching a null property, LIKE wildcards
+/// matched literally.
 /// </summary>
 public sealed partial class StringFilterTests
 {
@@ -42,14 +43,27 @@ public sealed partial class StringFilterTests
             names.ShouldBe(expected);
         }
 
-        [Theory]
-        [InlineData("50%")]
-        [InlineData("a_i")]
-        public async Task Filter_ContainsWithLikeWildcards_MatchesLiterally(string value)
+        // Mottos: Alice "50% off", Bob null, Carol "500 days", Dave "a_c", Eve "abc". Read as LIKE wildcards, "%" and "_"
+        // would also match Carol and Eve.
+        public static TheoryData<Operator, string, string[]> WildcardCases() => new()
         {
-            var names = await FilterAsync(Requests.Filter("nickname", Operator.Contains, value));
+            { Operator.Contains, "50%", [Alice] },
+            { Operator.Contains, "a_c", [Dave] },
+            { Operator.StartWith, "50%", [Alice] },
+            { Operator.StartWith, "a_", [Dave] },
+            { Operator.EndWith, "_c", [Dave] },
+            { Operator.EndWith, "0% off", [Alice] },
+            { Operator.NotContains, "a_c", [Alice, Carol, Eve] },
+            { Operator.NotContains, "50%", [Carol, Dave, Eve] }
+        };
 
-            names.ShouldBeEmpty();
+        [Theory]
+        [MemberData(nameof(WildcardCases))]
+        public async Task Filter_TextOperatorWithLikeWildcards_MatchesLiterally(Operator op, string value, string[] expected)
+        {
+            var names = await FilterAsync(Requests.Filter("motto", op, value));
+
+            names.ShouldBe(expected);
         }
     }
 }

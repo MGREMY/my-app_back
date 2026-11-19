@@ -20,7 +20,7 @@ public sealed partial class EquatableFilterTests
             { "isVerified", Operator.Equal, "true", [Alice, Dave] },
             { "isVerified", Operator.NotEqual, "true", [Carol] },
             { "status", Operator.Equal, "Published", [Bob, Dave] },
-            { "status", Operator.Equal, "archived", [Carol] },
+            { "status", Operator.Equal, "Archived", [Carol] },
             { "status", Operator.NotEqual, "Draft", [Bob, Carol, Dave] },
             { "previousStatus", Operator.Equal, "Draft", [Alice] },
             { "previousStatus", Operator.NotEqual, "Draft", [Carol, Dave] },

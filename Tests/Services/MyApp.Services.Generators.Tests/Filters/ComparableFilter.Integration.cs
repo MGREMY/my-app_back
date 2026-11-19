@@ -1,3 +1,4 @@
+using System.Globalization;
 using MyApp.Services.Generators.Tests.TestInfrastructure;
 using MyApp.Tests.Shared.Containers;
 using static MyApp.Services.Abstractions.Requests.FilterServiceRequest;
@@ -12,37 +13,39 @@ public sealed partial class ComparableFilterTests
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {
-        // (non-nullable path, nullable path, value of Carol): every value is f(rank), Bob and Eve have null twins
-        private static readonly (string Path, string NullablePath, string CarolValue)[] Types =
+        // (non-nullable path, nullable path, authors in ascending order, value of the middle author of that order).
+        // Bob and Eve have null twins.
+        private static readonly (string Path, string NullablePath, string[] Order, string MiddleValue)[] Types =
         [
-            ("age", "rank", "30"),
-            ("followers", "views", "3000000000000"),
-            ("balance", "bonus", "3.25"),
-            ("score", "rating", "3.5"),
-            ("createdAt", "updatedAt", "2024-01-03T10:00:00Z"),
-            ("joinedAt", "lastSeenAt", "2024-03-01T08:00:00+00:00"),
-            ("birthDate", "deathDate", "1990-01-03")
+            ("age", "rank", All, "30"),
+            ("followers", "views", FollowersOrder, "3000000000000"),
+            ("balance", "bonus", All, "3.25"),
+            ("score", "rating", All, "3.5"),
+            ("createdAt", "updatedAt", All, "2024-01-03T10:00:00Z"),
+            ("joinedAt", "lastSeenAt", All, "2024-03-01T08:00:00+00:00"),
+            ("birthDate", "deathDate", BirthDateOrder, "1990-01-03")
         ];
 
-        // Expected authors when comparing to Carol (rank 3), all ranks then nullable twins (no Bob, no Eve)
-        private static readonly (Operator Operator, string[] Expected, string[] ExpectedNullable)[] Operators =
+        // Authors expected when comparing to the middle author (index 2) of the ascending order
+        private static readonly (Operator Operator, Func<string[], IEnumerable<string>> Expected)[] Operators =
         [
-            (Operator.Equal, [Carol], [Carol]),
-            (Operator.NotEqual, [Alice, Bob, Dave, Eve], [Alice, Dave]),
-            (Operator.GreaterThan, [Dave, Eve], [Dave]),
-            (Operator.GreaterThanOrEqual, [Carol, Dave, Eve], [Carol, Dave]),
-            (Operator.LessThan, [Alice, Bob], [Alice]),
-            (Operator.LessThanOrEqual, [Alice, Bob, Carol], [Alice, Carol])
+            (Operator.Equal, order => order[2..3]),
+            (Operator.NotEqual, order => order.Where((_, i) => i != 2)),
+            (Operator.GreaterThan, order => order[3..]),
+            (Operator.GreaterThanOrEqual, order => order[2..]),
+            (Operator.LessThan, order => order[..2]),
+            (Operator.LessThanOrEqual, order => order[..3])
         ];
 
         public static TheoryData<string, Operator, string, string[]> Matrix()
         {
             var data = new TheoryData<string, Operator, string, string[]>();
-            foreach (var (path, nullablePath, value) in Types)
-            foreach (var (op, expected, expectedNullable) in Operators)
+            foreach (var (path, nullablePath, order, value) in Types)
+            foreach (var (op, expected) in Operators)
             {
-                data.Add(path, op, value, expected);
-                data.Add(nullablePath, op, value, expectedNullable);
+                var names = expected(order).Order(StringComparer.Ordinal).ToArray();
+                data.Add(path, op, value, names);
+                data.Add(nullablePath, op, value, names.Except([Bob, Eve]).ToArray());
             }
 
             return data;
@@ -74,7 +77,28 @@ public sealed partial class ComparableFilterTests
         {
             var names = await FilterAsync(Requests.Filter("followers", Operator.GreaterThan, "4500000000000"));
 
-            names.ShouldBe([Eve]);
+            names.ShouldBe([FollowersOrder[^1]]);
+        }
+
+        [Theory]
+        [InlineData("balance", "3.25")]
+        [InlineData("score", "3.5")]
+        [InlineData("createdAt", "2024-01-03T10:00:00Z")]
+        public async Task Filter_UnderAnotherCulture_ParsesWithTheInvariantCulture(string path, string value)
+        {
+            // fr-FR uses "," as decimal separator: the value is still read with the invariant culture
+            var culture = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
+            try
+            {
+                var names = await FilterAsync(Requests.Filter(path, Operator.Equal, value));
+
+                names.ShouldBe([Carol]);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = culture;
+            }
         }
     }
 }

@@ -72,6 +72,19 @@ public sealed partial class FilterLogicTests
             names.ShouldBe([Alice, Bob]);
         }
 
+        [Fact]
+        public async Task Filter_NestedGroupAfterAnotherFilter_TakesPriority()
+        {
+            // name = Alice OR (isActive AND age >= 40): Alice and Eve.
+            // (name = Alice OR isActive) AND age >= 40 would only return Eve.
+            var names = await FilterAsync(
+                Requests.Filter("name", Operator.Equal, Alice),
+                Requests.Filter("isActive", Operator.Equal, "true", Logic.Or,
+                    Requests.Filter("age", Operator.GreaterThanOrEqual, "40")));
+
+            names.ShouldBe([Alice, Eve]);
+        }
+
         [Theory]
         [InlineData(Logic.And, new[] { Bob })]
         [InlineData(Logic.Or, new[] { Alice, Bob, Carol, Dave, Eve })]

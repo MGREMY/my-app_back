@@ -53,6 +53,43 @@ public sealed partial class NullValueFilterTests
             names.ShouldBe([Alice, Carol, Dave, Eve]);
         }
 
+        // Rows without reference (Bob has no country, Alice no mentor): the foreign key, the navigation itself and a
+        // property through the navigation all target the same rows
+        public static TheoryData<string, Operator, string[]> MissingReferenceByForeignKey() => new()
+        {
+            { "countryId", Operator.Equal, [Bob] },
+            { "countryId", Operator.NotEqual, [Alice, Carol, Dave, Eve] },
+            { "mentorId", Operator.Equal, [Alice] }
+        };
+
+        [Theory]
+        [MemberData(nameof(MissingReferenceByForeignKey))]
+        public async Task Filter_ForeignKeyNull_TargetsRowsWithoutReference(string path, Operator op, string[] expected)
+        {
+            var names = await FilterAsync(Requests.Filter(path, op, null));
+
+            names.ShouldBe(expected);
+        }
+
+        public static TheoryData<string, Operator, string[]> MissingReferenceByNavigation() => new()
+        {
+            { "country", Operator.Equal, [Bob] },
+            { "country", Operator.NotEqual, [Alice, Carol, Dave, Eve] },
+            { "country.name", Operator.Equal, [Bob] },
+            { "country.name", Operator.NotEqual, [Alice, Carol, Dave, Eve] },
+            { "country.continent.name", Operator.Equal, [Bob] },
+            { "mentor", Operator.Equal, [Alice] }
+        };
+
+        [Theory(Skip = "Bug: a null value on a navigation (\"country\") or on a non-nullable property through an optional reference (\"country.name\") is rejected with InvalidPaginationRequestException instead of targeting the rows without reference")]
+        [MemberData(nameof(MissingReferenceByNavigation))]
+        public async Task Filter_NavigationNull_TargetsRowsWithoutReference(string path, Operator op, string[] expected)
+        {
+            var names = await FilterAsync(Requests.Filter(path, op, null));
+
+            names.ShouldBe(expected);
+        }
+
         [Fact]
         public async Task Filter_OptionalReferenceEqualNull_TargetsMissingNavigation()
         {
