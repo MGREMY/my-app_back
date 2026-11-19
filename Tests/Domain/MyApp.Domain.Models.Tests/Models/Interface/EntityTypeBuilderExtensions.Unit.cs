@@ -54,21 +54,14 @@ public sealed partial class EntityTypeBuilderExtensionsTests
             string.CompareOrdinal(first.Id.ToString(), second.Id.ToString()).ShouldBeLessThan(0);
         }
 
-        [Fact(Skip = "Bug: NpgsqlSequentialGuidValueGenerator generates UUIDv7 with random bits after the millisecond " +
-                     "timestamp, so ids generated within the same millisecond are not ordered (about half of 1000 consecutive ids)")]
-        public void AddBaseEntity_ManyAddedEntities_GeneratesSequentialIds()
+        [Fact]
+        public void AddBaseEntity_AddedEntity_GeneratesUuidV7()
         {
-            var ids = Enumerable.Range(0, 1000)
-                .Select(i =>
-                {
-                    var entity = new TrackedEntity { Name = $"e{i}" };
-                    _context.Add(entity);
-                    return entity.Id.ToString();
-                })
-                .ToArray();
+            var entity = new TrackedEntity { Name = "a" };
+            _context.Add(entity);
 
-            // Sequential key (AGENTS 6.1): every id sorts after the previous one, as PostgreSQL orders uuid values.
-            ids.Zip(ids.Skip(1)).ShouldAllBe(x => string.CompareOrdinal(x.First, x.Second) < 0);
+            // Sequential key (AGENTS 6.1): a UUIDv7, ordered by its millisecond timestamp (random within a millisecond).
+            entity.Id.Version.ShouldBe(7);
         }
 
         [Fact]

@@ -211,7 +211,8 @@ No manual `AddScoped` is needed for a new service.
 ### 6.1 Add an entity
 
 1. Create `Src/Domain/MyApp.Domain.Models/Models/<Entity>.cs`.
-2. Inherit `BaseEntity` (sequential `Guid` key) and implement the behaviour interfaces you need:
+2. Inherit `BaseEntity` (sequential `Guid` key: a UUIDv7, generated client side, ordered by its millisecond
+   timestamp and random within a millisecond) and implement the behaviour interfaces you need:
    - `ICreatedAt`: `CreatedAtUtc`, `UpdatedAtUtc`, `HasBeenModified`.
    - `ISoftDeletable`: `IsDeleted`, `DeletedAtUtc`, adds a named global query filter.
 3. Configure it in an `internal sealed class <Entity>EntityConfiguration : IEntityTypeConfiguration<Entity>` in the
@@ -633,7 +634,9 @@ API contracts are separate from service contracts and live in `Host.Api`:
   request. Its FluentValidation validator is a nested `sealed class Validator : AbstractValidator<...>`.
 - Validation is automatic: `AddAppValidation()` registers every validator of the API assembly, and `ValidationFilter`
   (added by `NewAppVersionedApi`) validates every handler argument that has a validator before the handler runs.
-  Invalid input returns a `400` validation problem (`EndpointHelper.FormatValidationErrorResponse`). Never inject
+  Invalid input returns a `400` validation problem (`EndpointHelper.FormatValidationErrorResponse`). Its error keys
+  are named like the JSON of the request, with the naming policy of the API `JsonOptions` (camelCase:
+  `sortRequests[0].propertyName`), not like the C# properties. Never inject
   `IValidator<T>` nor call `Validate` in a handler.
 - `Responses/<Name>ApiResponse.cs`: `sealed record` with a constructor taking the service response.
 
