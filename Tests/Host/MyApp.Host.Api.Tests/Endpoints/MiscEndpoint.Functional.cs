@@ -10,10 +10,13 @@ public sealed partial class MiscEndpointTests
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {
+        private const string Route = "/misc";
+        private const string AntiForgeryTokenRoute = $"{Route}/anti-forgery-token";
+
         [Fact]
         public async Task AntiForgeryToken_Anonymous_Returns204AndIssuesXsrfCookie()
         {
-            using var response = await CreateClient().AsAnonymous().GetAsync("/misc/anti-forgery-token", Ct);
+            using var response = await CreateClient().AsAnonymous().GetAsync(AntiForgeryTokenRoute, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
             ApiClientAuthExtensions.AntiforgeryCookie(response).ShouldNotBeNullOrEmpty();

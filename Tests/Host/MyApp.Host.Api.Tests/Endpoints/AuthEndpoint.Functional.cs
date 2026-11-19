@@ -11,10 +11,13 @@ public sealed partial class AuthEndpointTests
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {
+        private const string Route = "/auth";
+        private const string SyncUserRoute = $"{Route}/sync-user";
+
         [Fact]
         public async Task SyncUser_NewUser_CreatesUserFromIdentityAndReturns204()
         {
-            using var response = await CreateClient().AsUser("auth-1", "john", "john@example.test").PostAsync("/auth/sync-user", null, Ct);
+            using var response = await CreateClient().AsUser("auth-1", "john", "john@example.test").PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
             var user = (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
@@ -28,7 +31,7 @@ public sealed partial class AuthEndpointTests
         {
             await SeedUserAsync("auth-1");
 
-            using var response = await CreateClient().AsUser("auth-1").PostAsync("/auth/sync-user", null, Ct);
+            using var response = await CreateClient().AsUser("auth-1").PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
             (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
@@ -38,7 +41,7 @@ public sealed partial class AuthEndpointTests
         public async Task SyncUser_ThenGetById_ReturnsSyncedUser()
         {
             var client = CreateClient().AsUser("auth-1", "john");
-            await client.PostAsync("/auth/sync-user", null, Ct);
+            await client.PostAsync(SyncUserRoute, null, Ct);
             var user = (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
 
             using var response = await client.GetAsync($"/users/{user.Id}", Ct);
@@ -51,7 +54,7 @@ public sealed partial class AuthEndpointTests
         {
             await SeedUserAsync("auth-1", deleted: true);
 
-            using var response = await CreateClient().AsUser("auth-1").PostAsync("/auth/sync-user", null, Ct);
+            using var response = await CreateClient().AsUser("auth-1").PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
             (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_already_deleted);
@@ -60,7 +63,7 @@ public sealed partial class AuthEndpointTests
         [Fact]
         public async Task SyncUser_Anonymous_Returns401()
         {
-            using var response = await CreateClient().AsAnonymous().PostAsync("/auth/sync-user", null, Ct);
+            using var response = await CreateClient().AsAnonymous().PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
             (await FindUsersIncludingDeletedAsync("auth-1")).ShouldBeEmpty();

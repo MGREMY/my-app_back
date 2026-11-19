@@ -10,11 +10,12 @@ namespace MyApp.Tests.Shared.Containers;
 /// Images match the ones used by the AppHost in development.
 /// </summary>
 /// <remarks>
-/// xUnit creates assembly fixtures even when a filter only selects unit tests, so the containers are started lazily:
+/// xUnit creates and initializes assembly fixtures even when a filter only selects unit tests, so the containers are not
+/// started by xUnit (the fixture deliberately does not implement <see cref="IAsyncLifetime"/>) but lazily:
 /// tests needing them call <see cref="EnsureStartedAsync"/> first (typically in <c>InitializeAsync</c>). A unit-only run
 /// (<c>--filter-trait "Category=Unit"</c>) therefore never needs Docker.
 /// </remarks>
-public sealed class ContainersFixture : IAsyncLifetime
+public sealed class ContainersFixture : IAsyncDisposable
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:18.3").Build();
     private readonly RedisContainer _redis = new RedisBuilder("redis:8.6").Build();
@@ -35,11 +36,6 @@ public sealed class ContainersFixture : IAsyncLifetime
     public Task EnsureStartedAsync()
     {
         return _start.Value;
-    }
-
-    public ValueTask InitializeAsync()
-    {
-        return ValueTask.CompletedTask;
     }
 
     public async ValueTask DisposeAsync()
