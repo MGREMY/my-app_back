@@ -99,15 +99,54 @@ public sealed partial class SqlScriptMigrationTests
         [Fact]
         public void GenerateScript_Idempotent_ContainsScriptsAroundMigration()
         {
-            using var context = ScriptedMigrationDbContext.Create("Host=localhost;Database=unused");
-
-            var script = context.GetService<IMigrator>().GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
+            var script = GenerateIdempotentScript();
 
             var positions = new[] { "Before/01_create_log.sql", "CREATE TABLE scripted_entity", "After/03_last.sql" }
                 .Select(x => script.IndexOf(x, StringComparison.Ordinal))
                 .ToArray();
             positions.ShouldAllBe(x => x >= 0);
             positions.ShouldBeInOrder();
+        }
+
+        [Fact]
+        public void GenerateScript_Idempotent_GuardsEveryScriptWithMigrationHistory()
+        {
+            var script = GenerateIdempotentScript();
+            var guard = $"IF NOT EXISTS(SELECT 1 FROM \"__EFMigrationsHistory\" WHERE \"MigrationId\" = '{ScriptedMigration.Id}') THEN";
+
+            // Each script sits between a "not yet applied" guard and its END IF: it does not run again once applied.
+            foreach (var name in ExpectedBefore.Concat(ExpectedAfter))
+            {
+                var position = script.IndexOf($"-- {name}", StringComparison.Ordinal);
+                position.ShouldBeGreaterThanOrEqualTo(0, name);
+                var guardPosition = script.LastIndexOf(guard, position, StringComparison.Ordinal);
+                guardPosition.ShouldBeGreaterThanOrEqualTo(0, name);
+                script.IndexOf("END IF;", guardPosition, StringComparison.Ordinal).ShouldBeGreaterThan(position, name);
+            }
+        }
+
+        [Fact]
+        public void DownOperations_WithScripts_ContainsGeneratedOperationsOnly()
+        {
+            var operations = new ScriptedMigration().DownOperations;
+
+            // Scripts are not reverted: Down only holds the generated DropTable.
+            operations.ShouldHaveSingleItem().ShouldBeOfType<DropTableOperation>().Name.ShouldBe("scripted_entity");
+        }
+
+        [Fact]
+        public void UpOperations_ClassNamedDifferently_UsesScriptsOfMigrationId()
+        {
+            var operations = new MigrationNamedDifferently().UpOperations;
+
+            operations.Select(ScriptName).ShouldBe(ExpectedBefore.Concat(ExpectedAfter));
+        }
+
+        private static string GenerateIdempotentScript()
+        {
+            using var context = ScriptedMigrationDbContext.Create("Host=localhost;Database=unused");
+
+            return context.GetService<IMigrator>().GenerateScript(options: MigrationsSqlGenerationOptions.Idempotent);
         }
 
         private static string ScriptName(MigrationOperation operation)

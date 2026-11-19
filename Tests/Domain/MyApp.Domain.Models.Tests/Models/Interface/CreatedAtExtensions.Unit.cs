@@ -11,7 +11,9 @@ public sealed partial class CreatedAtExtensionsTests
         [Fact]
         public void SetCreatedAtData_Entity_SetsCreationDateOnly()
         {
-            var entity = new TrackedEntity { Name = "a" };
+            // Non-default values: proves the creation date is overwritten and the update data left untouched.
+            var past = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var entity = new TrackedEntity { Name = "a", CreatedAtUtc = past, UpdatedAtUtc = past, HasBeenModified = true };
             var before = DateTimeOffset.UtcNow;
 
             var result = entity.SetCreatedAtData();
@@ -19,15 +21,15 @@ public sealed partial class CreatedAtExtensionsTests
             result.ShouldBeSameAs(entity);
             entity.CreatedAtUtc.ShouldBeInRange(before, DateTimeOffset.UtcNow);
             entity.CreatedAtUtc.Offset.ShouldBe(TimeSpan.Zero);
-            entity.UpdatedAtUtc.ShouldBeNull();
-            entity.HasBeenModified.ShouldBeFalse();
+            entity.UpdatedAtUtc.ShouldBe(past);
+            entity.HasBeenModified.ShouldBeTrue();
         }
 
         [Fact]
         public void SetUpdatedAtData_Entity_SetsUpdateDateAndModifiedFlag()
         {
             var createdAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
-            var entity = new TrackedEntity { Name = "a", CreatedAtUtc = createdAt };
+            var entity = new TrackedEntity { Name = "a", CreatedAtUtc = createdAt, UpdatedAtUtc = createdAt };
             var before = DateTimeOffset.UtcNow;
 
             var result = entity.SetUpdatedAtData();

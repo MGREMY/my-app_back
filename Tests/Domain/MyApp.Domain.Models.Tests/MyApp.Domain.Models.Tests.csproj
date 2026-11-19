@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <ItemGroup>
+        <!-- Design-time services (compile included) to run SqlScriptMigrationsGenerator like the EF Core tools -->
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>compile; runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\..\Src\Domain\MyApp.Domain.Models\MyApp.Domain.Models.csproj"/>
     </ItemGroup>
 

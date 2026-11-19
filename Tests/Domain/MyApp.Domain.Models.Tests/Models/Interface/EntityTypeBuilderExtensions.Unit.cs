@@ -42,6 +42,36 @@ public sealed partial class EntityTypeBuilderExtensionsTests
         }
 
         [Fact]
+        public async Task AddBaseEntity_EntitiesAddedInDifferentMilliseconds_GeneratesIncreasingIds()
+        {
+            var first = new TrackedEntity { Name = "a" };
+            _context.Add(first);
+            await Task.Delay(5, TestContext.Current.CancellationToken);
+            var second = new TrackedEntity { Name = "b" };
+            _context.Add(second);
+
+            // PostgreSQL orders uuid values bytewise, i.e. like their canonical string.
+            string.CompareOrdinal(first.Id.ToString(), second.Id.ToString()).ShouldBeLessThan(0);
+        }
+
+        [Fact(Skip = "Bug: NpgsqlSequentialGuidValueGenerator generates UUIDv7 with random bits after the millisecond " +
+                     "timestamp, so ids generated within the same millisecond are not ordered (about half of 1000 consecutive ids)")]
+        public void AddBaseEntity_ManyAddedEntities_GeneratesSequentialIds()
+        {
+            var ids = Enumerable.Range(0, 1000)
+                .Select(i =>
+                {
+                    var entity = new TrackedEntity { Name = $"e{i}" };
+                    _context.Add(entity);
+                    return entity.Id.ToString();
+                })
+                .ToArray();
+
+            // Sequential key (AGENTS 6.1): every id sorts after the previous one, as PostgreSQL orders uuid values.
+            ids.Zip(ids.Skip(1)).ShouldAllBe(x => string.CompareOrdinal(x.First, x.Second) < 0);
+        }
+
+        [Fact]
         public void AddCreatedAt_Entity_MapsColumns()
         {
             var entityType = EntityType<TrackedEntity>();

@@ -49,6 +49,34 @@ public sealed class FailingMigration : SqlScriptMigration
     }
 }
 
+[DbContext(typeof(PartialMigrationDbContext))]
+[Migration(Id)]
+public sealed class PartialMigration : SqlScriptMigration
+{
+    public const string Id = "20260104000000_PartialMigration";
+
+    protected override void Up(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.Sql("INSERT INTO partial_log (name) VALUES ('migration');");
+    }
+
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+    }
+}
+
+/// <summary>
+///     Class and file names unrelated to the scripts folder: scripts are looked up by the <see cref="MigrationAttribute"/>
+///     id, so it gets the scripts of <see cref="ScriptedMigration"/>.
+/// </summary>
+[Migration(ScriptedMigration.Id)]
+public sealed class MigrationNamedDifferently : SqlScriptMigration
+{
+    protected override void Up(MigrationBuilder migrationBuilder)
+    {
+    }
+}
+
 /// <summary>Migration without scripts folder: only the generated operations run.</summary>
 [Migration("20260103000000_UnscriptedMigration")]
 public sealed class UnscriptedMigration : SqlScriptMigration

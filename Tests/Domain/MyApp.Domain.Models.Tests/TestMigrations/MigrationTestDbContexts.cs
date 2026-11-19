@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace MyApp.Domain.Models.Tests.TestMigrations;
 
@@ -20,6 +21,20 @@ public sealed class FailingMigrationDbContext(DbContextOptions<FailingMigrationD
     {
         return new FailingMigrationDbContext(new DbContextOptionsBuilder<FailingMigrationDbContext>()
             .UseNpgsql(connectionString)
+            .Options);
+    }
+}
+
+/// <summary>Context owning <see cref="PartialMigration"/> (scripts in SqlScripts/20260104000000_PartialMigration).</summary>
+public sealed class PartialMigrationDbContext(DbContextOptions<PartialMigrationDbContext> options) : DbContext(options)
+{
+    /// <param name="connectionString">Database to migrate.</param>
+    /// <param name="warnings">Receives the messages of the non-transactional migration operation warning.</param>
+    public static PartialMigrationDbContext Create(string connectionString, ICollection<string> warnings)
+    {
+        return new PartialMigrationDbContext(new DbContextOptionsBuilder<PartialMigrationDbContext>()
+            .UseNpgsql(connectionString)
+            .LogTo(warnings.Add, [RelationalEventId.NonTransactionalMigrationOperationWarning])
             .Options);
     }
 }
