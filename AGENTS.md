@@ -634,9 +634,7 @@ API contracts are separate from service contracts and live in `Host.Api`:
   request. Its FluentValidation validator is a nested `sealed class Validator : AbstractValidator<...>`.
 - Validation is automatic: `AddAppValidation()` registers every validator of the API assembly, and `ValidationFilter`
   (added by `NewAppVersionedApi`) validates every handler argument that has a validator before the handler runs.
-  Invalid input returns a `400` validation problem (`EndpointHelper.FormatValidationErrorResponse`). Its error keys
-  are named like the JSON of the request, with the naming policy of the API `JsonOptions` (camelCase:
-  `sortRequests[0].propertyName`), not like the C# properties. Never inject
+  Invalid input returns a `400` validation problem (`EndpointHelper.FormatValidationErrorResponse`). Never inject
   `IValidator<T>` nor call `Validate` in a handler.
 - `Responses/<Name>ApiResponse.cs`: `sealed record` with a constructor taking the service response.
 

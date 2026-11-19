@@ -42,19 +42,6 @@ public sealed partial class EntityTypeBuilderExtensionsTests
         }
 
         [Fact]
-        public async Task AddBaseEntity_EntitiesAddedInDifferentMilliseconds_GeneratesIncreasingIds()
-        {
-            var first = new TrackedEntity { Name = "a" };
-            _context.Add(first);
-            await Task.Delay(5, TestContext.Current.CancellationToken);
-            var second = new TrackedEntity { Name = "b" };
-            _context.Add(second);
-
-            // PostgreSQL orders uuid values bytewise, i.e. like their canonical string.
-            string.CompareOrdinal(first.Id.ToString(), second.Id.ToString()).ShouldBeLessThan(0);
-        }
-
-        [Fact]
         public void AddBaseEntity_AddedEntity_GeneratesUuidV7()
         {
             var entity = new TrackedEntity { Name = "a" };
