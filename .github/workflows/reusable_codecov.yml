@@ -1,0 +1,49 @@
+name: "Reusable - Codecov"
+
+# Uploads the coverage produced by the calling workflow to Codecov, authenticated with OIDC (no token to store).
+# The caller must grant "contents: read" and "id-token: write" to the job calling this workflow.
+
+on:
+  workflow_call:
+    inputs:
+      coverage-artifact:
+        description: Name of the artifact holding the Cobertura files (coverage.cobertura.*.xml).
+        type: string
+        default: coverage
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  upload:
+    name: Upload coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      # The Codecov CLI reads the commit and the repository files from the checkout
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download coverage
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.coverage-artifact }}
+          path: coverage
+
+      # Coverage file names are timestamped: list them for the action (only Cobertura, OpenCover would be a duplicate)
+      - name: List coverage files
+        id: files
+        run: echo "cobertura=$(ls coverage/coverage.cobertura.*.xml | paste -sd, -)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          files: ${{ steps.files.outputs.cobertura }}
+          disable_search: true
+          fail_ci_if_error: true
+
+      # Test results are not sent: Codecov Test Analytics only accepts JUnit XML, not TRX. Once
+      # Microsoft.Testing.Extensions.JUnitReport is stable, add "--report-junit" to "dotnet test", upload the JUnit
+      # files as an artifact and add a second codecov/codecov-action step with "report_type: test_results".
