@@ -56,7 +56,7 @@ public static partial class ExceptionHandlerConfiguration
                         switch (exHandlerFeature.Error)
                         {
                             case ValidationException validationException:
-                                await EndpointHelper.FormatValidationErrorResponse(validationException.Errors)
+                                await EndpointHelper.FormatValidationErrorResponse(ctx, validationException.Errors)
                                     .ExecuteAsync(ctx);
                                 break;
                             // Thrown by the generated pagination code: always a client error
