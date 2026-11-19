@@ -4,4 +4,14 @@
         <ProjectReference Include="..\..\..\Src\Domain\MyApp.Domain.Models\MyApp.Domain.Models.csproj"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <!--
+            Scripts of the test migrations (TestMigrations/), embedded exactly like in MyApp.Domain.Models:
+            SqlScriptMigration reads them from the assembly of the migration, i.e. this test assembly.
+            Every file is embedded (not only *.sql) to check that other files are ignored.
+        -->
+        <EmbeddedResource Include="SqlScripts\**\*"
+                          LogicalName="SqlScripts/$([System.String]::Copy('%(RecursiveDir)').Replace('\', '/'))%(Filename)%(Extension)"/>
+    </ItemGroup>
+
 </Project>
