@@ -95,12 +95,19 @@ public sealed partial class PaginationApiRequestTests
                 .ShouldNotHaveAnyValidationErrors();
         }
 
-        [Fact]
-        public void Validator_InvalidNestedFilter_IsNotValidated()
+        [Fact(Skip = "Bug: the validator only checks top-level filters; an invalid nested filter (Filters) is not "
+                     + "validated, so the API does not return a 400 validation problem for it.")]
+        public void Validator_InvalidNestedFilter_HasIndexedError()
         {
-            // Documented behaviour: only top-level filters are validated; nested ones are rejected later by the
-            // generated code (InvalidPaginationRequestException, 400 as well).
-            var request = new PaginationApiRequest(FilterRequests: [Filter("userName", nested: [Filter("")])]);
+            var request = new PaginationApiRequest(FilterRequests: [Filter("userName", nested: [Filter("email"), Filter("")])]);
+
+            _validator.TestValidate(request).ShouldHaveValidationErrorFor("FilterRequests[0].Filters[1].PropertyName");
+        }
+
+        [Fact]
+        public void Validator_ValidNestedFilters_IsValid()
+        {
+            var request = new PaginationApiRequest(FilterRequests: [Filter("userName", nested: [Filter("email", logic: FilterApiRequest.Logic.Or)])]);
 
             _validator.TestValidate(request).ShouldNotHaveAnyValidationErrors();
         }

@@ -45,14 +45,20 @@ public sealed partial class UserEndpointTests
         public async Task Query_Filter_ReturnsMatchingUsersOnly()
         {
             await SeedUserAsync("alice");
+            await SeedUserAsync("alina");
             await SeedUserAsync("bob");
-            var request = new PaginationApiRequest(FilterRequests:
+            await SeedUserAsync("carl");
+            // Page size 1: 2 pages when filtered (alice, alina), 4 without filter.
+            var request = new PaginationApiRequest(1, 1, ByUserName,
                 [new FilterApiRequest("userName", FilterApiRequest.Operator.Contains, "ALI", FilterApiRequest.Logic.And)]);
 
             using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, request, Ct);
 
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
             var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
             page.Data.ShouldHaveSingleItem().UserName.ShouldBe("user-alice");
+            page.TotalPages.ShouldBe(2);
+            page.HasNextPage.ShouldBeTrue();
         }
 
         [Fact]
@@ -65,6 +71,38 @@ public sealed partial class UserEndpointTests
 
             var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
             page.Data.ShouldHaveSingleItem().UserName.ShouldBe("user-alive");
+        }
+
+        [Fact]
+        public async Task Query_PageBeyondTheLast_Returns200WithEmptyData()
+        {
+            await SeedUserAsync("a");
+            await SeedUserAsync("b");
+
+            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, new PaginationApiRequest(3, 1, ByUserName), Ct);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
+            page.Data.ShouldBeEmpty();
+            page.PageNumber.ShouldBe(3);
+            page.TotalPages.ShouldBe(2);
+            page.HasNextPage.ShouldBeFalse();
+        }
+
+        [Fact]
+        public async Task Query_LargePageSize_IsNotCapped()
+        {
+            // There is no maximum page size.
+            await SeedUserAsync("a");
+            await SeedUserAsync("b");
+
+            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, new PaginationApiRequest(1, 100_000, ByUserName), Ct);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
+            page.PageSize.ShouldBe(100_000);
+            page.Data.Length.ShouldBe(2);
+            page.TotalPages.ShouldBe(1);
         }
 
         [Fact]
@@ -131,6 +169,8 @@ public sealed partial class UserEndpointTests
             using var response = await CreateClient().AsUser().PostAsJsonAsync(Route, new PaginationApiRequest(), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
+            // RFC 9110: a 405 lists the methods the resource supports.
+            response.Content.Headers.Allow.ShouldBe(["QUERY"]);
         }
 
         // GET /users/{id}
@@ -179,6 +219,16 @@ public sealed partial class UserEndpointTests
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         }
 
+        [Fact(Skip = "Bug: the route binding failure of a non-GUID id returns a 400 without body instead of an "
+                     + "RFC 7807 problem (application/problem+json).")]
+        public async Task GetById_NotAGuid_Returns400Problem()
+        {
+            using var response = await CreateClient().AsUser().GetAsync(ById("not-a-guid"), Ct);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await ReadProblemAsync(response)).Status.ShouldBe(400);
+        }
+
         [Fact]
         public async Task GetById_Anonymous_Returns401()
         {
@@ -215,14 +265,29 @@ public sealed partial class UserEndpointTests
             (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_not_found);
         }
 
-        [Fact]
-        public async Task DeleteById_AlreadyDeletedUser_Returns404()
+        [Fact(Skip = "Bug: the soft deletion filter hides the deleted user, so DELETE returns 404 user_not_found "
+                     + "instead of 400 user_already_deleted.")]
+        public async Task DeleteById_AlreadyDeletedUser_Returns400AlreadyDeletedProblem()
         {
             var user = await SeedUserAsync("auth-1", deleted: true);
 
             using var response = await CreateClient().AsAdmin().DeleteAsync(ById(user.Id), Ct);
 
-            response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_already_deleted);
+        }
+
+        [Fact(Skip = "Bug: nothing prevents an admin from deleting their own account: DELETE returns 204 and "
+                     + "soft-deletes the admin.")]
+        public async Task DeleteById_AdminDeletingOwnAccount_Returns400ProblemAndKeepsUser()
+        {
+            var admin = await SeedUserAsync("admin-1");
+
+            using var response = await CreateClient().AsAdmin("admin-1").DeleteAsync(ById(admin.Id), Ct);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            (await ReadProblemAsync(response)).Status.ShouldBe(400);
+            (await FindUsersIncludingDeletedAsync("admin-1")).ShouldHaveSingleItem().IsDeleted.ShouldBeFalse();
         }
 
         [Fact]

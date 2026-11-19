@@ -28,15 +28,41 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
     /// <summary>Test-only endpoint answering 204 when the antiforgery token of a POST is valid, 400 otherwise.</summary>
     public const string AntiforgeryProbePath = "/__tests/antiforgery";
 
+    /// <summary>Test-only path throwing <see cref="ExceptionProbeMessage"/>, behind the API exception handler.</summary>
+    public const string ExceptionProbePath = "/__tests/exception";
+
+    public const string ExceptionProbeMessage = "Exception probe: internal detail that must not leak";
+
     private readonly string _dataPath = Path.Combine(Path.GetTempPath(), $"myapp-api-tests-{Guid.NewGuid():N}");
     private readonly Lock _lock = new();
     private ContainersFixture? _containers;
     private Task? _start;
+    private Task<string>? _openApiDocument;
 
     public Task EnsureStartedAsync(ContainersFixture containers)
     {
         lock (_lock)
             return _start ??= StartAsync(containers);
+    }
+
+    /// <summary>
+    /// The OpenAPI document (<c>/openapi/v1.json</c>) as served in Development, the only environment mapping it: read
+    /// once from a Development variant of this host (same settings and authentication).
+    /// </summary>
+    public Task<string> GetOpenApiDocumentAsync()
+    {
+        lock (_lock)
+            return _openApiDocument ??= ReadOpenApiDocumentAsync();
+    }
+
+    private async Task<string> ReadOpenApiDocumentAsync()
+    {
+        await using var development = WithWebHostBuilder(builder => builder.UseEnvironment(Environments.Development));
+        using var client = development.CreateClient();
+        using var response = await client.GetAsync("/openapi/v1.json");
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadAsStringAsync();
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -67,6 +93,7 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 });
 
                 services.AddTransient<IStartupFilter, AntiforgeryProbeStartupFilter>();
+                services.AddTransient<IStartupFilter, ExceptionProbeStartupFilter>();
             });
     }
 
@@ -106,6 +133,23 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 }));
 
                 next(app);
+            };
+        }
+    }
+
+    /// <summary>
+    /// No API endpoint throws on purpose: this probe, added after the pipeline of <c>Program</c> (so behind its
+    /// exception handler, and reached because no endpoint matches its path), throws an unhandled exception.
+    /// </summary>
+    private sealed class ExceptionProbeStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+        {
+            return app =>
+            {
+                next(app);
+
+                app.Map(ExceptionProbePath, probe => probe.Run(_ => throw new InvalidOperationException(ExceptionProbeMessage)));
             };
         }
     }

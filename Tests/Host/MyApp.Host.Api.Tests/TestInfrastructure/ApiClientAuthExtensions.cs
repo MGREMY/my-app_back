@@ -1,7 +1,15 @@
 namespace MyApp.Host.Api.Tests.TestInfrastructure;
 
 /// <summary>User sent by <see cref="ApiClientAuthExtensions.As"/>.</summary>
-public sealed record TestUser(string AuthId, string UserName, string Email, IReadOnlyCollection<string> Roles)
+/// <param name="UserName">Keycloak username (<c>preferred_username</c> claim); <c>null</c> omits the claim.</param>
+/// <param name="Email"><c>email</c> claim; <c>null</c> omits the claim.</param>
+/// <param name="DisplayName">Full name (<c>name</c> claim); defaults to <paramref name="UserName"/>.</param>
+public sealed record TestUser(
+    string AuthId,
+    string? UserName,
+    string? Email,
+    IReadOnlyCollection<string> Roles,
+    string? DisplayName = null)
 {
     public static TestUser Create(string authId, IReadOnlyCollection<string>? roles = null, string? userName = null, string? email = null)
     {
@@ -24,7 +32,8 @@ public static class ApiClientAuthExtensions
 
     private static readonly string[] IdentityHeaders =
     [
-        TestAuthHandler.AuthIdHeader, TestAuthHandler.UserNameHeader, TestAuthHandler.EmailHeader, TestAuthHandler.RolesHeader
+        TestAuthHandler.AuthIdHeader, TestAuthHandler.UserNameHeader, TestAuthHandler.DisplayNameHeader,
+        TestAuthHandler.EmailHeader, TestAuthHandler.RolesHeader
     ];
 
     extension(HttpClient client)
@@ -56,11 +65,18 @@ public static class ApiClientAuthExtensions
             client.AsAnonymous();
 
             client.DefaultRequestHeaders.Add(TestAuthHandler.AuthIdHeader, user.AuthId);
-            client.DefaultRequestHeaders.Add(TestAuthHandler.UserNameHeader, user.UserName);
-            client.DefaultRequestHeaders.Add(TestAuthHandler.EmailHeader, user.Email);
             client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, string.Join(',', user.Roles));
+            AddIfNotNull(TestAuthHandler.UserNameHeader, user.UserName);
+            AddIfNotNull(TestAuthHandler.DisplayNameHeader, user.DisplayName ?? user.UserName);
+            AddIfNotNull(TestAuthHandler.EmailHeader, user.Email);
 
             return client;
+
+            void AddIfNotNull(string header, string? value)
+            {
+                if (value is not null)
+                    client.DefaultRequestHeaders.Add(header, value);
+            }
         }
 
         /// <summary>

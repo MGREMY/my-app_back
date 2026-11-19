@@ -14,23 +14,21 @@ public sealed partial class ClaimsPrincipalExtensionTests
             Principal(new Claim(ClaimTypes.NameIdentifier, "auth-1")).CurrentId.ShouldBe("auth-1");
         }
 
-        [Fact]
-        public void CurrentUserName_NameClaimType_ReturnsIt()
+        // The user name is the Keycloak username (preferred_username, kept as is by the JWT bearer inbound mapping),
+        // not the full name ("name").
+
+        [Fact(Skip = "Bug: CurrentUserName only reads ClaimTypes.Name or \"name\" and throws InvalidOperationException "
+                     + "when the token only carries preferred_username.")]
+        public void CurrentUserName_PreferredUsernameClaim_ReturnsIt()
         {
-            Principal(new Claim(ClaimTypes.Name, "john")).CurrentUserName.ShouldBe("john");
+            Principal(new Claim("preferred_username", "jdoe")).CurrentUserName.ShouldBe("jdoe");
         }
 
-        [Fact]
-        public void CurrentUserName_ShortNameClaim_ReturnsIt()
+        [Fact(Skip = "Bug: CurrentUserName returns the full name (\"name\" claim) instead of the Keycloak username "
+                     + "(preferred_username).")]
+        public void CurrentUserName_PreferredUsernameAndNameClaims_ReturnsPreferredUsername()
         {
-            // "name" is the OIDC claim, kept as is by the JWT bearer inbound mapping.
-            Principal(new Claim("name", "john")).CurrentUserName.ShouldBe("john");
-        }
-
-        [Fact]
-        public void CurrentUserName_BothNameClaims_ReturnsTheFirstOne()
-        {
-            Principal(new Claim("name", "first"), new Claim(ClaimTypes.Name, "second")).CurrentUserName.ShouldBe("first");
+            Principal(new Claim("name", "John Doe"), new Claim("preferred_username", "jdoe")).CurrentUserName.ShouldBe("jdoe");
         }
 
         [Fact]
@@ -49,7 +47,7 @@ public sealed partial class ClaimsPrincipalExtensionTests
         [Fact]
         public void CurrentEmail_NoEmailClaim_Throws()
         {
-            Should.Throw<InvalidOperationException>(() => Principal(new Claim(ClaimTypes.Name, "john")).CurrentEmail);
+            Should.Throw<InvalidOperationException>(() => Principal(new Claim("preferred_username", "john")).CurrentEmail);
         }
 
         [Fact]

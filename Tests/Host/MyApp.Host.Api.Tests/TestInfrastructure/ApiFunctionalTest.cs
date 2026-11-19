@@ -81,14 +81,14 @@ public abstract class ApiFunctionalTest(ContainersFixture containers, ApiFactory
 
     protected static async Task<ProblemDetails> ReadProblemAsync(HttpResponseMessage response)
     {
-        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        response.Content.Headers.ContentType.ShouldNotBeNull().MediaType.ShouldBe("application/problem+json");
 
         return (await response.Content.ReadFromJsonAsync<ProblemDetails>(Ct)).ShouldNotBeNull();
     }
 
     protected static async Task<HttpValidationProblemDetails> ReadValidationProblemAsync(HttpResponseMessage response)
     {
-        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        response.Content.Headers.ContentType.ShouldNotBeNull().MediaType.ShouldBe("application/problem+json");
 
         return (await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(Ct)).ShouldNotBeNull();
     }

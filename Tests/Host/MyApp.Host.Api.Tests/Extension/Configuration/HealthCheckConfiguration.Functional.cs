@@ -21,7 +21,7 @@ public sealed partial class HealthCheckConfigurationTests
             using var report = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
             report.RootElement.GetProperty("status").GetString().ShouldBe("Healthy");
             report.RootElement.GetProperty("entries").EnumerateObject().Select(x => x.Name)
-                .ShouldBe(["self", "system:diskStorage", "services:PostgresSQL", "services:Redis"], ignoreOrder: true);
+                .ShouldBe(["self", "system:diskStorage", "services:PostgreSQL", "services:Redis"], ignoreOrder: true);
         }
 
         [Fact]
