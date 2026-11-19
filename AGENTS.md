@@ -308,7 +308,8 @@ Rules:
 - A script whose name ends with `.no-transaction.sql` runs outside of the migration transaction (needed for
   `CREATE INDEX CONCURRENTLY`, `VACUUM`...). EF Core logs a warning for it: if the process stops during that script,
   the migration stays partially applied.
-- Batch separators such as SQL Server's `GO` are supported (handled by the database provider).
+- Batch separators are left to the database provider: SQL Server's `GO` works there, but PostgreSQL (Npgsql) has no
+  batch separator, so a PostgreSQL script must not contain `GO`.
 - Scripts are not reverted when a migration is rolled back (`Down`).
 
 How it works (nothing to do by hand):

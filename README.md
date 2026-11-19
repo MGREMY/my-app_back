@@ -138,7 +138,7 @@ Rules:
 - Scripts run in ordinal order of their relative path. Use numeric prefixes (`01_`, `02_`) to control the order.
 - A script named `*.no-transaction.sql` runs outside of the migration transaction, for statements that cannot run
   inside one (`CREATE INDEX CONCURRENTLY`, `VACUUM`...).
-- Batch separators such as SQL Server's `GO` are supported.
+- Batch separators are handled by the database provider (SQL Server's `GO`); PostgreSQL has none.
 - A folder whose name does not match a migration file exactly is ignored.
 - Scripts are not reverted when a migration is rolled back.
 
