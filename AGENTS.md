@@ -20,6 +20,7 @@ Backend API template built with:
 | Observability     | OpenTelemetry, Serilog, health checks                                      |
 | Dev orchestration | .NET Aspire (`AppHost`), used for local development only                   |
 | Test runner       | Microsoft.Testing.Platform (set in `global.json`)                          |
+| Tests             | xUnit v3, Shouldly, NSubstitute, Testcontainers, Respawn, coverlet.MTP     |
 
 ## 2. Commands
 
@@ -28,6 +29,13 @@ Run every command from the repository root unless stated otherwise.
 ```bash
 dotnet restore
 dotnet build MyApp.slnx
+```
+
+Run the tests (Docker is required, except for unit tests; see section 9.7 for the other commands):
+
+```bash
+dotnet test
+dotnet test --filter-trait "Category=Unit"
 ```
 
 Run the whole stack (API, PostgreSQL, Redis, Keycloak, MailPit) through Aspire:
@@ -84,6 +92,15 @@ Src/
     ├── MyApp.Services.Abstractions/  Service contracts: interfaces, requests, responses
     ├── MyApp.Services/               Service implementations (use cases)
     └── MyApp.Services.Generators/    Roslyn source generator (pagination), netstandard2.0
+Tests/                                Mirrors Src/ one-to-one (section 9)
+├── MyApp.Tests.Shared/               Shared test infrastructure: categories, conventions, containers, database
+├── Host/MyApp.Host.Api.Tests/
+├── Domain/
+│   ├── MyApp.Domain.Models.Tests/
+│   └── MyApp.Domain.Specifications.Tests/
+└── Services/
+    ├── MyApp.Services.Tests/
+    └── MyApp.Services.Generators.Tests/
 ```
 
 `Domain/` holds the domain model (entities and their shared conditions). `Services/` holds the application layer:
@@ -105,6 +122,8 @@ AppHost ──► Host.Api (orchestration only)
 - `Services` does not know the database provider. Npgsql is only referenced by `Domain.Models`.
 - `Host.Api` is the composition root. It is the only place that decides which infrastructure is used.
 - The generator is referenced with `OutputItemType="Analyzer" ReferenceOutputAssembly="false"`.
+- A test project references the project it tests (plus what its test models need) and `MyApp.Tests.Shared`.
+  `MyApp.Tests.Shared` references no `Src/` project. `Src/` never references `Tests/`.
 
 ## 4. Configuration
 
@@ -662,16 +681,166 @@ Services never return API types and endpoints never expose service types.
 - Constants are grouped in a static `<Layer>Constant` class (`ApiConstant`, `ServiceConstant`, `ModelConstant`).
 - Remove unused `using` directives.
 
-## 9. Git and CI
+## 9. Tests
+
+### 9.1 Stack and layout
+
+| Concern              | Technology                                                                        |
+|----------------------|-----------------------------------------------------------------------------------|
+| Framework            | xUnit v3 on Microsoft.Testing.Platform v2, run by `dotnet test` (`global.json`)   |
+| Assertions, doubles  | Shouldly, NSubstitute                                                             |
+| Infrastructure       | Testcontainers (PostgreSQL, Redis), Respawn, `WebApplicationFactory`              |
+| Results, coverage    | TRX (`Microsoft.Testing.Extensions.TrxReport`), coverlet.MTP (Cobertura, OpenCover) |
+
+- `Tests/` mirrors `Src/` one-to-one, grouping folders included (section 3.1). There is no test project for
+  `Services.Abstractions` (contracts only), `ServiceDefaults` and `AppHost`. Test projects are in the `/Tests/...`
+  solution folders of `MyApp.slnx`.
+- `Tests/Directory.Build.props` applies to every project of `Tests/`. A project whose name ends with `.Tests` gets the
+  test packages, the reference to `MyApp.Tests.Shared`, the global usings (`Xunit`, `Shouldly`, the categories) and
+  `Tests/testconfig.json`. Its own `.csproj` only references what it tests.
+- Inside a project, folders mirror the source folder of the tested class
+  (`Services/UserServices/UserGetById.Integration.cs` tests `Services/UserServices/UserGetById.cs`). There are no
+  `Unit/`, `Integration/` or `Functional/` folders: all the tests of a class stay together.
+- Exceptions: endpoint functional tests are in `Endpoints/<Area>Endpoint.Functional.cs`; generator tests are grouped
+  by behaviour (`Filters/`, `Sorts/`, `Paging/`, `Errors/`, `Diagnostics/`) on the entities of `TestModels/`.
+- Test-only code lives in `TestInfrastructure/` (base classes, fixtures, helpers) and `TestModels/`,
+  `TestMigrations/`, `TestSpecifications/` (test entities, contexts, migrations, specifications).
+
+### 9.2 Conventions
+
+- One `public sealed partial class <Class>Tests` per tested class, one file per kind of test: `<Class>.Unit.cs`,
+  `<Class>.Integration.cs`, `<Class>.Functional.cs`. Each file holds a nested `public sealed class` named `Unit`,
+  `Integration` or `Functional`.
+- The nested class carries the matching attribute of `MyApp.Tests.Shared.Categories`: `[UnitTest]`,
+  `[IntegrationTest]` or `[FunctionalTest]`. They add the trait `Category=Unit|Integration|Functional` (names in
+  `TestCategory`). Never write a raw `[Trait("Category", ...)]`.
+- Every project has a convention test (`Conventions/TestConvention.Unit.cs`, calling
+  `assembly.ShouldFollowTestConventions()`). It fails when a nested class name and its attribute do not match, when a
+  category attribute is used elsewhere, when a class declares tests without category, or on a raw category trait.
+- Test names: `Method_Context_ExpectedResult` (`ExecuteAsync_UnknownId_Returns404`,
+  `Query_AsUser_ReturnsRequestedPage`). Functional tests use the HTTP method as `Method`.
+- Pass `TestContext.Current.CancellationToken` (the `Ct` property of the base classes) to async calls.
+- A known bug is documented by a skipped test asserting the expected behaviour: `[Fact(Skip = "Bug: <what happens>")]`.
+  Fix the bug, then remove the `Skip`.
+
+### 9.3 Levels
+
+| Level       | Trait                  | What is real                                                                                  | Docker |
+|-------------|------------------------|-----------------------------------------------------------------------------------------------|--------|
+| Unit        | `Category=Unit`        | The tested class only, in memory: specifications, validators, `GetAppConfig()`, DI composition, `FileStorageService` on a temporary folder, generator diagnostics (`CSharpGeneratorDriver`). | no |
+| Integration | `Category=Integration` | The real layer on PostgreSQL and Redis containers: the host composition (`AddMyAppPersistence`, `AddMyAppCache`, `AddMyAppServices`), the generated pagination code, migrations and SQL scripts. | yes |
+| Functional  | `Category=Functional`  | The whole API (`Program`) over HTTP with `WebApplicationFactory`, on the containers. Only authentication is replaced (section 9.5). | yes |
+
+Service and generator tests never depend on authentication.
+
+### 9.4 Shared infrastructure
+
+`MyApp.Tests.Shared` (a library, not a test project):
+
+- `ContainersFixture`: PostgreSQL and Redis (same images as the AppHost), one pair per test assembly. A project
+  declares it in `AssemblyInfo.cs` with `[assembly: AssemblyFixture(typeof(ContainersFixture))]` and tests receive it
+  through their constructor. The containers start lazily: a test calls `await containers.EnsureStartedAsync()` (the
+  base classes do it in `InitializeAsync`), so a unit-only run never needs Docker.
+- `DatabaseSchema.CreateAsync(context)`: applies the migrations (SQL scripts included) when the model has some,
+  otherwise creates the schema from the model (the template ships without migrations).
+- `DatabaseReset`: empties every table except the migration history (Respawn). The base classes call it before each
+  test.
+- `TemporaryDatabase`: an empty database created on the container and dropped on dispose, for tests that apply
+  migrations.
+
+Each project has a `TestInfrastructure/DatabaseCollection` (`[Collection(DatabaseCollection.Name)]`, name
+`"Database"`): the integration and functional classes share the container database, so they join this collection and
+run one after the other. Unit classes stay outside of it and run in parallel.
+
+Base classes: `ServiceIntegrationTest` (real composition, one service provider per test, `CreateProvider()` for a
+second API instance), `PaginationIntegrationTest` (test database seeded once per run: read only, never write to it),
+`ApiFunctionalTest` (API host, `CreateClient()`, `SeedUserAsync`, problem readers).
+
+### 9.5 API functional tests and authentication
+
+- `ApiFactory` (`WebApplicationFactory<Program>`) runs the API in the `Testing` environment: not `Development`, so
+  neither `appsettings.Development.json` nor the startup migration are used. Every required `Api:*` setting is given
+  with `UseSetting`, and the schema is created once. It is the fixture of the `Database` collection and starts lazily.
+- JWT bearer is replaced by `TestAuthHandler`, which produces the claims read by `ClaimsPrincipalExtension`.
+- Tests only express who calls, with `ApiClientAuthExtensions`: clients are anonymous by default (`AsAnonymous()`),
+  `AsUser(...)`, `AsAdmin(...)` or `As(TestUser)`. `await client.WithAntiforgeryTokenAsync()` sends the antiforgery
+  token like a SPA. Other request options are in `ApiClientExtensions` (`WithCulture`, `WithApiVersionHeader`,
+  `QueryAsJsonAsync`).
+- No test builds tokens, cookies, claims or authentication headers itself. When authentication moves behind the BFF,
+  only `ApiFactory`, `TestAuthHandler` and `ApiClientAuthExtensions` change, never the test bodies.
+
+### 9.6 Add a test
+
+1. Open the test project mirroring the source project, and the folder mirroring the source folder of the class.
+2. Add the test to `<Class>.<Kind>.cs`, creating the file with the partial class and the nested class if needed:
+
+   ```csharp
+   public sealed partial class UserGetByIdTests
+   {
+       [IntegrationTest]
+       [Collection(DatabaseCollection.Name)]
+       public sealed class Integration(ContainersFixture containers) : ServiceIntegrationTest(containers)
+       {
+           [Fact]
+           public async Task ExecuteAsync_UnknownId_Returns404()
+           {
+               var result = await RunAsync<IUserGetById, ServiceResponse<UserServiceResponse>>(
+                   x => x.ExecuteAsync(Guid.NewGuid(), Ct));
+
+               result.Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
+           }
+       }
+   }
+   ```
+
+3. A unit class has no fixture and no collection. An integration or functional class inherits the base class of its
+   project (or calls `EnsureStartedAsync`) and joins `[Collection(DatabaseCollection.Name)]`.
+4. A new test project is named `<SourceProject>.Tests`, placed in the mirrored folder and added to `MyApp.slnx` under
+   the matching `/Tests/...` folder. It references the tested project, copies `Conventions/TestConvention.Unit.cs`,
+   and declares the `ContainersFixture` in `AssemblyInfo.cs` if it needs containers.
+
+### 9.7 Commands
+
+```bash
+dotnet test                                                  # every test (Docker required)
+dotnet test --filter-trait "Category=Unit"                   # unit tests only, no Docker
+dotnet test --project Tests/Services/MyApp.Services.Tests    # one project
+dotnet test --coverlet --report-trx                          # with coverage and TRX, like the CI
+```
+
+Results land in `TestResults/` at the repository root (git-ignored): one `<Project>_net11.0_<arch>.trx` and one
+`coverage.cobertura.<timestamp>.xml` / `coverage.opencover.<timestamp>.xml` pair per test project. File names are
+timestamped: use globs. Coverage settings (included assemblies, exclusions, formats) are in `Tests/testconfig.json`.
+
+## 10. Git and CI
 
 - Commit messages follow Conventional Commits: `feat:`, `fix:`, `refactor:`, `perf:`, `chore:`, optional scope
   (`refactor(generator): ...`).
 - Work on a branch, merge into `main` through a pull request.
-- `.github/workflows/pull_request.yml`: restore and build on every pull request.
+- `.github/workflows/pull_request.yml`, on every pull request and push to `main`:
+  - job `test`: restore, build, `dotnet test --no-build --coverlet --report-trx` (Testcontainers uses the Docker
+    engine of the runner), then uploads the `test-results` (TRX) and `coverage` (Cobertura, OpenCover) artifacts,
+    also when tests fail;
+  - job `codecov`: opt-in, calls `reusable_codecov.yml` after `test` (see below).
+- `.github/workflows/reusable_codecov.yml` (`on: workflow_call`): downloads the `coverage` artifact and uploads the
+  Cobertura files with `codecov/codecov-action`, authenticated with OIDC.
 - `.github/workflows/create_docker_image.yml`: on a published release, builds `docker/myApp/Dockerfile` for
   `linux/amd64` and `linux/arm64` and pushes it to `ghcr.io`.
+- GitHub forbids sub-folders in `.github/workflows`: reusable workflows are prefixed `reusable_` and named
+  `"Reusable - <Name>"`. File names are snake_case.
+- Permissions: `contents: read` at workflow level; a job needing more declares it itself (`id-token: write` on the
+  `codecov` job only).
+- What the CI produces: the job status (exit code of the test platform) is the only built-in signal, and the
+  artifacts are on the run summary page. The template posts nothing on pull requests: integrations are provided,
+  never imposed.
+- Codecov is the only reporting integration, disabled by default. To enable it: link the repository on codecov.io
+  (Codecov GitHub app), then set the repository variable `CODECOV_ENABLED` to `true` (Settings > Secrets and variables
+  > Actions > Variables). No token is stored: the upload uses OIDC. Codecov then posts its own comment and checks.
+- Test results are not sent to Codecov: Test Analytics only accepts JUnit XML, not TRX. Once
+  `Microsoft.Testing.Extensions.JUnitReport` is stable, add `--report-junit` and a second upload with
+  `report_type: test_results` (see the comment in `reusable_codecov.yml`).
 
-## 10. Known pitfalls
+## 11. Known pitfalls
 
 - Migrations and SQL scripts run automatically in `Development` only. Other environments must apply them explicitly
   (`dotnet ef database update`, generated SQL script or bundle, see section 2).
@@ -683,3 +852,13 @@ Services never return API types and endpoints never expose service types.
 - Adding an interface to `Services.Abstractions` without exactly one implementation in `Services` makes startup fail
   (section 5.3).
 - Missing required configuration makes startup fail with the list of missing `Api:...` keys (section 4).
+- `dotnet test` fails with exit code `8` when a filter selects no test in a project (for example
+  `--filter-trait "Category=Integration"` on `MyApp.Domain.Specifications.Tests`, which only has unit tests). Every
+  project has a unit convention test, so `Category=Unit` always matches; for other filters target the projects that
+  have such tests, or add `--ignore-exit-code 8`.
+- Integration and functional tests fail at `EnsureStartedAsync` when Docker is not running.
+- Coverage: the `include` of `Tests/testconfig.json` (`[MyApp.*]*`) works around coverlet issue #2071, where the
+  excludes computed from the `deps.json` can drop the tested assemblies. Keep it explicit (`setup.sh` renames it).
+- Skipped tests whose reason starts with `Bug:` document known bugs, they are not flaky tests: do not delete them.
+- A test class declaring tests outside of a nested `Unit` / `Integration` / `Functional` class fails the convention
+  test of its project.

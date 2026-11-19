@@ -15,6 +15,7 @@ documented in [AGENTS.md](AGENTS.md).
 - **Documentation**: OpenAPI with Scalar UI
 - **Observability**: OpenTelemetry, Serilog, health checks
 - **Local orchestration**: .NET Aspire
+- **Tests**: xUnit v3 on Microsoft.Testing.Platform, Shouldly, NSubstitute, Testcontainers, coverlet
 
 ## Features
 
@@ -28,7 +29,7 @@ documented in [AGENTS.md](AGENTS.md).
 ## Prerequisites
 
 - .NET SDK 11.0 (see `global.json`)
-- Docker, to run the development dependencies through Aspire
+- Docker, to run the development dependencies through Aspire and the integration and functional tests
 
 ## Getting started
 
@@ -257,6 +258,48 @@ Without `sortRequests`, rows come in database order. With a sort, rows having th
 have no guaranteed order either, so they can move between pages. End the sort with a unique key, such as `id`, to
 get stable pages.
 
+## Tests
+
+Tests are in `Tests/`, which mirrors `Src/` (one test project per tested source project). Each test is a unit,
+integration or functional test:
+
+| Level       | What runs                                                                        | Needs Docker |
+|-------------|----------------------------------------------------------------------------------|--------------|
+| Unit        | One class in memory                                                              | no           |
+| Integration | Services, generated pagination and migrations on PostgreSQL and Redis containers | yes          |
+| Functional  | The whole API over HTTP, on the containers, with a test authentication           | yes          |
+
+The containers are started by Testcontainers, once per test project, only when a test needs them.
+
+```bash
+dotnet test                                     # every test
+dotnet test --filter-trait "Category=Unit"      # unit tests only, without Docker
+dotnet test --coverlet --report-trx             # with code coverage and TRX results
+```
+
+Results are written to `TestResults/` at the repository root: TRX files and coverage reports in Cobertura and OpenCover
+formats (`coverage.cobertura.<timestamp>.xml`, `coverage.opencover.<timestamp>.xml`). Coverage settings are in
+`Tests/testconfig.json`.
+
+Conventions and recipes for writing tests are in [AGENTS.md](AGENTS.md#9-tests).
+
+### Continuous integration
+
+`.github/workflows/pull_request.yml` runs on every pull request and every push to `main`: it builds the solution, runs
+every test with coverage, and uploads two artifacts, `test-results` (TRX) and `coverage` (Cobertura and OpenCover),
+even when tests fail. The job status is the result; nothing is posted on the pull request by default.
+
+### Codecov (optional)
+
+Coverage can be sent to [Codecov](https://codecov.io), which then comments pull requests and adds status checks:
+
+1. Sign in to Codecov with GitHub and activate the repository (Codecov GitHub app).
+2. In the repository, set the variable `CODECOV_ENABLED` to `true` (Settings > Secrets and variables > Actions >
+   Variables).
+
+No token is needed: the upload (`.github/workflows/reusable_codecov.yml`) authenticates with OIDC. Remove the variable
+to disable it again.
+
 ## Project structure
 
 ```
@@ -271,6 +314,15 @@ Src/
     ├── MyApp.Services.Abstractions/  Service contracts
     ├── MyApp.Services/               Service implementations
     └── MyApp.Services.Generators/    Pagination source generator
+Tests/
+├── MyApp.Tests.Shared/               Shared test infrastructure (containers, database reset, categories)
+├── Host/MyApp.Host.Api.Tests/        API unit and functional tests
+├── Domain/
+│   ├── MyApp.Domain.Models.Tests/
+│   └── MyApp.Domain.Specifications.Tests/
+└── Services/
+    ├── MyApp.Services.Tests/
+    └── MyApp.Services.Generators.Tests/
 ```
 
 ## Docker
