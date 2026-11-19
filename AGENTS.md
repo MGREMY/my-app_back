@@ -739,8 +739,8 @@ Services never return API types and endpoints never expose service types.
 - Test names: `Method_Context_ExpectedResult` (`ExecuteAsync_UnknownId_Returns404`,
   `Query_AsUser_ReturnsRequestedPage`). Functional tests use the HTTP method as `Method`.
 - Pass `TestContext.Current.CancellationToken` (the `Ct` property of the base classes) to async calls.
-- A known bug is documented by a skipped test asserting the expected behaviour: `[Fact(Skip = "Bug: <what happens>")]`.
-  Fix the bug, then remove the `Skip`.
+- A test always asserts the expected behaviour, never the current one. A known bug is a failing test with a
+  `// Bug: <what happens today>` comment above it; tests are never skipped. Fix the code, then remove the comment.
 
 ### 9.3 Levels
 
@@ -894,6 +894,7 @@ timestamped: use globs. Coverage settings (included assemblies, exclusions, form
 - Integration and functional tests fail at `EnsureStartedAsync` when Docker is not running.
 - Coverage: the `include` of `Tests/testconfig.json` (`[MyApp.*]*`) works around coverlet issue #2071, where the
   excludes computed from the `deps.json` can drop the tested assemblies. Keep it explicit (`setup.sh` renames it).
-- Skipped tests whose reason starts with `Bug:` document known bugs, they are not flaky tests: do not delete them.
+- Tests preceded by a `// Bug:` comment fail on purpose until the bug is fixed: never delete them nor change their
+  assertions to make them pass.
 - A test class declaring tests outside of a nested `Unit` / `Integration` / `Functional` class fails the convention
   test of its project.

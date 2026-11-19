@@ -42,8 +42,9 @@ public sealed partial class AuthEndpointTests
             user.UpdatedAtUtc.ShouldBeNull();
         }
 
-        [Fact(Skip = "Bug: the user name is read from the \"name\" claim (full name, \"John Doe\" is stored) instead of "
-                     + "the Keycloak username (preferred_username).")]
+        // Bug: the user name is read from the "name" claim (full name, "John Doe" is stored) instead of the Keycloak
+        // username (preferred_username).
+        [Fact]
         public async Task SyncUser_TokenWithUsernameAndFullName_StoresTheUsername()
         {
             var identity = new TestUser("auth-1", "jdoe", "jdoe@example.test", [], DisplayName: "John Doe");
@@ -54,8 +55,9 @@ public sealed partial class AuthEndpointTests
             (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem().UserName.ShouldBe("jdoe");
         }
 
-        [Fact(Skip = "Bug: a token without preferred_username is accepted (204): the user name falls back to the "
-                     + "\"name\" claim instead of the request being rejected with a 400 problem.")]
+        // Bug: a token without preferred_username is accepted (204): the user name falls back to the "name" claim
+        // instead of the request being rejected with a 400 problem.
+        [Fact]
         public async Task SyncUser_TokenWithoutUsername_Returns400ProblemAndCreatesNothing()
         {
             var identity = new TestUser("auth-1", UserName: null, "jdoe@example.test", [], DisplayName: "John Doe");
@@ -67,8 +69,9 @@ public sealed partial class AuthEndpointTests
             (await FindUsersIncludingDeletedAsync("auth-1")).ShouldBeEmpty();
         }
 
-        [Fact(Skip = "Bug: CurrentEmail throws InvalidOperationException when the token has no email claim: the API "
-                     + "returns 500 instead of a 400 problem.")]
+        // Bug: CurrentEmail throws InvalidOperationException when the token has no email claim: the API returns 500
+        // instead of a 400 problem.
+        [Fact]
         public async Task SyncUser_TokenWithoutEmail_Returns400ProblemAndCreatesNothing()
         {
             var identity = new TestUser("auth-1", "jdoe", Email: null, []);

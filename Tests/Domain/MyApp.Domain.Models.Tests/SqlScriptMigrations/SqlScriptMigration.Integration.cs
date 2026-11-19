@@ -89,8 +89,9 @@ public sealed partial class SqlScriptMigrationTests
             applied.ShouldBeEmpty();
         }
 
-        [Fact(Skip = "Bug: the idempotent script wraps the .no-transaction.sql script in a DO block, where PostgreSQL " +
-                     "rejects CREATE INDEX CONCURRENTLY (cannot be executed from a function)")]
+        // Bug: the idempotent script wraps the .no-transaction.sql script in a DO block, where PostgreSQL rejects
+        // CREATE INDEX CONCURRENTLY (cannot be executed from a function)
+        [Fact]
         public async Task GenerateScript_IdempotentAppliedTwice_RunsScriptsOnce()
         {
             await using var context = ScriptedMigrationDbContext.Create(_database.ConnectionString);

@@ -33,8 +33,9 @@ public sealed partial class ApiEndpointConfigurationTests
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         }
 
-        [Theory(Skip = "Bug: an unsupported API version returns a 400 without body (no Content-Type) instead of an "
-                       + "RFC 7807 problem (application/problem+json).")]
+        // Bug: an unsupported API version returns a 400 without body (no Content-Type) instead of an RFC 7807 problem
+        // (application/problem+json).
+        [Theory]
         [InlineData(true)]
         [InlineData(false)]
         public async Task Request_UnsupportedVersion_Returns400Problem(bool inHeader)

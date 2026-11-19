@@ -22,9 +22,10 @@ public sealed partial class MiscEndpointTests
             ApiClientAuthExtensions.AntiforgeryCookie(response).ShouldNotBeNullOrEmpty();
         }
 
-        [Fact(Skip = "Bug: GetAndStoreTokens only stores the cookie token in the XSRF-TOKEN cookie; the request token is "
-                     + "never returned, so a SPA copying the cookie into X-XSRF-TOKEN sends the cookie token twice and "
-                     + "validation fails (tokens swapped). The endpoint should also return/issue tokens.RequestToken.")]
+        // Bug: GetAndStoreTokens only stores the cookie token in the XSRF-TOKEN cookie; the request token is never
+        // returned, so a SPA copying the cookie into X-XSRF-TOKEN sends the cookie token twice and validation fails
+        // (tokens swapped). The endpoint should also return/issue tokens.RequestToken.
+        [Fact]
         public async Task AntiForgeryToken_CookieSentBackAsHeader_PassesValidation()
         {
             var client = await CreateClient().AsAnonymous().WithAntiforgeryTokenAsync(Ct);

@@ -63,7 +63,9 @@ public sealed partial class AuthSyncUserTests
             (await GetByIdAsync(user.Id, CreateProvider())).Value.ShouldBeOfType<UserServiceResponse>().UserName.ShouldBe(user.UserName);
         }
 
-        [Fact(Skip = "Bug: non-deterministic race, concurrent first syncs of the same AuthId all try to insert and the losers throw DbUpdateException (unique index on auth_id) instead of returning a 409")]
+        // Bug: non-deterministic race, concurrent first syncs of the same AuthId all try to insert and the losers throw
+        // DbUpdateException (unique index on auth_id) instead of returning a 409
+        [Fact]
         public async Task ExecuteAsync_ConcurrentFirstSyncOfSameAuthId_CreatesOneUserAndReturns409ToOthers()
         {
             const int parallelCalls = 10;

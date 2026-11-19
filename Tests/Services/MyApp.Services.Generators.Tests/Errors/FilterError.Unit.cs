@@ -108,7 +108,9 @@ public sealed partial class FilterErrorTests
             { "previousStatus", "0" }
         };
 
-        [Theory(Skip = "Bug: enums are parsed with Enum.TryParse(ignoreCase: true), so a wrong case (\"archived\"), a numeric value (\"1\") and even an undefined value (\"42\") are accepted instead of returning 400")]
+        // Bug: enums are parsed with Enum.TryParse(ignoreCase: true), so a wrong case ("archived"), a numeric value
+        // ("1") and even an undefined value ("42") are accepted instead of returning 400
+        [Theory]
         [MemberData(nameof(InvalidEnumValues))]
         public void ProcessPaginationRequest_EnumValueNotADefinedName_ThrowsInvalidPaginationRequestException(string path, string value)
         {
@@ -117,7 +119,9 @@ public sealed partial class FilterErrorTests
             Should.Throw<InvalidPaginationRequestException>(() => Authors.ProcessPaginationRequest(request, out _));
         }
 
-        [Theory(Skip = "Bug: numbers are parsed with the invariant culture's default styles, which allow thousands separators: \"3,25\" is read as 325 instead of being rejected")]
+        // Bug: numbers are parsed with the invariant culture's default styles, which allow thousands separators: "3,25"
+        // is read as 325 instead of being rejected
+        [Theory]
         [InlineData("balance", "3,25")]
         [InlineData("score", "3,5")]
         public void ProcessPaginationRequest_DecimalCommaUnderAnotherCulture_ThrowsInvalidPaginationRequestException(string path, string value)

@@ -11,10 +11,6 @@ public sealed partial class OpenApiConfigurationTests
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {
-        private const string NotDeclared = "Bug: status code not declared in the OpenAPI document: ";
-
-        private const string ProblemDropped = "Bug: status code missing from the OpenAPI document, the declaration is dropped: ";
-
         [Theory]
         [InlineData("/openapi/v1.json")]
         [InlineData("/scalar")]
@@ -27,21 +23,23 @@ public sealed partial class OpenApiConfigurationTests
 
         // Every status code an endpoint can return is declared in its OpenAPI responses (.Produces...), read from the
         // document served in Development.
+        // Bug: the Produces<ProblemHttpResult>(4xx) declarations are dropped from the document, and 400 (non-GUID id),
+        // 401, 403 and 409 are never declared.
         [Theory]
         [InlineData("GET", "/users/{id}", 200)]
-        [InlineData("GET", "/users/{id}", 400, Skip = NotDeclared + "GET /users/{id} returns 400 for a non-GUID id.")]
-        [InlineData("GET", "/users/{id}", 401, Skip = NotDeclared + "GET /users/{id} requires authorization (401).")]
-        [InlineData("GET", "/users/{id}", 404, Skip = ProblemDropped + "Produces<ProblemHttpResult>(404) on GET /users/{id}.")]
+        [InlineData("GET", "/users/{id}", 400)]
+        [InlineData("GET", "/users/{id}", 401)]
+        [InlineData("GET", "/users/{id}", 404)]
         [InlineData("DELETE", "/users/{id}", 204)]
-        [InlineData("DELETE", "/users/{id}", 400, Skip = ProblemDropped + "Produces<ProblemHttpResult>(400) on DELETE /users/{id}.")]
-        [InlineData("DELETE", "/users/{id}", 401, Skip = NotDeclared + "DELETE /users/{id} requires authorization (401).")]
-        [InlineData("DELETE", "/users/{id}", 403, Skip = NotDeclared + "DELETE /users/{id} is admin-only (403).")]
-        [InlineData("DELETE", "/users/{id}", 404, Skip = ProblemDropped + "Produces<ProblemHttpResult>(404) on DELETE /users/{id}.")]
+        [InlineData("DELETE", "/users/{id}", 400)]
+        [InlineData("DELETE", "/users/{id}", 401)]
+        [InlineData("DELETE", "/users/{id}", 403)]
+        [InlineData("DELETE", "/users/{id}", 404)]
         [InlineData("POST", "/auth/sync-user", 204)]
-        [InlineData("POST", "/auth/sync-user", 400, Skip = ProblemDropped + "Produces<ProblemHttpResult>(400) on POST /auth/sync-user.")]
-        [InlineData("POST", "/auth/sync-user", 401, Skip = NotDeclared + "POST /auth/sync-user requires authorization (401).")]
-        [InlineData("POST", "/auth/sync-user", 403, Skip = NotDeclared + "POST /auth/sync-user returns 403 for a deleted user.")]
-        [InlineData("POST", "/auth/sync-user", 409, Skip = NotDeclared + "POST /auth/sync-user returns 409 to the loser of concurrent first syncs.")]
+        [InlineData("POST", "/auth/sync-user", 400)]
+        [InlineData("POST", "/auth/sync-user", 401)]
+        [InlineData("POST", "/auth/sync-user", 403)]
+        [InlineData("POST", "/auth/sync-user", 409)]
         [InlineData("GET", "/misc/anti-forgery-token", 204)]
         public async Task Document_Operation_DeclaresStatusCode(string method, string path, int statusCode)
         {
@@ -52,13 +50,12 @@ public sealed partial class OpenApiConfigurationTests
             operation.GetProperty("responses").EnumerateObject().Select(x => x.Name).ShouldContain(statusCode.ToString());
         }
 
+        // Bug: QUERY /users is missing from the OpenAPI document (the 3.1 document has no QUERY operation): the
+        // paginated list is not documented at all.
         [Theory]
-        [InlineData(200, Skip = "Bug: QUERY /users is missing from the OpenAPI document (the 3.1 document has no QUERY "
-                                + "operation): the paginated list is not documented at all.")]
-        [InlineData(400, Skip = "Bug: QUERY /users is missing from the OpenAPI document (the 3.1 document has no QUERY "
-                                + "operation): the paginated list is not documented at all.")]
-        [InlineData(401, Skip = "Bug: QUERY /users is missing from the OpenAPI document (the 3.1 document has no QUERY "
-                                + "operation): the paginated list is not documented at all.")]
+        [InlineData(200)]
+        [InlineData(400)]
+        [InlineData(401)]
         public async Task Document_QueryUsers_DeclaresStatusCode(int statusCode)
         {
             using var document = JsonDocument.Parse(await Factory.GetOpenApiDocumentAsync());

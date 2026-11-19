@@ -81,7 +81,10 @@ public sealed partial class NullValueFilterTests
             { "mentor", Operator.Equal, [Alice] }
         };
 
-        [Theory(Skip = "Bug: a null value on a navigation (\"country\") or on a non-nullable property through an optional reference (\"country.name\") is rejected with InvalidPaginationRequestException instead of targeting the rows without reference")]
+        // Bug: a null value on a navigation ("country") or on a non-nullable property through an optional reference
+        // ("country.name") is rejected with InvalidPaginationRequestException instead of targeting the rows without
+        // reference
+        [Theory]
         [MemberData(nameof(MissingReferenceByNavigation))]
         public async Task Filter_NavigationNull_TargetsRowsWithoutReference(string path, Operator op, string[] expected)
         {
