@@ -2,31 +2,67 @@ name: PR check
 
 on:
   pull_request:
+  push:
+    branches: [ main ]
 
 permissions:
   contents: read
-  packages: write
 
-concurrency: ${{ github.ref }}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  main:
+  test:
     name: Build & test the code
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
-        name: Setup dotnet 11.0.x
+      # global.json declares a runtime-style version (11.0.0) with rollForward, which setup-dotnet cannot resolve
+      # (it needs a full SDK version such as 11.0.100 to use global-json-file).
+      - uses: actions/setup-dotnet@v6
+        name: Setup dotnet 11.0.100
         with:
-          dotnet-version: 11.0.x
+          dotnet-version: 11.0.100
 
       - name: Install dependencies
         run: dotnet restore
 
       - name: Build the code
         run: dotnet build --no-restore
+
+      # Unit, integration and functional tests (Testcontainers uses the Docker engine of the runner).
+      # Coverage formats (Cobertura, OpenCover) come from Tests/testconfig.json; every file lands in TestResults/.
+      - name: Test the code
+        run: dotnet test --no-build --coverlet --report-trx
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/*.trx
+
+      - name: Upload coverage
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: |
+            TestResults/coverage.cobertura.*.xml
+            TestResults/coverage.opencover.*.xml
+
+  # Opt-in: set the repository variable CODECOV_ENABLED to "true" once the repository is linked on codecov.io.
+  codecov:
+    name: Codecov
+    needs: test
+    if: ${{ !cancelled() && vars.CODECOV_ENABLED == 'true' }}
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/reusable_codecov.yml

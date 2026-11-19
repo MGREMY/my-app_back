@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
 namespace MyApp.Domain.Specifications;
@@ -14,6 +15,7 @@ namespace MyApp.Domain.Specifications;
 ///     (for example <c>u =&gt; u.Orders.Any(o =&gt; ...)</c>) declare their own parameter instances;
 ///     replacing every parameter node would corrupt those inner lambdas.
 /// </remarks>
+[ExcludeFromCodeCoverage(Justification = "Not covered by dedicated tests: exercised through the composition specifications.")]
 internal class ParameterReplacer : ExpressionVisitor
 {
     private readonly ParameterExpression _from;
