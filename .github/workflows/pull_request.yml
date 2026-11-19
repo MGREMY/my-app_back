@@ -26,9 +26,9 @@ jobs:
       # global.json declares a runtime-style version (11.0.0) with rollForward, which setup-dotnet cannot resolve
       # (it needs a full SDK version such as 11.0.100 to use global-json-file).
       - uses: actions/setup-dotnet@v6
-        name: Setup dotnet 11.0.x
+        name: Setup dotnet 11.0.100
         with:
-          dotnet-version: 11.0.x
+          dotnet-version: 11.0.100
 
       - name: Install dependencies
         run: dotnet restore
