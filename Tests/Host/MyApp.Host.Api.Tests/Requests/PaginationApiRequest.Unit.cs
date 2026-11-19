@@ -6,7 +6,7 @@ namespace MyApp.Host.Api.Tests.Requests;
 /// <summary>Also covers the rules of <see cref="SortApiRequest"/> and <see cref="FilterApiRequest"/> (child rules).</summary>
 public sealed partial class PaginationApiRequestTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         private readonly PaginationApiRequest.Validator _validator = new();

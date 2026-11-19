@@ -5,7 +5,7 @@ namespace MyApp.Host.Api.Tests.Extension;
 
 public sealed partial class ClaimsPrincipalExtensionTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Fact]

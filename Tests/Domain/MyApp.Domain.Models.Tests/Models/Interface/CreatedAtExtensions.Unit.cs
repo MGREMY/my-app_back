@@ -5,7 +5,7 @@ namespace MyApp.Domain.Models.Tests.Models.Interface;
 
 public sealed partial class CreatedAtExtensionsTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Fact]

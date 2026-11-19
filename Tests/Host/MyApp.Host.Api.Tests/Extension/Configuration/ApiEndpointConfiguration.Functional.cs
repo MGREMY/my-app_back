@@ -7,7 +7,7 @@ namespace MyApp.Host.Api.Tests.Extension.Configuration;
 /// <summary>API versioning (<c>AddAppVersioning</c>), on an anonymous endpoint.</summary>
 public sealed partial class ApiEndpointConfigurationTests
 {
-    [FunctionalTest]
+    [Trait(TestCategory.Name, TestCategory.Functional)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {

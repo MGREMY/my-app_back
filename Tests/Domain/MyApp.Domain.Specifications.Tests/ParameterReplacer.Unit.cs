@@ -5,7 +5,7 @@ namespace MyApp.Domain.Specifications.Tests;
 
 public sealed partial class ParameterReplacerTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Fact]

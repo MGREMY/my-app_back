@@ -8,7 +8,7 @@ namespace MyApp.Services.Generators.Tests.Filters;
 /// <summary>A JSON null value targets NULL: Equal is IS NULL, NotEqual is IS NOT NULL, on every nullable type.</summary>
 public sealed partial class NullValueFilterTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

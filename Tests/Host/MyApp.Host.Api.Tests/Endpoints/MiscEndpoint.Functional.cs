@@ -6,7 +6,7 @@ namespace MyApp.Host.Api.Tests.Endpoints;
 
 public sealed partial class MiscEndpointTests
 {
-    [FunctionalTest]
+    [Trait(TestCategory.Name, TestCategory.Functional)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {

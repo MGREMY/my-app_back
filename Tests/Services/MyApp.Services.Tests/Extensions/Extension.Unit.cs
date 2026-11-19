@@ -12,7 +12,7 @@ namespace MyApp.Services.Tests.Extensions;
 public sealed partial class ExtensionTests
 {
     /// <summary>Builds the real composition; nothing connects to PostgreSQL or Redis until a query runs.</summary>
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit : IDisposable
     {
         private readonly string _dataPath = Path.Combine(Path.GetTempPath(), $"myapp-tests-{Guid.NewGuid():N}");

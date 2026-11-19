@@ -6,7 +6,7 @@ namespace MyApp.Host.Api.Tests.Helpers;
 
 public sealed partial class EndpointHelperTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Theory]

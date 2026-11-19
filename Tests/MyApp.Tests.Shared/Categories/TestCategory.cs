@@ -2,8 +2,8 @@ namespace MyApp.Tests.Shared.Categories;
 
 /// <summary>
 /// Name and values of the trait used to categorize tests (<c>--filter-trait "Category=Unit"</c>).
-/// Never use them in a raw <c>[Trait]</c>: use <see cref="UnitTestAttribute"/>, <see cref="IntegrationTestAttribute"/>
-/// or <see cref="FunctionalTestAttribute"/>.
+/// Used as <c>[Trait(TestCategory.Name, TestCategory.Unit)]</c> on the nested <c>Unit</c>, <c>Integration</c> or
+/// <c>Functional</c> class (the built-in <c>[Trait]</c> is the only form IDEs such as Rider read as a category).
 /// </summary>
 public static class TestCategory
 {

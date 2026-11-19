@@ -5,7 +5,7 @@ namespace MyApp.Host.Api.Tests.Extension.Configuration;
 
 public sealed partial class ApiOptionConfigurationTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         private static readonly string[] RequiredKeys =

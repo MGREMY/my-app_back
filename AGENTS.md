@@ -711,12 +711,13 @@ Services never return API types and endpoints never expose service types.
 - One `public sealed partial class <Class>Tests` per tested class, one file per kind of test: `<Class>.Unit.cs`,
   `<Class>.Integration.cs`, `<Class>.Functional.cs`. Each file holds a nested `public sealed class` named `Unit`,
   `Integration` or `Functional`.
-- The nested class carries the matching attribute of `MyApp.Tests.Shared.Categories`: `[UnitTest]`,
-  `[IntegrationTest]` or `[FunctionalTest]`. They add the trait `Category=Unit|Integration|Functional` (names in
-  `TestCategory`). Never write a raw `[Trait("Category", ...)]`.
+- The nested class carries the xUnit category trait built from the `TestCategory` constants
+  (`MyApp.Tests.Shared.Categories`): `[Trait(TestCategory.Name, TestCategory.Unit)]`, `TestCategory.Integration` or
+  `TestCategory.Functional`. Never write the strings by hand. The built-in `[Trait]` is used on purpose instead of
+  custom attributes: IDEs (Rider) read categories from the source and only understand `[Trait]`.
 - Every project has a convention test (`Conventions/TestConvention.Unit.cs`, calling
-  `assembly.ShouldFollowTestConventions()`). It fails when a nested class name and its attribute do not match, when a
-  category attribute is used elsewhere, when a class declares tests without category, or on a raw category trait.
+  `assembly.ShouldFollowTestConventions()`). It fails when a nested class name and its category trait do not match, when a
+  category trait is used elsewhere (assembly, method, other class), or when a class declares tests without category.
 - Test names: `Method_Context_ExpectedResult` (`ExecuteAsync_UnknownId_Returns404`,
   `Query_AsUser_ReturnsRequestedPage`). Functional tests use the HTTP method as `Method`.
 - Pass `TestContext.Current.CancellationToken` (the `Ct` property of the base classes) to async calls.
@@ -777,7 +778,7 @@ second API instance), `PaginationIntegrationTest` (test database seeded once per
    ```csharp
    public sealed partial class UserGetByIdTests
    {
-       [IntegrationTest]
+       [Trait(TestCategory.Name, TestCategory.Integration)]
        [Collection(DatabaseCollection.Name)]
        public sealed class Integration(ContainersFixture containers) : ServiceIntegrationTest(containers)
        {

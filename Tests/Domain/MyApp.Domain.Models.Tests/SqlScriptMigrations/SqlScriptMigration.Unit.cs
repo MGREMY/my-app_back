@@ -8,7 +8,7 @@ namespace MyApp.Domain.Models.Tests.SqlScriptMigrations;
 
 public sealed partial class SqlScriptMigrationTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         private static readonly string[] ExpectedBefore =

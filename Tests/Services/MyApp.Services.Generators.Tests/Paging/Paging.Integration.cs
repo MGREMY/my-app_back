@@ -10,7 +10,7 @@ namespace MyApp.Services.Generators.Tests.Paging;
 /// <summary>Paging is applied after the sorts; the count covers the filtered rows, before paging.</summary>
 public sealed partial class PagingTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

@@ -8,7 +8,7 @@ namespace MyApp.Host.Api.Tests.Extension.Configuration;
 /// <summary>Health checks of the API (<c>AddAppHealthChecks</c>) on the endpoints mapped by the service defaults.</summary>
 public sealed partial class HealthCheckConfigurationTests
 {
-    [FunctionalTest]
+    [Trait(TestCategory.Name, TestCategory.Functional)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {

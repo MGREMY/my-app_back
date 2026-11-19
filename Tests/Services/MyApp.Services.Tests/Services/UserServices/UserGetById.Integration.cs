@@ -9,7 +9,7 @@ namespace MyApp.Services.Tests.Services.UserServices;
 
 public sealed partial class UserGetByIdTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : ServiceIntegrationTest(containers)
     {

@@ -9,7 +9,7 @@ namespace MyApp.Services.Generators.Tests.Filters;
 /// <summary>Paths are dotted, case-insensitive and ignore "_"; inherited members and keyword names are usable.</summary>
 public sealed partial class PropertyPathFilterTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

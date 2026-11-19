@@ -10,7 +10,7 @@ namespace MyApp.Services.Generators.Tests.Errors;
 /// </summary>
 public sealed partial class FilterErrorTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         private static readonly IQueryable<Author> Authors = Array.Empty<Author>().AsQueryable();

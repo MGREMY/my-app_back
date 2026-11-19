@@ -12,7 +12,7 @@ namespace MyApp.Services.Tests.Services.AuthServices;
 
 public sealed partial class AuthSyncUserTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : ServiceIntegrationTest(containers)
     {

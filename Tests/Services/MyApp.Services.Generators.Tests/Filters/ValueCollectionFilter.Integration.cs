@@ -12,7 +12,7 @@ namespace MyApp.Services.Generators.Tests.Filters;
 /// </summary>
 public sealed partial class ValueCollectionFilterTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

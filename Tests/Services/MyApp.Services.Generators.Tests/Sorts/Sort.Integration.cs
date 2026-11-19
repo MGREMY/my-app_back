@@ -9,7 +9,7 @@ namespace MyApp.Services.Generators.Tests.Sorts;
 /// <summary>Sorts on scalars, chained with ThenBy, through reference navigations up to three levels.</summary>
 public sealed partial class SortTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

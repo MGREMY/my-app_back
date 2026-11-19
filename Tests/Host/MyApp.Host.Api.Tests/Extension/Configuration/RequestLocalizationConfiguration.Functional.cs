@@ -10,7 +10,7 @@ namespace MyApp.Host.Api.Tests.Extension.Configuration;
 /// <summary>Localized error messages (<c>UseAppLocalization</c>): en by default, fr supported.</summary>
 public sealed partial class RequestLocalizationConfigurationTests
 {
-    [FunctionalTest]
+    [Trait(TestCategory.Name, TestCategory.Functional)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {

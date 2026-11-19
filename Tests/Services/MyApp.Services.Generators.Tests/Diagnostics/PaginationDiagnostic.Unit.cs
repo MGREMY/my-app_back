@@ -6,7 +6,7 @@ namespace MyApp.Services.Generators.Tests.Diagnostics;
 /// <summary>Diagnostics reported by the generator: PAG001 (name collision) and PAG002 (renamed extensions class).</summary>
 public sealed partial class PaginationDiagnosticTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Fact]

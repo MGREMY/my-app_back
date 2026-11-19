@@ -7,7 +7,7 @@ namespace MyApp.Domain.Models.Tests.Models.Interface;
 public sealed partial class EntityTypeBuilderExtensionsTests
 {
     /// <summary>Reads the model built by the Npgsql provider; no database connection is opened.</summary>
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit : IDisposable
     {
         private readonly EntitiesTestDbContext _context = EntitiesTestDbContext.Create("Host=localhost;Database=unused");

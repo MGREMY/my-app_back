@@ -9,7 +9,7 @@ namespace MyApp.Domain.Models.Tests.Extensions;
 public sealed partial class ExtensionTests
 {
     /// <summary>Resolves the context without opening any connection.</summary>
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         private const string ConnectionString = "Host=localhost;Database=unused";

@@ -8,7 +8,7 @@ namespace MyApp.Services.Generators.Tests.Filters;
 /// <summary>bool, enums and Guid: Equal and NotEqual, on the non-nullable property and on its nullable twin.</summary>
 public sealed partial class EquatableFilterTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

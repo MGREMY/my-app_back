@@ -5,7 +5,7 @@ namespace MyApp.Domain.Specifications.Tests.UserSpecifications;
 
 public sealed partial class UserHasAuthIdSpecTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Fact]

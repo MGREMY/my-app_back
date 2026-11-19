@@ -6,7 +6,7 @@ namespace MyApp.Domain.Specifications.Tests.Extensions;
 
 public sealed partial class IQueryableExtensionsTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         private static readonly Item[] Items = [new(-2), new(-1), new(1), new(2), new(4)];

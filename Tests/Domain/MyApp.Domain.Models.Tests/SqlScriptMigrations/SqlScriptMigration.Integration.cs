@@ -9,7 +9,7 @@ namespace MyApp.Domain.Models.Tests.SqlScriptMigrations;
 public sealed partial class SqlScriptMigrationTests
 {
     /// <summary>Each test applies migrations to its own empty database (emptying tables is not enough here).</summary>
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     public sealed class Integration(ContainersFixture containers) : IAsyncLifetime
     {
         private TemporaryDatabase _database = null!;

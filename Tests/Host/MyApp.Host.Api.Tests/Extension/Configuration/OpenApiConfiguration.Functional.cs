@@ -6,7 +6,7 @@ namespace MyApp.Host.Api.Tests.Extension.Configuration;
 
 public sealed partial class OpenApiConfigurationTests
 {
-    [FunctionalTest]
+    [Trait(TestCategory.Name, TestCategory.Functional)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {

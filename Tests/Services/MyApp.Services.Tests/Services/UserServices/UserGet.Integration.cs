@@ -10,7 +10,7 @@ namespace MyApp.Services.Tests.Services.UserServices;
 public sealed partial class UserGetTests
 {
     /// <summary>Pagination basics through the service; the filter/sort matrix belongs to the generator tests.</summary>
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : ServiceIntegrationTest(containers)
     {

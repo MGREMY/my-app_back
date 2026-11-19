@@ -4,7 +4,7 @@ namespace MyApp.Domain.Models.Tests.Conventions;
 
 public sealed partial class TestConventionTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Fact]

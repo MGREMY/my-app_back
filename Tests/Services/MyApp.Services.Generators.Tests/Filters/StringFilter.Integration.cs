@@ -11,7 +11,7 @@ namespace MyApp.Services.Generators.Tests.Filters;
 /// </summary>
 public sealed partial class StringFilterTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

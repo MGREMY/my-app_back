@@ -5,7 +5,7 @@ namespace MyApp.Host.Api.Tests.Requests;
 /// <summary>Its validation rules are child rules of <see cref="PaginationApiRequest.Validator"/>.</summary>
 public sealed partial class SortApiRequestTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         [Theory]

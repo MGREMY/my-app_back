@@ -8,7 +8,7 @@ namespace MyApp.Services.Tests.Services;
 public sealed partial class FileStorageServiceTests
 {
     /// <summary>Works in a temporary folder; the service is internal, so it is resolved through AddMyAppServices.</summary>
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), $"myapp-tests-{Guid.NewGuid():N}");

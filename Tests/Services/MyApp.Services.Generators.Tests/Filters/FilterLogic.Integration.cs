@@ -8,7 +8,7 @@ namespace MyApp.Services.Generators.Tests.Filters;
 /// <summary>Filters are combined left to right without precedence; nested filters form a group.</summary>
 public sealed partial class FilterLogicTests
 {
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : PaginationIntegrationTest(containers)
     {

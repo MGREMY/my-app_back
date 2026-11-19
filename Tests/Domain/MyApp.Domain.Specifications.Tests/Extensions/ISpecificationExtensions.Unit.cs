@@ -5,7 +5,7 @@ namespace MyApp.Domain.Specifications.Tests.Extensions;
 
 public sealed partial class ISpecificationExtensionsTests
 {
-    [UnitTest]
+    [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
         private static readonly ISpecification<Item> Positive = new ItemIsPositiveSpec();

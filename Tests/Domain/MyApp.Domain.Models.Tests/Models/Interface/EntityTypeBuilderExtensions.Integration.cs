@@ -10,7 +10,7 @@ namespace MyApp.Domain.Models.Tests.Models.Interface;
 public sealed partial class EntityTypeBuilderExtensionsTests
 {
     /// <summary>Only class of this assembly using the container default database: no parallel reset conflict.</summary>
-    [IntegrationTest]
+    [Trait(TestCategory.Name, TestCategory.Integration)]
     public sealed class Integration(ContainersFixture containers) : IAsyncLifetime
     {
         private EntitiesTestDbContext _context = null!;
