@@ -239,7 +239,7 @@ not match (like SQL `<>`), including inside `$all` and `$none`.
 
 ### Values
 
-- Supported types: strings, `bool`, `int`, `long`, `decimal`, `double`, enums (by name), `Guid`, `DateTime`,
+- Supported types: strings, `bool`, `int`, `long`, `decimal`, `double`, enums (by member name, case-sensitive), `Guid`, `DateTime`,
   `DateTimeOffset`, `DateOnly` (ISO 8601) and their nullable versions, and collections of these types.
 - Only a JSON `null` (`"value": null`) targets null values: with `Equal` it matches rows where the property is null,
   with `NotEqual` rows where it is not null. Other operators need a value.
