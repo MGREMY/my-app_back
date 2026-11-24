@@ -95,7 +95,7 @@ public sealed partial class AuthEndpointTests
             using var response = await CreateClient().AsUser(TestUsers.Dave).PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-            await ReadServiceErrorAsync(response, ServiceConstant.Error.user_already_deleted);
+            await ReadProblemWithCodeAsync(response, ServiceConstant.Error.user_already_deleted);
         }
 
         [Fact]

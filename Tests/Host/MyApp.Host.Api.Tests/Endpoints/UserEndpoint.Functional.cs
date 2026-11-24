@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Net;
+using System.Text.Json;
 using MyApp.Host.Api.Requests;
 using MyApp.Host.Api.Tests.TestInfrastructure;
 using MyApp.Services;
@@ -16,20 +17,20 @@ public sealed partial class UserEndpointTests
     {
         private const string Route = "/users";
 
-        // One row per validation rule of PaginationApiRequest (and its child sort and filter requests).
-        public static IEnumerable<TheoryDataRow<PaginationApiRequest, string>> InvalidPaginations =>
+        // One row per validation rule of PaginationApiRequest (and of its sort and filter requests): JSON pointer and code.
+        public static IEnumerable<TheoryDataRow<PaginationApiRequest, string, string>> InvalidPaginations =>
         [
-            new(new PaginationApiRequest(PageNumber: 0), "PageNumber"),
-            new(new PaginationApiRequest(PageSize: 0), "PageSize"),
+            new(new PaginationApiRequest(PageNumber: 0), "/pageNumber", "greater_than"),
+            new(new PaginationApiRequest(PageSize: 0), "/pageSize", "greater_than"),
             new(new PaginationApiRequest(SortRequests: [new SortApiRequest("id", false), new SortApiRequest(" ", false)]),
-                "SortRequests[1].PropertyName"),
-            new(new PaginationApiRequest(FilterRequests: [InvalidFilter(" ")]), "FilterRequests[0].PropertyName"),
+                "/sortRequests/1/propertyName", "required"),
+            new(new PaginationApiRequest(FilterRequests: [InvalidFilter(" ")]), "/filterRequests/0/propertyName", "required"),
             new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", @operator: (FilterApiRequest.Operator)99)]),
-                "FilterRequests[0].FilterOperator"),
+                "/filterRequests/0/filterOperator", "invalid_value"),
             new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", logic: (FilterApiRequest.Logic)2)]),
-                "FilterRequests[0].FilterLogic"),
+                "/filterRequests/0/filterLogic", "invalid_value"),
             new(new PaginationApiRequest(FilterRequests: [InvalidFilter("userName", nested: [InvalidFilter("email"), InvalidFilter("")])]),
-                "FilterRequests[0].Filters[1].PropertyName")
+                "/filterRequests/0/filters/1/propertyName", "required")
         ];
 
         private static readonly SortApiRequest[] ByUserName = [new("userName", false)];
@@ -73,14 +74,25 @@ public sealed partial class UserEndpointTests
 
         [Theory]
         [MemberData(nameof(InvalidPaginations))]
-        public async Task Query_InvalidPagination_Returns400ValidationProblem(PaginationApiRequest request, string errorKey)
+        public async Task Query_InvalidPagination_Returns400ValidationProblem(PaginationApiRequest request, string pointer, string code)
         {
             using var response = await CreateClient().AsUser(TestUsers.Alice).QueryAsJsonAsync(Route, request, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-            var problem = await ReadValidationProblemAsync(response);
-            problem.Title.ShouldBe("Validation failed");
-            problem.Errors.Keys.ShouldBe([errorKey]);
+            var error = (await ReadValidationErrorsAsync(response)).ShouldHaveSingleItem();
+            error.Pointer.ShouldBe(pointer);
+            error.Code.ShouldBe(code);
+        }
+
+        [Fact]
+        public async Task Query_InvalidPageNumber_ReturnsRuleParamsWithoutSubmittedValue()
+        {
+            using var response = await CreateClient().AsUser(TestUsers.Alice).QueryAsJsonAsync(Route, new PaginationApiRequest(PageNumber: -3), Ct);
+
+            var error = (await ReadValidationErrorsAsync(response)).ShouldHaveSingleItem();
+            var @params = error.Params.ShouldNotBeNull();
+            @params.Keys.ShouldBe(["comparisonValue"]);
+            @params["comparisonValue"].ShouldBeOfType<JsonElement>().GetInt32().ShouldBe(0);
         }
 
         [Fact]
@@ -92,8 +104,7 @@ public sealed partial class UserEndpointTests
             using var response = await CreateClient().AsUser(TestUsers.Alice).QueryAsJsonAsync(Route, request, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-            var problem = await ReadProblemAsync(response);
-            problem.Title.ShouldBe("Invalid pagination request");
+            var problem = await ReadProblemWithCodeAsync(response, ApiConstant.Error.invalid_pagination_request);
             problem.Detail.ShouldNotBeNullOrWhiteSpace();
         }
 
@@ -130,7 +141,7 @@ public sealed partial class UserEndpointTests
             using var response = await CreateClient().AsUser(TestUsers.Alice).GetAsync(ById(Guid.NewGuid()), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-            (await ReadServiceErrorAsync(response, ServiceConstant.Error.user_not_found)).Status.ShouldBe(404);
+            (await ReadProblemWithCodeAsync(response, ServiceConstant.Error.user_not_found)).Status.ShouldBe(404);
         }
 
         [Fact]
@@ -177,7 +188,7 @@ public sealed partial class UserEndpointTests
             using var response = await CreateClient().AsAdmin(TestUsers.Alice).DeleteAsync(ById(Guid.NewGuid()), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-            await ReadServiceErrorAsync(response, ServiceConstant.Error.user_not_found);
+            await ReadProblemWithCodeAsync(response, ServiceConstant.Error.user_not_found);
             (await WithDbAsync(db => db.Users.CountAsync(Ct))).ShouldBe(TestUsers.Active.Count);
         }
 
@@ -189,7 +200,7 @@ public sealed partial class UserEndpointTests
             using var response = await CreateClient().AsAdmin(TestUsers.Alice).DeleteAsync(ById(TestUsers.Dave.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-            await ReadServiceErrorAsync(response, ServiceConstant.Error.user_not_found);
+            await ReadProblemWithCodeAsync(response, ServiceConstant.Error.user_not_found);
         }
 
         [Fact]

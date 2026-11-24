@@ -1,3 +1,4 @@
+using FluentValidation;
 using MyApp.Services.Abstractions.Requests;
 
 namespace MyApp.Host.Api.Requests;
@@ -37,5 +38,19 @@ public sealed record FilterApiRequest(
             Value,
             (FilterServiceRequest.Logic)FilterLogic,
             Filters?.Select(x => x.ToServiceRequest()) ?? []);
+    }
+
+    public sealed class Validator : AbstractValidator<FilterApiRequest>
+    {
+        public Validator()
+        {
+            // Value is nullable on purpose: a JSON null means "IS NULL" / "IS NOT NULL".
+            // Whether null is allowed depends on the property and the operator: checked by the generated code.
+
+            RuleFor(x => x.PropertyName).NotEmpty();
+            RuleFor(x => x.FilterOperator).IsInEnum();
+            RuleFor(x => x.FilterLogic).IsInEnum();
+            RuleForEach(x => x.Filters).SetValidator(this);
+        }
     }
 }

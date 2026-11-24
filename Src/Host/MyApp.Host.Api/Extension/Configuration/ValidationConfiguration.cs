@@ -13,6 +13,8 @@ public static class ValidationConfiguration
         /// </summary>
         public TBuilder AddAppValidation()
         {
+            ValidatorOptions.Global.LanguageManager.Enabled = false;
+
             builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
             return builder;

@@ -22,35 +22,10 @@ public sealed record PaginationApiRequest(
     {
         public Validator()
         {
-            RuleFor(x => x.PageNumber)
-                .GreaterThan(0);
-            RuleFor(x => x.PageSize)
-                .GreaterThan(0);
-
-            RuleFor(x => x.SortRequests)
-                .ForEach(sortRequests => sortRequests.ChildRules(sort =>
-                {
-                    sort.RuleFor(x => x.PropertyName)
-                        .NotEmpty();
-                    sort.RuleFor(x => x.IsDescending)
-                        .NotNull();
-                }))
-                .When(x => x.SortRequests?.Any() ?? false);
-
-            RuleFor(x => x.FilterRequests)
-                .NotEmpty()
-                .ForEach(filterRequests => filterRequests.ChildRules(filter =>
-                {
-                    filter.RuleFor(x => x.PropertyName)
-                        .NotEmpty();
-                    filter.RuleFor(x => x.FilterOperator)
-                        .IsInEnum();
-                    // Value is nullable on purpose: a JSON null means "IS NULL" / "IS NOT NULL".
-                    // Whether null is allowed depends on the property and the operator: checked by the generated code.
-                    filter.RuleFor(x => x.FilterLogic)
-                        .IsInEnum();
-                }))
-                .When(x => x.FilterRequests?.Any() ?? false);
+            RuleFor(x => x.PageNumber).GreaterThan(0);
+            RuleFor(x => x.PageSize).GreaterThan(0);
+            RuleForEach(x => x.SortRequests).SetValidator(new SortApiRequest.Validator());
+            RuleForEach(x => x.FilterRequests).SetValidator(new FilterApiRequest.Validator());
         }
     }
 }

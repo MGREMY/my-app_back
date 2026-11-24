@@ -578,7 +578,8 @@ Services return a kind of error, never an HTTP status. `ServiceErrorResponse` is
 
 `401` is not a service error: authentication answers it before any service runs.
 
-1. Add the code in `ServiceConstant.Error` (`public const string my_error = nameof(my_error);`, snake_case).
+1. Add the code in `ServiceConstant.Error` (`public const string my_error = nameof(my_error);`, snake_case). Codes
+   produced by the host itself (`validation_failed`, `invalid_pagination_request`) are in `ApiConstant.Error`.
 2. Return it through the factory of its kind. Use the factory, not `new NotFoundError(...)`: C# applies a single
    user-defined conversion, so a case of the nested union does not convert to `ServiceResponse` by itself.
 
@@ -676,7 +677,39 @@ API contracts are separate from service contracts and live in `Host.Api`:
   (added by `NewAppVersionedApi`) validates every handler argument that has a validator before the handler runs.
   Invalid input returns a `400` validation problem (`EndpointHelper.FormatValidationErrorResponse`). Never inject
   `IValidator<T>` nor call `Validate` in a handler.
-- `Responses/<Name>ApiResponse.cs`: `sealed record` with a constructor taking the service response.
+- A validator of a nested request (`SortApiRequest`, `FilterApiRequest`) is nested in that request and applied with
+  `RuleForEach(...).SetValidator(...)`; a recursive request validates its children with `SetValidator(this)`.
+- `Responses/<Name>ApiResponse.cs`: `sealed record` with a constructor taking the service response. Exception:
+  `ValidationErrorApiResponse`, built by the host from a validation failure.
+
+A validation problem has the code `validation_failed` and one item per invalid field in `errors`:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Bad Request",
+  "status": 400,
+  "code": "validation_failed",
+  "errors": [
+    { "pointer": "/pageNumber", "code": "greater_than", "params": { "comparisonValue": 0 },
+      "detail": "'Page Number' must be greater than '0'." },
+    { "pointer": "/filterRequests/0/filters/1/propertyName", "code": "required",
+      "detail": "'Property Name' must not be empty." }
+  ]
+}
+```
+
+- `pointer`: the invalid field as an RFC 6901 JSON pointer on the request body, in camelCase (`""` for a rule on the
+  whole request).
+- `code`: built-in FluentValidation codes are mapped to API codes in `EndpointHelper.ValidatorCodes`
+  (`NotEmptyValidator` → `required`, `GreaterThanValidator` → `greater_than`...); an unmapped built-in validator
+  gets `invalid`. A code set with `.WithErrorCode(...)` is returned as is: give business rules their own code
+  (constant in `ApiConstant.Error`) and map a built-in validator when a rule starts using it.
+- `params`: the placeholder values of the rule (`comparisonValue`, `maxLength`...), in camelCase. The ones describing
+  the property itself are removed (`PropertyName`, `PropertyValue`, `PropertyPath`, `CollectionIndex`,
+  `ComparisonProperty`): the submitted value is never sent back.
+- `detail`: the FluentValidation message, always in English (`LanguageManager` disabled in `AddAppValidation()`). It
+  is a debugging aid: clients display a message built from `code` and `params`.
 
 Services never return API types and endpoints never expose service types.
 
@@ -702,9 +735,11 @@ Services never return API types and endpoints never expose service types.
   adds `instance` (the request path) and `traceId` to every problem, and `UseAppProblemDetails()`
   (`UseStatusCodePages`) gives one to the responses sent without body (`401` / `403` from authentication, unknown
   routes). Unhandled exceptions are logged and returned as `500`. An unparsable route value (a non-GUID `id`) is a
-  `400` problem. Validation errors are returned as `400` validation problems (section 6.10), invalid pagination
-  requests (`InvalidPaginationRequestException`) as `400` problems (section 6.5). Business errors go through
-  `ServiceErrorResponse` and are returned by `EndpointHelper.FormatErrorResponse` (section 6.7).
+  `400` problem. Validation errors are returned as `400` validation problems (`validation_failed`, section 6.10),
+  invalid pagination requests (`InvalidPaginationRequestException`) as `400` problems with the code
+  `invalid_pagination_request` (section 6.5). Business errors go through `ServiceErrorResponse` and are returned by
+  `EndpointHelper.FormatErrorResponse` (section 6.7). Problems keep the default `title` of their status: the `code`
+  identifies the error.
 - **Culture**: the API is not localized. Values are parsed and formatted with the invariant culture, and messages
   (validation messages included) are not meant to be displayed: clients rely on error codes.
 - **Soft deletion**: entities implementing `ISoftDeletable` are filtered by the named filter
@@ -854,8 +889,9 @@ run in parallel.
 Base classes: `ServiceIntegrationTest` (real composition, one service provider per test, `CreateProvider()` for a
 second API instance, optionally with test-only services such as EF Core interceptors: `ReadBarrierInterceptor` makes
 concurrent calls read the same state before any of them writes, so a race happens on every run), `PaginationIntegrationTest` (test database seeded once per run: read only, never write to it),
-`ApiFunctionalTest` (API host, `CreateClient()`, `SeedUsersAsync`, problem readers: `ReadServiceErrorAsync(response,
-code)` also checks the `code` of a service error). Service tests reach the kind of error with
+`ApiFunctionalTest` (API host, `CreateClient()`, `SeedUsersAsync`, problem readers: `ReadProblemWithCodeAsync(response,
+code)` also checks the `code` of the problem, `ReadValidationErrorsAsync(response)` returns the `errors` of a
+validation problem). Service tests reach the kind of error with
 `result.Value.ShouldBeServiceError<NotFoundError>()` (`ServiceResponseAssertions`).
 
 Test data: a test that needs users calls `SeedUsersAsync()`, which inserts the whole `TestUsers` dataset
