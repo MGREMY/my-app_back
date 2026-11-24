@@ -15,4 +15,18 @@
         <Project Path="Src\Services\MyApp.Services.Generators\MyApp.Services.Generators.csproj" />
         <Project Path="Src\Services\MyApp.Services\MyApp.Services.csproj" />
     </Folder>
+    <Folder Name="/Tests/">
+        <Project Path="Tests\MyApp.Tests.Shared\MyApp.Tests.Shared.csproj" />
+    </Folder>
+    <Folder Name="/Tests/Domain/">
+        <Project Path="Tests\Domain\MyApp.Domain.Models.Tests\MyApp.Domain.Models.Tests.csproj" />
+        <Project Path="Tests\Domain\MyApp.Domain.Specifications.Tests\MyApp.Domain.Specifications.Tests.csproj" />
+    </Folder>
+    <Folder Name="/Tests/Host/">
+        <Project Path="Tests\Host\MyApp.Host.Api.Tests\MyApp.Host.Api.Tests.csproj" />
+    </Folder>
+    <Folder Name="/Tests/Services/">
+        <Project Path="Tests\Services\MyApp.Services.Generators.Tests\MyApp.Services.Generators.Tests.csproj" />
+        <Project Path="Tests\Services\MyApp.Services.Tests\MyApp.Services.Tests.csproj" />
+    </Folder>
 </Solution>

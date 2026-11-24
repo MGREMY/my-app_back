@@ -12,7 +12,7 @@ public static class HealthCheckConfiguration
             builder.Services
                 .AddHealthChecks()
                 .AddDiskStorageHealthCheck(options => { options.CheckAllDrives = true; }, "system:diskStorage")
-                .AddNpgSql(config.Database.ConnectionString, name: "services:PostgresSQL")
+                .AddNpgSql(config.Database.ConnectionString, name: "services:PostgreSQL")
                 .AddRedis(config.Cache.ConnectionString, "services:Redis");
 
             return builder;

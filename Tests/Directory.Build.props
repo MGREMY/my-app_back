@@ -1,0 +1,40 @@
+<Project>
+
+    <!-- Settings shared by every project under Tests/ (there is no Directory.Build.props above this folder) -->
+    <PropertyGroup>
+        <TargetFramework>net11.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>default</LangVersion>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <IsPublishable>false</IsPublishable>
+    </PropertyGroup>
+
+    <!-- Test projects (*.Tests): xUnit v3 on Microsoft.Testing.Platform v2, run by "dotnet test" (see global.json) -->
+    <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+        <OutputType>Exe</OutputType>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+        <PackageReference Include="xunit.v3" Version="4.0.3"/>
+        <PackageReference Include="Microsoft.Testing.Platform" Version="2.5.3"/>
+        <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" Version="2.5.3"/>
+        <PackageReference Include="coverlet.MTP" Version="10.1.1"/>
+        <PackageReference Include="Shouldly" Version="4.3.0"/>
+        <PackageReference Include="NSubstitute" Version="6.2.0"/>
+
+        <ProjectReference Include="$(MSBuildThisFileDirectory)MyApp.Tests.Shared/MyApp.Tests.Shared.csproj"/>
+
+        <Using Include="Xunit"/>
+        <Using Include="Shouldly"/>
+        <Using Include="MyApp.Tests.Shared.Categories"/>
+
+        <!-- Every test project runs in en-US (module initializer compiled into each test assembly) -->
+        <Compile Include="$(MSBuildThisFileDirectory)TestCulture.cs" Link="TestCulture.cs"/>
+
+        <!-- coverlet.MTP settings (authoritative include, see testconfig.json) -->
+        <None Include="$(MSBuildThisFileDirectory)testconfig.json" Link="testconfig.json" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
+</Project>
