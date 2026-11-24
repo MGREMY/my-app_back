@@ -86,7 +86,8 @@ public static partial class ExceptionHandlerConfiguration
                                         reason,
                                         exHandlerFeature.Error.StackTrace);
 
-                                await TypedResults.InternalServerError().ExecuteAsync(ctx);
+                                await TypedResults.Problem(statusCode: StatusCodes.Status500InternalServerError)
+                                    .ExecuteAsync(ctx);
                                 break;
                             }
                         }

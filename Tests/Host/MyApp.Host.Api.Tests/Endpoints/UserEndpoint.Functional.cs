@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Net;
 using MyApp.Host.Api.Requests;
 using MyApp.Host.Api.Tests.TestInfrastructure;
-using MyApp.Services.Resources;
+using MyApp.Services;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Data;
 
@@ -130,9 +130,7 @@ public sealed partial class UserEndpointTests
             using var response = await CreateClient().AsUser(TestUsers.Alice).GetAsync(ById(Guid.NewGuid()), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-            var problem = await ReadProblemAsync(response);
-            problem.Status.ShouldBe(404);
-            problem.Title.ShouldBe(SharedResource.user_not_found);
+            (await ReadServiceErrorAsync(response, ServiceConstant.Error.user_not_found)).Status.ShouldBe(404);
         }
 
         [Fact]
@@ -179,19 +177,19 @@ public sealed partial class UserEndpointTests
             using var response = await CreateClient().AsAdmin(TestUsers.Alice).DeleteAsync(ById(Guid.NewGuid()), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-            (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_not_found);
+            await ReadServiceErrorAsync(response, ServiceConstant.Error.user_not_found);
             (await WithDbAsync(db => db.Users.CountAsync(Ct))).ShouldBe(TestUsers.Active.Count);
         }
 
         [Fact]
-        public async Task DeleteById_AlreadyDeletedUser_Returns400AlreadyDeletedProblem()
+        public async Task DeleteById_AlreadyDeletedUser_Returns404Problem()
         {
             await SeedUsersAsync();
 
             using var response = await CreateClient().AsAdmin(TestUsers.Alice).DeleteAsync(ById(TestUsers.Dave.Id), Ct);
 
-            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-            (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_already_deleted);
+            response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+            await ReadServiceErrorAsync(response, ServiceConstant.Error.user_not_found);
         }
 
         [Fact]

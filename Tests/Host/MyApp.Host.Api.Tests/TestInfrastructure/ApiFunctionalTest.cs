@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
@@ -113,6 +114,18 @@ public abstract class ApiFunctionalTest(ContainersFixture containers, ApiFactory
         response.Content.Headers.ContentType.ShouldNotBeNull().MediaType.ShouldBe("application/problem+json");
 
         return (await response.Content.ReadFromJsonAsync<ProblemDetails>(Ct)).ShouldNotBeNull();
+    }
+
+    /// <summary>Reads the problem of a service error and checks that it identifies <paramref name="code"/>.</summary>
+    /// <param name="response">Response of the call.</param>
+    /// <param name="code">Expected error code (<c>ServiceConstant.Error</c>).</param>
+    protected static async Task<ProblemDetails> ReadServiceErrorAsync(HttpResponseMessage response, string code)
+    {
+        var problem = await ReadProblemAsync(response);
+        problem.Extensions.ShouldContainKey("code");
+        problem.Extensions["code"].ShouldBeOfType<JsonElement>().GetString().ShouldBe(code);
+
+        return problem;
     }
 
     protected static async Task<HttpValidationProblemDetails> ReadValidationProblemAsync(HttpResponseMessage response)

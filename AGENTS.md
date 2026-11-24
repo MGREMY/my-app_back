@@ -170,7 +170,7 @@ exposes C# 14+ `extension` blocks:
 - `UseAppXxx()` on `WebApplication`, returning `WebApplication`.
 
 Both return the same type they extend so `Program.cs` stays a single fluent chain. Framework methods that return
-`IApplicationBuilder` (for example `UseRequestLocalization`) must be wrapped in a `UseAppXxx()` extension to keep the
+`IApplicationBuilder` (for example `UseStatusCodePages`) must be wrapped in a `UseAppXxx()` extension to keep the
 chain typed.
 
 Extensions that need settings read them themselves with `builder.GetAppConfig()` inside `AddAppXxx()`. Do not create
@@ -178,8 +178,8 @@ per-extension option classes nor pass settings from `Program.cs` through an `Act
 `ApiOption` (section 4). When a `UseAppXxx()` needs a setting, resolve it during `AddAppXxx()` instead (for example
 CORS registers a default policy with the configured origins, and `UseAppCors()` only calls `UseCors()`).
 
-Middleware order in `Program.cs` matters: CORS, localization, exception handler, authentication, authorization,
-OpenAPI, then endpoints.
+Middleware order in `Program.cs` matters: CORS, exception handler, problem details, authentication, authorization,
+OpenAPI, then endpoints. Problem details run before authentication so that its `401` / `403` get a body (section 7).
 
 ### 5.2 Layer registration
 
@@ -189,7 +189,7 @@ Each layer exposes its own registration extension. The host composes them:
 builder.Services
     .AddMyAppPersistence(config.Database.ConnectionString)   // Domain.Models: DbContext pool, Npgsql
     .AddMyAppCache(config.Cache.ConnectionString)            // Services: HybridCache + Redis
-    .AddMyAppServices(options => { ... });                   // Services: use cases, localization, options
+    .AddMyAppServices(options => { ... });                   // Services: use cases, options
 ```
 
 A layer never registers infrastructure that belongs to another layer.
@@ -379,11 +379,12 @@ One service is one use case. Naming: `<Entity><Action>` (`UserGetById`, `UserDel
 
 2. Implementation in `Src/Services/MyApp.Services/Services/<Domain>Services/<Entity><Action>.cs`:
    - `public sealed class`, constructor injection into `private readonly` fields;
-   - inject `AppDbContext`, `HybridCache`, `IStringLocalizer<SharedResource>` as needed.
+   - inject `AppDbContext`, `HybridCache` as needed.
 3. Return values use the `ServiceResponse` unions (`Services.Abstractions/ServiceResponse.cs`):
    - success without payload: `new ServiceSuccessResponse()`;
    - success with payload: the `TResult` value itself (implicit conversion);
-   - error: `new ServiceErrorResponse(<httpStatusCode>, _localizer.GetString(ServiceConstant.Error.<key>))`.
+   - error: a factory of `ServiceErrorResponse` (section 6.7), for example
+     `ServiceErrorResponse.NotFound(ServiceConstant.Error.user_not_found)`.
 4. Output types follow the same logic as inputs:
    - an output specific to one service is declared as a nested record named `Response` in its interface:
 
@@ -560,14 +561,53 @@ internal static readonly Func<User, UserServiceResponse> ToUserServiceResponseFu
 - Use the `Expression` in `IQueryable.Select(...)` so EF Core only selects the needed columns.
 - Use the compiled `Func` on in-memory objects.
 
-### 6.7 Add an error message
+### 6.7 Add an error
 
-1. Add the key in `ServiceConstant.Error` (`public const string my_error = nameof(my_error);`, snake_case).
-2. Add the translation in `Src/Services/MyApp.Services/Resources/SharedResource.resx` (English) and
-   `SharedResource.fr.resx` (French).
-3. Return it with `_localizer.GetString(ServiceConstant.Error.my_error)`.
+The API returns no translated message: an error is a stable **code** with optional **parameters**, and the client
+builds the message it displays from them.
 
-Supported cultures: `en` (default) and `fr`.
+Services return a kind of error, never an HTTP status. `ServiceErrorResponse` is a union of the kinds, nested in the
+`ServiceResponse` unions, and the host maps each kind to its status:
+
+| Factory                         | Case             | Status |
+|---------------------------------|------------------|--------|
+| `ServiceErrorResponse.NotFound` | `NotFoundError`  | `404`  |
+| `ServiceErrorResponse.Conflict` | `ConflictError`  | `409`  |
+| `ServiceErrorResponse.Forbidden`| `ForbiddenError` | `403`  |
+| `ServiceErrorResponse.Invalid`  | `InvalidError`   | `400`  |
+
+`401` is not a service error: authentication answers it before any service runs.
+
+1. Add the code in `ServiceConstant.Error` (`public const string my_error = nameof(my_error);`, snake_case).
+2. Return it through the factory of its kind. Use the factory, not `new NotFoundError(...)`: C# applies a single
+   user-defined conversion, so a case of the nested union does not convert to `ServiceResponse` by itself.
+
+   ```csharp
+   return ServiceErrorResponse.NotFound(ServiceConstant.Error.user_not_found,
+       new Dictionary<string, object?> { [nameof(User.Id)] = id });
+   ```
+
+3. Parameter names are the C# ones (`nameof(...)`, PascalCase): the host converts them to camelCase. Once published,
+   a code and its parameter names are part of the API contract: renaming the property behind a `nameof` renames the
+   parameter for the clients.
+
+`EndpointHelper.FormatErrorResponse` returns an RFC 9457 problem with the code and the parameters as extensions; the
+`type` is left to ASP.NET (the RFC 9110 link of the status), the client identifies the error by its `code`:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "Not Found",
+  "status": 404,
+  "instance": "/users/0193...",
+  "code": "user_not_found",
+  "params": { "id": "0193..." },
+  "traceId": "00-4bf92f..."
+}
+```
+
+A new kind of error is a new case of the union and a new line in the `switch` of `FormatErrorResponse`, which does not
+compile until the kind is mapped.
 
 ### 6.8 Cache
 
@@ -651,18 +691,22 @@ Services never return API types and endpoints never expose service types.
   gets `409`. A soft-deleted user gets `403`, on which the client signs out; `sync-user` is the only route returning
   it for now.
 - **Users**: every authenticated user can list users and read any of them (rights are deliberately minimal, so that
-  projects built on the template add their own). Admins delete users, never their own account (`400`); deleting an
-  already deleted user returns `400` (`user_already_deleted`).
+  projects built on the template add their own). Admins delete users, never their own account (`400`). A soft-deleted
+  user is hidden like an unknown one: reading or deleting it returns `404` (`user_not_found`).
 - **Authorization**: policies are declared in `AuthorizationConfiguration`, names and roles in `ApiConstant`.
 - **Antiforgery**: header `X-XSRF-TOKEN`, cookie `XSRF-TOKEN`, token issued by `GET /misc/anti-forgery-token`.
   Routes do not validate it yet: the BFF will handle it.
 - **CORS**: default policy registered in `AddAppCors()`, allowed origins from `Api:Cors:Origins`, credentials
   allowed, `Content-Disposition` exposed.
-- **Errors**: unhandled exceptions are logged and returned as `500`. An unparsable route value (a non-GUID `id`) is a `400`
-  problem. Validation errors are returned as `400`
-  validation problems (section 6.10), invalid pagination requests (`InvalidPaginationRequestException`) as `400`
-  problems (section 6.5). Business errors go through
-  `ServiceErrorResponse` and are returned as RFC 7807 problem details by `EndpointHelper.FormatErrorResponse`.
+- **Errors**: every error response is an RFC 9457 problem (`application/problem+json`). `AddAppProblemDetails()`
+  adds `instance` (the request path) and `traceId` to every problem, and `UseAppProblemDetails()`
+  (`UseStatusCodePages`) gives one to the responses sent without body (`401` / `403` from authentication, unknown
+  routes). Unhandled exceptions are logged and returned as `500`. An unparsable route value (a non-GUID `id`) is a
+  `400` problem. Validation errors are returned as `400` validation problems (section 6.10), invalid pagination
+  requests (`InvalidPaginationRequestException`) as `400` problems (section 6.5). Business errors go through
+  `ServiceErrorResponse` and are returned by `EndpointHelper.FormatErrorResponse` (section 6.7).
+- **Culture**: the API is not localized. Values are parsed and formatted with the invariant culture, and messages
+  (validation messages included) are not meant to be displayed: clients rely on error codes.
 - **Soft deletion**: entities implementing `ISoftDeletable` are filtered by the named filter
   `ModelConstant.SoftDeletionFilter`. To read deleted rows, use
   `.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])` and explain why in a comment.
@@ -753,7 +797,7 @@ Services never return API types and endpoints never expose service types.
 - Every project has a convention test (`Conventions/TestConvention.Unit.cs`, calling
   `assembly.ShouldFollowTestConventions()`). It fails when a nested class name and its category trait do not match, when a
   category trait is used elsewhere (assembly, method, other class), or when a class declares tests without category.
-- Test names: `Method_Context_ExpectedResult` (`ExecuteAsync_UnknownId_Returns404`,
+- Test names: `Method_Context_ExpectedResult` (`ExecuteAsync_UnknownId_ReturnsNotFound`,
   `Query_AsUser_ReturnsRequestedPage`). Functional tests use the HTTP method as `Method`.
 - Pass `TestContext.Current.CancellationToken` (the `Ct` property of the base classes) to async calls.
 - A test asserts the expected behaviour, never the current one, and is never skipped: a failing test means the code
@@ -774,7 +818,7 @@ What deserves a test:
 - **Our code, not the frameworks.** No test that EF Core maps a column, that ASP.NET routing returns `405`, that
   the DI container binds options or that a library honours its own contract.
 - **One behaviour, one level.** Business rules are tested on the service (integration). Functional tests only check
-  what HTTP adds: status codes, authentication and authorization, problem details, localization.
+  what HTTP adds: status codes, authentication and authorization, problem details.
 - **Behaviour, not implementation.** No assertion on the shape of an expression tree, on the type returned by a
   method, on an internal cache, and no test re-implementing the algorithm it checks. Internal classes are tested
   through their public entry point. A class deliberately left without tests carries
@@ -807,16 +851,12 @@ name `"Database"`): the integration and functional classes share the container d
 and run one after the other. Unit classes, and classes working on their own `TemporaryDatabase`, stay outside of it and
 run in parallel.
 
-Every test project runs in en-US whatever the machine locale (`Tests/TestCulture.cs`, a module initializer compiled into
-each test project by `Tests/Directory.Build.props`): expected messages read from `SharedResource` match the default
-culture of the API, and formatted values do not depend on who runs the tests. Tests never iterate over cultures; the
-only culture switches are the pagination tests checking that values are parsed with the invariant culture under a
-culture whose decimal separator is a comma (what a French client gets, see `UseAppLocalization`).
-
 Base classes: `ServiceIntegrationTest` (real composition, one service provider per test, `CreateProvider()` for a
 second API instance, optionally with test-only services such as EF Core interceptors: `ReadBarrierInterceptor` makes
 concurrent calls read the same state before any of them writes, so a race happens on every run), `PaginationIntegrationTest` (test database seeded once per run: read only, never write to it),
-`ApiFunctionalTest` (API host, `CreateClient()`, `SeedUsersAsync`, problem readers).
+`ApiFunctionalTest` (API host, `CreateClient()`, `SeedUsersAsync`, problem readers: `ReadServiceErrorAsync(response,
+code)` also checks the `code` of a service error). Service tests reach the kind of error with
+`result.Value.ShouldBeServiceError<NotFoundError>()` (`ServiceResponseAssertions`).
 
 Test data: a test that needs users calls `SeedUsersAsync()`, which inserts the whole `TestUsers` dataset
 (`MyApp.Tests.Shared/Data`, soft-deleted users included) as new entities. Tests take the users they act on from it
@@ -838,7 +878,7 @@ a user does not break unrelated tests. Rules:
 - JWT bearer is replaced by `TestAuthHandler`, which produces the claims read by `ClaimsPrincipalExtension`.
 - Tests only express who calls, with `ApiClientAuthExtensions`: clients are anonymous by default (`AsAnonymous()`),
   `AsUser(...)`, `AsAdmin(...)` (both also take a `TestUsers` user) or `As(TestUser)`. `await client.WithAntiforgeryTokenAsync()` sends the antiforgery
-  token like a SPA. Other request options are in `ApiClientExtensions` (`WithCulture`, `WithApiVersionHeader`,
+  token like a SPA. Other request options are in `ApiClientExtensions` (`WithApiVersionHeader`,
   `QueryAsJsonAsync`).
 - No test builds tokens, cookies, claims or authentication headers itself. When authentication moves behind the BFF,
   only `ApiFactory`, `TestAuthHandler` and `ApiClientAuthExtensions` change, never the test bodies.
@@ -856,12 +896,12 @@ a user does not break unrelated tests. Rules:
        public sealed class Integration(ContainersFixture containers) : ServiceIntegrationTest(containers)
        {
            [Fact]
-           public async Task ExecuteAsync_UnknownId_Returns404()
+           public async Task ExecuteAsync_UnknownId_ReturnsNotFound()
            {
                var result = await RunAsync<IUserGetById, ServiceResponse<UserServiceResponse>>(
                    x => x.ExecuteAsync(Guid.NewGuid(), Ct));
 
-               result.Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
+               result.Value.ShouldBeServiceError<NotFoundError>().Code.ShouldBe(ServiceConstant.Error.user_not_found);
            }
        }
    }

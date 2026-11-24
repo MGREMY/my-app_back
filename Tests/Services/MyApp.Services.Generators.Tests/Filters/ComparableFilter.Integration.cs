@@ -1,4 +1,3 @@
-using System.Globalization;
 using MyApp.Services.Generators.Tests.TestInfrastructure;
 using MyApp.Tests.Shared.Containers;
 using static MyApp.Services.Abstractions.Requests.FilterServiceRequest;
@@ -79,27 +78,6 @@ public sealed partial class ComparableFilterTests
             var names = await FilterAsync(Requests.Filter("followers", Operator.GreaterThan, "4500000000000"));
 
             names.ShouldBe([FollowersOrder[^1]]);
-        }
-
-        [Theory]
-        [InlineData("balance", "3.25")]
-        [InlineData("score", "3.5")]
-        [InlineData("createdAt", "2024-01-03T10:00:00Z")]
-        public async Task Filter_UnderAnotherCulture_ParsesWithTheInvariantCulture(string path, string value)
-        {
-            // fr-FR uses "," as decimal separator: the value is still read with the invariant culture
-            var culture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
-            try
-            {
-                var names = await FilterAsync(Requests.Filter(path, Operator.Equal, value));
-
-                names.ShouldBe([Carol]);
-            }
-            finally
-            {
-                CultureInfo.CurrentCulture = culture;
-            }
         }
     }
 }

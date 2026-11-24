@@ -1,7 +1,6 @@
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Responses;
 using MyApp.Services.Abstractions.Services.AuthServices;
-using MyApp.Services.Resources;
 using MyApp.Services.Tests.TestInfrastructure;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Data;
@@ -29,25 +28,23 @@ public sealed partial class UserGetByIdTests
         }
 
         [Fact]
-        public async Task ExecuteAsync_UnknownId_Returns404()
+        public async Task ExecuteAsync_UnknownId_ReturnsNotFound()
         {
             await SeedUsersAsync();
 
             var result = await GetUserByIdAsync(Guid.NewGuid());
 
-            var error = result.Value.ShouldBeOfType<ServiceErrorResponse>();
-            error.StatusCode.ShouldBe(404);
-            error.Message.ShouldBe(SharedResource.user_not_found);
+            result.Value.ShouldBeServiceError<NotFoundError>().Code.ShouldBe(ServiceConstant.Error.user_not_found);
         }
 
         [Fact]
-        public async Task ExecuteAsync_SoftDeletedUser_Returns404()
+        public async Task ExecuteAsync_SoftDeletedUser_ReturnsNotFound()
         {
             await SeedUsersAsync();
 
             var result = await GetUserByIdAsync(TestUsers.Dave.Id);
 
-            result.Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
+            result.Value.ShouldBeServiceError<NotFoundError>().Code.ShouldBe(ServiceConstant.Error.user_not_found);
         }
 
         [Fact]
@@ -81,7 +78,7 @@ public sealed partial class UserGetByIdTests
             // AGENTS.md 6.8: the service that creates the data (AuthSyncUser) must overwrite the cached null. The read
             // happens before the users are inserted (directly in the database), so a null is cached for an existing id.
             var bob = TestUsers.Bob;
-            (await GetUserByIdAsync(bob.Id)).Value.ShouldBeOfType<ServiceErrorResponse>();
+            (await GetUserByIdAsync(bob.Id)).Value.ShouldBeServiceError<NotFoundError>();
             await SeedUsersAsync();
 
             await RunAsync<IAuthSyncUser, ServiceResponse>(x => x.ExecuteAsync(new IAuthSyncUser.Request(bob.AuthId, bob.UserName, bob.Email), Ct));

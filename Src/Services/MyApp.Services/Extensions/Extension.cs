@@ -16,7 +16,6 @@ public static class Extension
         public IServiceCollection AddMyAppServices(Action<ServiceOption> options)
         {
             return services
-                .AddLocalization()
                 .AddServiceOption(options)
                 .AddServices();
         }

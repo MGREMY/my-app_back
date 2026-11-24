@@ -1,6 +1,6 @@
 namespace MyApp.Host.Api.Tests.TestInfrastructure;
 
-/// <summary>Request options other than identity, expressed as intents (culture, API version, QUERY method).</summary>
+/// <summary>Request options other than identity, expressed as intents (API version, QUERY method).</summary>
 public static class ApiClientExtensions
 {
     private const string ApiVersionHeader = "X-Api-Version";
@@ -9,16 +9,6 @@ public static class ApiClientExtensions
 
     extension(HttpClient client)
     {
-        /// <summary>Asks for messages in <paramref name="culture"/> (<c>Accept-Language</c>).</summary>
-        /// <param name="culture">Culture sent in <c>Accept-Language</c> (<c>fr</c>, <c>fr-FR</c>...).</param>
-        public HttpClient WithCulture(string culture)
-        {
-            client.DefaultRequestHeaders.AcceptLanguage.Clear();
-            client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
-
-            return client;
-        }
-
         /// <summary>Asks for <paramref name="version"/> through the <c>X-Api-Version</c> header.</summary>
         /// <param name="version">API version sent in <c>X-Api-Version</c> (<c>1.0</c>...).</param>
         public HttpClient WithApiVersionHeader(string version)
