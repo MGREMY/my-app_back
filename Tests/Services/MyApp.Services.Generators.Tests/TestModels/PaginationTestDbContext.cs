@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace MyApp.Services.Generators.Tests.TestModels;
 
 /// <summary>Context of the test model. Has no migration: its schema is created from the model.</summary>
+/// <param name="options">Options built by <see cref="Create"/>.</param>
 public sealed class PaginationTestDbContext(DbContextOptions<PaginationTestDbContext> options) : DbContext(options)
 {
     public DbSet<Author> Authors { get; set; }

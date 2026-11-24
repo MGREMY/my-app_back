@@ -53,7 +53,8 @@ public sealed partial class ComparableFilterTests
 
         [Theory]
         [MemberData(nameof(Matrix))]
-        public async Task Filter_ComparableOperator_ReturnsMatchingAuthors(string path, Operator op, string value, string[] expected)
+        public async Task Filter_ComparableOperator_ReturnsMatchingAuthors(string path, Operator op, string value,
+            string[] expected)
         {
             var names = await FilterAsync(Requests.Filter(path, op, value));
 

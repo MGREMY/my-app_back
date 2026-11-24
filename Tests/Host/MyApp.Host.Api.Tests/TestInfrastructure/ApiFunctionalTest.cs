@@ -1,11 +1,12 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models;
 using MyApp.Domain.Models.Models.Interface;
 using MyApp.Tests.Shared.Containers;
-using MyApp.Tests.Shared.Database;
+using MyApp.Tests.Shared.Data;
 
 namespace MyApp.Host.Api.Tests.TestInfrastructure;
 
@@ -13,20 +14,23 @@ namespace MyApp.Host.Api.Tests.TestInfrastructure;
 /// Base of the functional tests: the shared <see cref="ApiFactory"/> host, an empty database before each test.
 /// Clients are anonymous until <c>AsUser()</c> / <c>AsAdmin()</c> (<see cref="ApiClientAuthExtensions"/>).
 /// </summary>
+/// <param name="containers">Containers of the assembly, reset before each test.</param>
+/// <param name="factory">API host shared by the classes of the Database collection.</param>
 public abstract class ApiFunctionalTest(ContainersFixture containers, ApiFactory factory) : IAsyncLifetime
 {
-    private readonly List<HttpClient> _clients = [];
-
     protected static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     protected ApiFactory Factory => factory;
+
+    private readonly List<HttpClient> _clients = [];
 
     public async ValueTask InitializeAsync()
     {
         await factory.EnsureStartedAsync(containers);
 
-        await using var reset = await DatabaseReset.CreateAsync(containers.DatabaseConnectionString, Ct);
-        await reset.ResetAsync();
+        await containers.ResetAsync(Ct);
+        // The host is shared by every test: its in-memory (L1) cache survives the Redis flush. "*" invalidates every entry.
+        await factory.Services.GetRequiredService<HybridCache>().RemoveByTagAsync("*", Ct);
     }
 
     public ValueTask DisposeAsync()
@@ -53,20 +57,46 @@ public abstract class ApiFunctionalTest(ContainersFixture containers, ApiFactory
         return await action(scope.ServiceProvider.GetRequiredService<AppDbContext>());
     }
 
-    protected Task<User> SeedUserAsync(string authId, bool deleted = false, string? userName = null)
+    /// <summary>
+    /// Inserts the whole <see cref="TestUsers"/> dataset (soft-deleted users included), as new entities.
+    /// Returns them in the order of <see cref="TestUsers.All"/>, with their generated values (creation date...).
+    /// </summary>
+    protected Task<User[]> SeedUsersAsync()
     {
         return WithDbAsync(async db =>
         {
-            var user = new User { AuthId = authId, UserName = userName ?? $"user-{authId}", Email = $"{authId}@example.test" }
-                .SetCreatedAtData();
-            if (deleted)
-                user.SetSoftDeletableData();
-
-            db.Users.Add(user);
+            var users = TestUsers.All.Select(ToUser).ToArray();
+            db.Users.AddRange(users);
             await db.SaveChangesAsync(Ct);
 
-            return user;
+            return users;
         });
+    }
+
+    /// <summary>New entity for <paramref name="data"/>, not attached to any context.</summary>
+    /// <param name="data">User of <see cref="TestUsers"/>.</param>
+    protected static User ToUser(TestUserData data)
+    {
+        var user = new User { Id = data.Id, AuthId = data.AuthId, UserName = data.UserName, Email = data.Email }.SetCreatedAtData();
+        if (data.IsDeleted)
+            user.SetSoftDeletableData();
+
+        return user;
+    }
+
+    /// <summary>Number of users in the database, soft-deleted ones included.</summary>
+    protected Task<int> CountUsersIncludingDeletedAsync()
+    {
+        return WithDbAsync(db => db.Users.IgnoreQueryFilters([ModelConstant.SoftDeletionFilter]).CountAsync(Ct));
+    }
+
+    protected Task<User?> FindUserIncludingDeletedAsync(Guid id)
+    {
+        // Deleted rows are part of the expected state of these tests.
+        return WithDbAsync(db => db.Users
+            .AsNoTracking()
+            .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
+            .FirstOrDefaultAsync(x => x.Id == id, Ct));
     }
 
     protected Task<User[]> FindUsersIncludingDeletedAsync(string authId)

@@ -60,6 +60,8 @@ internal static class GeneratorRunner
         private Assembly Assembly => _assembly ??= Load();
 
         /// <summary>New instance of the entity <paramref name="typeName" /> with the given property values.</summary>
+        /// <param name="typeName">Full name of an entity of the compiled source.</param>
+        /// <param name="values">Names and values of the properties to set on the instance.</param>
         public object Create(string typeName, params (string Property, object? Value)[] values)
         {
             var type = Assembly.GetType(typeName, throwOnError: true)!;
@@ -74,6 +76,9 @@ internal static class GeneratorRunner
         /// Runs the generated <c>ProcessPaginationRequest</c> of <paramref name="typeName" /> on <paramref name="rows" />,
         /// in memory (LINQ to Objects). Exceptions of the generated code are rethrown as is.
         /// </summary>
+        /// <param name="typeName">Full name of an entity of the compiled source.</param>
+        /// <param name="rows">Instances of that entity (from <see cref="Create"/>).</param>
+        /// <param name="request">Pagination request passed to the generated code.</param>
         public List<object> Paginate(string typeName, IEnumerable<object> rows, PaginationServiceRequest request)
         {
             var type = Assembly.GetType(typeName, throwOnError: true)!;

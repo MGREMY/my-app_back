@@ -30,6 +30,9 @@
         <Using Include="Shouldly"/>
         <Using Include="MyApp.Tests.Shared.Categories"/>
 
+        <!-- Every test project runs in en-US (module initializer compiled into each test assembly) -->
+        <Compile Include="$(MSBuildThisFileDirectory)TestCulture.cs" Link="TestCulture.cs"/>
+
         <!-- coverlet.MTP settings (authoritative include, see testconfig.json) -->
         <None Include="$(MSBuildThisFileDirectory)testconfig.json" Link="testconfig.json" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>

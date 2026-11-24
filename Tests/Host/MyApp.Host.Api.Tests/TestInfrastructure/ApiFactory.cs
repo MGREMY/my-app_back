@@ -44,6 +44,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
             return _start ??= StartAsync(containers);
     }
 
+    public override async ValueTask DisposeAsync()
+    {
+        await base.DisposeAsync();
+
+        if (Directory.Exists(_dataPath))
+            Directory.Delete(_dataPath, recursive: true);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         var containers = _containers ?? throw new InvalidOperationException($"Call {nameof(EnsureStartedAsync)} first.");
@@ -74,14 +82,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
                 services.AddTransient<IStartupFilter, AntiforgeryProbeStartupFilter>();
                 services.AddTransient<IStartupFilter, ExceptionProbeStartupFilter>();
             });
-    }
-
-    public override async ValueTask DisposeAsync()
-    {
-        await base.DisposeAsync();
-
-        if (Directory.Exists(_dataPath))
-            Directory.Delete(_dataPath, recursive: true);
     }
 
     private async Task StartAsync(ContainersFixture containers)

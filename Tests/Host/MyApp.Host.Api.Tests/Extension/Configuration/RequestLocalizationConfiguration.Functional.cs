@@ -4,6 +4,7 @@ using MyApp.Host.Api.Tests.TestInfrastructure;
 using MyApp.Services;
 using MyApp.Services.Resources;
 using MyApp.Tests.Shared.Containers;
+using MyApp.Tests.Shared.Data;
 
 namespace MyApp.Host.Api.Tests.Extension.Configuration;
 
@@ -17,7 +18,7 @@ public sealed partial class RequestLocalizationConfigurationTests
         [Fact]
         public async Task Error_NoCulture_ReturnsEnglishMessage()
         {
-            (await NotFoundTitleAsync(CreateClient().AsUser())).ShouldBe("User not found");
+            (await NotFoundTitleAsync(CreateClient().AsUser(TestUsers.Alice))).ShouldBe("User not found");
         }
 
         [Theory]
@@ -25,7 +26,7 @@ public sealed partial class RequestLocalizationConfigurationTests
         [InlineData("fr-FR")]
         public async Task Error_FrenchCulture_ReturnsFrenchMessage(string culture)
         {
-            var title = await NotFoundTitleAsync(CreateClient().AsUser().WithCulture(culture));
+            var title = await NotFoundTitleAsync(CreateClient().AsUser(TestUsers.Alice).WithCulture(culture));
 
             title.ShouldBe(Translation(ServiceConstant.Error.user_not_found, "fr"));
             title.ShouldNotBe(SharedResource.user_not_found);
@@ -34,15 +35,15 @@ public sealed partial class RequestLocalizationConfigurationTests
         [Fact]
         public async Task Error_UnsupportedCulture_FallsBackToEnglish()
         {
-            (await NotFoundTitleAsync(CreateClient().AsUser().WithCulture("de"))).ShouldBe(SharedResource.user_not_found);
+            (await NotFoundTitleAsync(CreateClient().AsUser(TestUsers.Alice).WithCulture("de"))).ShouldBe(SharedResource.user_not_found);
         }
 
         [Fact]
         public async Task ServiceError_FrenchCulture_ReturnsFrenchMessage()
         {
-            await SeedUserAsync("auth-1", deleted: true);
+            await SeedUsersAsync();
 
-            using var response = await CreateClient().AsUser("auth-1").WithCulture("fr").PostAsync("/auth/sync-user", null, Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Dave).WithCulture("fr").PostAsync("/auth/sync-user", null, Ct);
 
             (await ReadProblemAsync(response)).Title.ShouldBe(Translation(ServiceConstant.Error.user_already_deleted, "fr"));
         }

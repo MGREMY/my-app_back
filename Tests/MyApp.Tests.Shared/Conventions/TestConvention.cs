@@ -34,7 +34,7 @@ public static class TestConvention
                 var categories = CategoryTraits(type.GetCustomAttributesData());
                 var isCategoryClass = type.IsNested && CategoryNames.Contains(type.Name);
 
-                if (isCategoryClass && categories is not [var single] || isCategoryClass && categories[0] != type.Name)
+                if (isCategoryClass && !(categories is [var category] && category == type.Name))
                     violations.Add($"{type.FullName}: nested class {type.Name} must carry [Trait(TestCategory.Name, TestCategory.{type.Name})] once");
 
                 if (categories.Count > 0 && !(isCategoryClass && type.DeclaringType!.Name.EndsWith("Tests")))

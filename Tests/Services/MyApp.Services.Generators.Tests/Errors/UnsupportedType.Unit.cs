@@ -14,21 +14,6 @@ public sealed partial class UnsupportedTypeTests
     [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit
     {
-        private static string Model(string properties) =>
-            $$"""
-              namespace Sample;
-
-              public class User
-              {
-                  public Guid Id { get; set; }
-                  public string Name { get; set; } = "";
-                  {{properties}}
-              }
-
-              [MyApp.Services.PaginationHandlerFor<User>]
-              public sealed class UserHandler;
-              """;
-
         [Theory]
         [InlineData("public System.Text.Json.JsonElement Metadata { get; set; }", "metadata", "{}")]
         [InlineData("public Dictionary<string, int> Counters { get; set; } = [];", "counters", "1")]
@@ -46,6 +31,21 @@ public sealed partial class UnsupportedTypeTests
             // "1" is a valid int: a rejection means the path is unknown, not that the value is unparsable
             AssertIgnored(GeneratorRunner.Run(Model("public int[,] Grid { get; set; } = new int[0, 0];")), "grid", "1");
         }
+
+        private static string Model(string properties) =>
+            $$"""
+              namespace Sample;
+
+              public class User
+              {
+                  public Guid Id { get; set; }
+                  public string Name { get; set; } = "";
+                  {{properties}}
+              }
+
+              [MyApp.Services.PaginationHandlerFor<User>]
+              public sealed class UserHandler;
+              """;
 
         private static void AssertIgnored(GeneratorRunner.Result result, string path, string value)
         {

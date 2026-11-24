@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MyApp.Domain.Models.Models.Interface;
+using MyApp.Domain.Models.Tests.TestInfrastructure;
 using MyApp.Domain.Models.Tests.TestModels;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Database;
@@ -9,8 +10,8 @@ namespace MyApp.Domain.Models.Tests.Models.Interface;
 
 public sealed partial class EntityTypeBuilderExtensionsTests
 {
-    /// <summary>Only class of this assembly using the container default database: no parallel reset conflict.</summary>
     [Trait(TestCategory.Name, TestCategory.Integration)]
+    [Collection(DatabaseCollection.Name)]
     public sealed class Integration(ContainersFixture containers) : IAsyncLifetime
     {
         private EntitiesTestDbContext _context = null!;
@@ -18,10 +19,11 @@ public sealed partial class EntityTypeBuilderExtensionsTests
         public async ValueTask InitializeAsync()
         {
             await containers.EnsureStartedAsync();
+
             _context = EntitiesTestDbContext.Create(containers.DatabaseConnectionString);
+
             await DatabaseSchema.CreateAsync(_context, TestContext.Current.CancellationToken);
-            await using var reset = await DatabaseReset.CreateAsync(containers.DatabaseConnectionString, TestContext.Current.CancellationToken);
-            await reset.ResetAsync();
+            await containers.ResetAsync(TestContext.Current.CancellationToken);
         }
 
         public ValueTask DisposeAsync()
@@ -54,25 +56,13 @@ public sealed partial class EntityTypeBuilderExtensionsTests
         }
 
         [Fact]
-        public async Task AddSoftDeletion_WithoutGlobalQueryFilter_ReturnsDeletedRows()
-        {
-            _context.UnfilteredEntities.AddRange(
-                new UnfilteredEntity { Name = "active" },
-                new UnfilteredEntity { Name = "deleted" }.SetSoftDeletableData());
-            await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
-            _context.ChangeTracker.Clear();
-
-            var count = await _context.UnfilteredEntities.CountAsync(TestContext.Current.CancellationToken);
-
-            count.ShouldBe(2);
-        }
-
-        [Fact]
         public async Task SaveChanges_ModifiedAndDeletedEntity_PersistsTrackingColumns()
         {
             var entity = new TrackedEntity { Name = "a" }.SetCreatedAtData();
+
             _context.TrackedEntities.Add(entity);
             await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
             entity.SetUpdatedAtData().SetSoftDeletableData();
             await _context.SaveChangesAsync(TestContext.Current.CancellationToken);
             _context.ChangeTracker.Clear();

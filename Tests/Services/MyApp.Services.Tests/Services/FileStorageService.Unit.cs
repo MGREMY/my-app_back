@@ -11,6 +11,16 @@ public sealed partial class FileStorageServiceTests
     [Trait(TestCategory.Name, TestCategory.Unit)]
     public sealed class Unit : IDisposable
     {
+        public static TheoryData<string> OutsideNames => new(
+            "../outside.txt",
+            "sub/../../outside.txt",
+            "../data-sibling/file.txt",
+            "",
+            ".",
+            "..");
+
+        private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
         private readonly string _root = Path.Combine(Path.GetTempPath(), $"myapp-tests-{Guid.NewGuid():N}");
         private readonly string _dataPath;
         private readonly ServiceProvider _provider;
@@ -22,17 +32,6 @@ public sealed partial class FileStorageServiceTests
             _provider = new ServiceCollection().AddMyAppServices(o => o.DataPath = _dataPath).BuildServiceProvider();
             _storage = _provider.GetRequiredService<IFileStorageService>();
         }
-
-        private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
-        public static TheoryData<string> OutsideNames => new(
-            "../outside.txt",
-            "sub/../../outside.txt",
-            "../data-sibling/file.txt",
-            "/etc/passwd",
-            "",
-            ".",
-            "..");
 
         public void Dispose()
         {
@@ -163,11 +162,33 @@ public sealed partial class FileStorageServiceTests
         [MemberData(nameof(OutsideNames))]
         public async Task AnyMethod_NameOutsideFolder_ThrowsArgumentExceptionWithoutTouchingFiles(string name)
         {
-            // Every relative name resolves under _root (the parent of the data folder): snapshot it. A rooted name
-            // targets an existing file elsewhere: check it was not rewritten.
+            await ShouldRejectWithoutTouchingFilesAsync(name);
+        }
+
+        [Fact]
+        public async Task AnyMethod_RootedNameOutsideFolder_ThrowsArgumentExceptionWithoutTouchingFiles()
+        {
+            // A rooted name owned by the test (never a system file): a regression of the guard can only touch _root.
+            await ShouldRejectWithoutTouchingFilesAsync(Path.Combine(_root, "outside.txt"));
+        }
+
+        [Fact]
+        public async Task ExistsAsync_NameOutsideFolder_ReportsFileNameParameter()
+        {
+            var exception = await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync("../outside.txt", Ct));
+
+            exception.ParamName.ShouldBe("fileName");
+        }
+
+        /// <summary>
+        /// Every method rejects <paramref name="name"/> and nothing under <see cref="_root" /> (the parent of the data
+        /// folder, where every outside name of these tests resolves) is created, rewritten or deleted.
+        /// </summary>
+        /// <param name="name">Name expected to be rejected (it resolves outside of the data folder).</param>
+        private async Task ShouldRejectWithoutTouchingFilesAsync(string name)
+        {
             await File.WriteAllTextAsync(Path.Combine(_root, "outside.txt"), "keep", Ct);
             var before = SnapshotRoot();
-            var rootedTarget = Path.IsPathRooted(name) && File.Exists(name) ? File.GetLastWriteTimeUtc(name) : (DateTime?)null;
 
             await Should.ThrowAsync<ArgumentException>(() => _storage.GetAsync(name, Ct));
             await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync(name, Ct));
@@ -175,8 +196,6 @@ public sealed partial class FileStorageServiceTests
             await Should.ThrowAsync<ArgumentException>(() => _storage.DeleteAsync(name, Ct));
 
             SnapshotRoot().ShouldBe(before);
-            if (rootedTarget is { } lastWrite)
-                File.GetLastWriteTimeUtc(name).ShouldBe(lastWrite);
         }
 
         /// <summary>Every directory and file under <see cref="_root" />, with file sizes.</summary>
@@ -187,23 +206,6 @@ public sealed partial class FileStorageServiceTests
                 .Select(x => x is FileInfo file ? $"{file.FullName}:{file.Length}" : x.FullName)
                 .Order(StringComparer.Ordinal)
                 .ToArray();
-        }
-
-        [Fact]
-        public async Task ExistsAsync_AbsolutePathInsideOtherFolder_ThrowsArgumentException()
-        {
-            var outside = Path.Combine(_root, "outside.txt");
-            await File.WriteAllTextAsync(outside, "x", Ct);
-
-            await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync(outside, Ct));
-        }
-
-        [Fact]
-        public async Task ExistsAsync_NameOutsideFolder_ReportsFileNameParameter()
-        {
-            var exception = await Should.ThrowAsync<ArgumentException>(() => _storage.ExistsAsync("../outside.txt", Ct));
-
-            exception.ParamName.ShouldBe("fileName");
         }
     }
 }

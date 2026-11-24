@@ -14,14 +14,15 @@ namespace MyApp.Services.Generators.Tests.TestInfrastructure;
 /// Tests only read <see cref="PaginationTestData" />: the database is emptied and seeded once per run, by the first
 /// test of the <see cref="DatabaseCollection" />.
 /// </remarks>
+/// <param name="containers">Containers of the assembly; the database is seeded once per run.</param>
 public abstract class PaginationIntegrationTest(ContainersFixture containers) : IAsyncLifetime
 {
+    protected static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     private static readonly SemaphoreSlim SeedLock = new(1, 1);
     private static bool _seeded;
 
     protected PaginationTestDbContext Db { get; private set; } = null!;
-
-    protected static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
     {
@@ -34,8 +35,7 @@ public abstract class PaginationIntegrationTest(ContainersFixture containers) : 
             if (!_seeded)
             {
                 await DatabaseSchema.CreateAsync(Db, Ct);
-                await using (var reset = await DatabaseReset.CreateAsync(containers.DatabaseConnectionString, Ct))
-                    await reset.ResetAsync();
+                await containers.ResetAsync(Ct);
 
                 await PaginationTestData.SeedAsync(Db, Ct);
                 Db.ChangeTracker.Clear();
@@ -54,6 +54,7 @@ public abstract class PaginationIntegrationTest(ContainersFixture containers) : 
     }
 
     /// <summary>Names of the authors matching <paramref name="filters" />, in name order.</summary>
+    /// <param name="filters">Filters of the request, combined as by the API.</param>
     protected async Task<string[]> FilterAsync(params FilterServiceRequest[] filters)
     {
         var names = await Db.Authors
@@ -66,6 +67,7 @@ public abstract class PaginationIntegrationTest(ContainersFixture containers) : 
     }
 
     /// <summary>Names of the authors in the order of <paramref name="sorts" />.</summary>
+    /// <param name="sorts">Sorts of the request, applied in order.</param>
     protected Task<List<string>> SortAsync(params SortServiceRequest[] sorts)
     {
         return Db.Authors

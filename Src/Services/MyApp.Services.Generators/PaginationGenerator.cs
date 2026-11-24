@@ -366,7 +366,8 @@ public class ServiceForPaginationRequestGenerator : IIncrementalGenerator
 
             // Builder names are all known before emitting, because a builder calls the builders of its navigations
             foreach (var pair in builderNames)
-                spc.AddSource($"{pair.Value}.g.cs", EmitFilterBuilder(pair.Key, pair.Value, builderNames, spc.ReportDiagnostic));
+                spc.AddSource($"{pair.Value}.g.cs",
+                    EmitFilterBuilder(pair.Key, pair.Value, builderNames, spc.ReportDiagnostic));
 
             // Public entry points, one per root. Two roots with the same simple name (Billing.Invoice / Sales.Invoice)
             // would generate the same class in MyApp.Services: the second one is suffixed. Services never write this
@@ -957,7 +958,10 @@ public static class {{extensionsName}}
 
         // The type itself is IEnumerable<T>, or implements it (ICollection<T> implements IEnumerable<T>)
         var enumerable =
-            type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T } self
+            type is INamedTypeSymbol
+            {
+                OriginalDefinition.SpecialType: SpecialType.System_Collections_Generic_IEnumerable_T
+            } self
                 ? self
                 : type.AllInterfaces.FirstOrDefault(i =>
                     i.OriginalDefinition.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T);

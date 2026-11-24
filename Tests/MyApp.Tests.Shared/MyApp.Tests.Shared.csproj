@@ -9,6 +9,8 @@
         <PackageReference Include="Testcontainers.Redis" Version="4.17.0"/>
         <PackageReference Include="Respawn" Version="7.0.0"/>
         <PackageReference Include="Npgsql" Version="10.0.3"/>
+        <!-- Same version as the one brought by Microsoft.Extensions.Caching.StackExchangeRedis in Src/Services/MyApp.Services -->
+        <PackageReference Include="StackExchange.Redis" Version="2.7.27"/>
         <!-- Same version as Src/Domain/MyApp.Domain.Models -->
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.15"/>
     </ItemGroup>

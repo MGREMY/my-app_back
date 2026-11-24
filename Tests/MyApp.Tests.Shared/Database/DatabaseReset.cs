@@ -6,7 +6,8 @@ namespace MyApp.Tests.Shared.Database;
 
 /// <summary>
 /// Empties every table of a PostgreSQL database (migration history excepted) between tests, with Respawn.
-/// Create it once the schema exists (<see cref="DatabaseSchema.CreateAsync"/>).
+/// Create it once the schema exists (<see cref="DatabaseSchema.CreateAsync"/>) and reuse it: creating it reads the
+/// schema to build the delete graph. Tests use <c>ContainersFixture.ResetAsync</c>, which keeps one per run.
 /// </summary>
 public sealed class DatabaseReset : IAsyncDisposable
 {

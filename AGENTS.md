@@ -698,6 +698,23 @@ Services never return API types and endpoints never expose service types.
 
 - Constants are grouped in a static `<Layer>Constant` class (`ApiConstant`, `ServiceConstant`, `ModelConstant`).
 - Remove unused `using` directives.
+- Members of a type are declared in this order:
+
+  | # | Members                                        | Inside the group                                  |
+  |---|------------------------------------------------|---------------------------------------------------|
+  | 1 | Constants                                      | `public`, `internal`, `protected`, `private`      |
+  | 2 | Static fields and properties                   | `public`, `internal`, `protected`, `private`      |
+  | 3 | Instance properties and fields                 | `public`, `internal`, `protected`, `private`      |
+  | 4 | Constructors                                   | `public`, `internal`, `protected`, `private`      |
+  | 5 | Public (and `internal`) methods, `extension` blocks |                                              |
+  | 6 | Protected methods (overrides included)         |                                                   |
+  | 7 | Private methods                                |                                                   |
+  | 8 | Nested types                                   |                                                   |
+
+  Static and instance methods follow the same rule (only their accessibility counts). Inside a group, keep the
+  logical order (entity columns before interface properties, see section 6.1; tests in reading order). Static field
+  initializers run in declaration order: a static field used by another one is declared before it, which the order
+  above already gives when both have the same accessibility.
 
 ## 9. Tests
 
@@ -778,18 +795,40 @@ What deserves a test:
   base classes do it in `InitializeAsync`), so a unit-only run never needs Docker.
 - `DatabaseSchema.CreateAsync(context)`: applies the migrations (SQL scripts included) when the model has some,
   otherwise creates the schema from the model (the template ships without migrations).
-- `DatabaseReset`: empties every table except the migration history (Respawn). The base classes call it before each
-  test.
+- `ContainersFixture.ResetAsync()`: empties every table of the container database except the migration history
+  (`DatabaseReset`, Respawn) and flushes Redis. The base classes call it before each test, once the schema exists: the
+  tables to empty are read on the first call and reused for the whole run. A host shared by several tests keeps its
+  in-memory (L1) cache: `ApiFunctionalTest` clears it itself (`HybridCache.RemoveByTagAsync("*")`).
 - `TemporaryDatabase`: an empty database created on the container and dropped on dispose, for tests that apply
   migrations.
 
-Each project has a `TestInfrastructure/DatabaseCollection` (`[Collection(DatabaseCollection.Name)]`, name
-`"Database"`): the integration and functional classes share the container database, so they join this collection and
-run one after the other. Unit classes stay outside of it and run in parallel.
+Each project using the containers has a `TestInfrastructure/DatabaseCollection` (`[Collection(DatabaseCollection.Name)]`,
+name `"Database"`): the integration and functional classes share the container database, so they join this collection
+and run one after the other. Unit classes, and classes working on their own `TemporaryDatabase`, stay outside of it and
+run in parallel.
+
+Every test project runs in en-US whatever the machine locale (`Tests/TestCulture.cs`, a module initializer compiled into
+each test project by `Tests/Directory.Build.props`): expected messages read from `SharedResource` match the default
+culture of the API, and formatted values do not depend on who runs the tests. Tests never iterate over cultures; the
+only culture switches are the pagination tests checking that values are parsed with the invariant culture under a
+culture whose decimal separator is a comma (what a French client gets, see `UseAppLocalization`).
 
 Base classes: `ServiceIntegrationTest` (real composition, one service provider per test, `CreateProvider()` for a
-second API instance), `PaginationIntegrationTest` (test database seeded once per run: read only, never write to it),
-`ApiFunctionalTest` (API host, `CreateClient()`, `SeedUserAsync`, problem readers).
+second API instance, optionally with test-only services such as EF Core interceptors: `ReadBarrierInterceptor` makes
+concurrent calls read the same state before any of them writes, so a race happens on every run), `PaginationIntegrationTest` (test database seeded once per run: read only, never write to it),
+`ApiFunctionalTest` (API host, `CreateClient()`, `SeedUsersAsync`, problem readers).
+
+Test data: a test that needs users calls `SeedUsersAsync()`, which inserts the whole `TestUsers` dataset
+(`MyApp.Tests.Shared/Data`, soft-deleted users included) as new entities. Tests take the users they act on from it
+(`TestUsers.Bob.Id`, `client.AsUser(TestUsers.Alice)`) and derive counts from it (`TestUsers.Active.Count`), so adding
+a user does not break unrelated tests. Rules:
+
+- the dataset only holds plain records with fixed ids, never entities (a shared entity would be tracked and mutated
+  across tests);
+- expected orders and pages are written by hand (names are chosen so their order is obvious): never compute them by
+  sorting the dataset, which would re-implement what the test checks;
+- a test whose starting state is not the dataset (a first sync on an empty database, a race) sets it up itself;
+- a new entity gets its own dataset next to `TestUsers` and its own `Seed...Async()` in the base classes.
 
 ### 9.5 API functional tests and authentication
 
@@ -798,7 +837,7 @@ second API instance), `PaginationIntegrationTest` (test database seeded once per
   with `UseSetting`, and the schema is created once. It is the fixture of the `Database` collection and starts lazily.
 - JWT bearer is replaced by `TestAuthHandler`, which produces the claims read by `ClaimsPrincipalExtension`.
 - Tests only express who calls, with `ApiClientAuthExtensions`: clients are anonymous by default (`AsAnonymous()`),
-  `AsUser(...)`, `AsAdmin(...)` or `As(TestUser)`. `await client.WithAntiforgeryTokenAsync()` sends the antiforgery
+  `AsUser(...)`, `AsAdmin(...)` (both also take a `TestUsers` user) or `As(TestUser)`. `await client.WithAntiforgeryTokenAsync()` sends the antiforgery
   token like a SPA. Other request options are in `ApiClientExtensions` (`WithCulture`, `WithApiVersionHeader`,
   `QueryAsJsonAsync`).
 - No test builds tokens, cookies, claims or authentication headers itself. When authentication moves behind the BFF,

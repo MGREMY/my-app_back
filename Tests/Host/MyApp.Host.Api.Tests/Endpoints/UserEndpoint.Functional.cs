@@ -1,9 +1,11 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Net.Http.Json;
 using MyApp.Host.Api.Requests;
 using MyApp.Host.Api.Tests.TestInfrastructure;
 using MyApp.Services.Resources;
 using MyApp.Tests.Shared.Containers;
+using MyApp.Tests.Shared.Data;
 
 namespace MyApp.Host.Api.Tests.Endpoints;
 
@@ -14,52 +16,6 @@ public sealed partial class UserEndpointTests
     public sealed class Functional(ContainersFixture containers, ApiFactory factory) : ApiFunctionalTest(containers, factory)
     {
         private const string Route = "/users";
-
-        private static readonly SortApiRequest[] ByUserName = [new("userName", false)];
-
-        private static string ById(object id) => $"{Route}/{id}";
-
-        // QUERY /users
-
-        [Fact]
-        public async Task Query_AsUser_ReturnsRequestedPage()
-        {
-            await SeedUserAsync("c");
-            await SeedUserAsync("a");
-            await SeedUserAsync("b");
-
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, new PaginationApiRequest(1, 2, ByUserName), Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.OK);
-            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
-            page.Data.Select(x => x.UserName).ShouldBe(["user-a", "user-b"]);
-            page.Data[0].Email.ShouldBe("a@example.test");
-            page.PageNumber.ShouldBe(1);
-            page.PageSize.ShouldBe(2);
-            page.TotalPages.ShouldBe(2);
-            page.HasNextPage.ShouldBeTrue();
-            page.HasPreviousPage.ShouldBeFalse();
-        }
-
-        [Fact]
-        public async Task Query_Filter_ReturnsMatchingUsersOnly()
-        {
-            await SeedUserAsync("alice");
-            await SeedUserAsync("alina");
-            await SeedUserAsync("bob");
-            await SeedUserAsync("carl");
-            // Page size 1: 2 pages when filtered (alice, alina), 4 without filter.
-            var request = new PaginationApiRequest(1, 1, ByUserName,
-                [new FilterApiRequest("userName", FilterApiRequest.Operator.Contains, "ALI", FilterApiRequest.Logic.And)]);
-
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, request, Ct);
-
-            response.StatusCode.ShouldBe(HttpStatusCode.OK);
-            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
-            page.Data.ShouldHaveSingleItem().UserName.ShouldBe("user-alice");
-            page.TotalPages.ShouldBe(2);
-            page.HasNextPage.ShouldBeTrue();
-        }
 
         // One row per validation rule of PaginationApiRequest (and its child sort and filter requests).
         public static IEnumerable<TheoryDataRow<PaginationApiRequest, string>> InvalidPaginations =>
@@ -77,25 +33,55 @@ public sealed partial class UserEndpointTests
                 "FilterRequests[0].Filters[1].PropertyName")
         ];
 
+        private static readonly SortApiRequest[] ByUserName = [new("userName", false)];
+
+        // QUERY /users
+
+        [Fact]
+        public async Task Query_AsUser_ReturnsRequestedPage()
+        {
+            await SeedUsersAsync();
+
+            using var response = await CreateClient().AsUser(TestUsers.Bob).QueryAsJsonAsync(Route, new PaginationApiRequest(1, 2, ByUserName), Ct);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
+            page.Data.Select(x => x.UserName).ShouldBe(["alice", "alina"]);
+            page.Data[0].Email.ShouldBe(TestUsers.Alice.Email);
+            page.PageNumber.ShouldBe(1);
+            page.PageSize.ShouldBe(2);
+            page.TotalPages.ShouldBe(2);
+            page.HasNextPage.ShouldBeTrue();
+            page.HasPreviousPage.ShouldBeFalse();
+        }
+
+        [Fact]
+        public async Task Query_Filter_ReturnsMatchingUsersOnly()
+        {
+            await SeedUsersAsync();
+            // Page size 1: 2 pages when filtered (alice, alina), one per active user without filter.
+            var request = new PaginationApiRequest(1, 1, ByUserName,
+                [new FilterApiRequest("userName", FilterApiRequest.Operator.Contains, "ALI", FilterApiRequest.Logic.And)]);
+
+            using var response = await CreateClient().AsUser(TestUsers.Bob).QueryAsJsonAsync(Route, request, Ct);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            var page = (await response.Content.ReadFromJsonAsync<PageResponse<UserResponse>>(Ct)).ShouldNotBeNull();
+            page.Data.ShouldHaveSingleItem().Id.ShouldBe(TestUsers.Alice.Id);
+            page.TotalPages.ShouldBe(2);
+            page.HasNextPage.ShouldBeTrue();
+        }
+
         [Theory]
         [MemberData(nameof(InvalidPaginations))]
         public async Task Query_InvalidPagination_Returns400ValidationProblem(PaginationApiRequest request, string errorKey)
         {
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, request, Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Alice).QueryAsJsonAsync(Route, request, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             var problem = await ReadValidationProblemAsync(response);
             problem.Title.ShouldBe("Validation failed");
             problem.Errors.Keys.ShouldBe([errorKey]);
-        }
-
-        private static FilterApiRequest InvalidFilter(
-            string propertyName,
-            FilterApiRequest.Operator @operator = FilterApiRequest.Operator.Equal,
-            FilterApiRequest.Logic logic = FilterApiRequest.Logic.And,
-            IEnumerable<FilterApiRequest>? nested = null)
-        {
-            return new FilterApiRequest(propertyName, @operator, "x", logic, nested);
         }
 
         [Fact]
@@ -104,7 +90,7 @@ public sealed partial class UserEndpointTests
             var request = new PaginationApiRequest(FilterRequests:
                 [new FilterApiRequest("unknown", FilterApiRequest.Operator.Equal, "x", FilterApiRequest.Logic.And)]);
 
-            using var response = await CreateClient().AsUser().QueryAsJsonAsync(Route, request, Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Alice).QueryAsJsonAsync(Route, request, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             var problem = await ReadProblemAsync(response);
@@ -125,9 +111,9 @@ public sealed partial class UserEndpointTests
         [Fact]
         public async Task GetById_ExistingUser_ReturnsUser()
         {
-            var user = await SeedUserAsync("auth-1");
+            var user = (await SeedUsersAsync()).Single(x => x.Id == TestUsers.Bob.Id);
 
-            using var response = await CreateClient().AsUser().GetAsync(ById(user.Id), Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Alice).GetAsync(ById(user.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.OK);
             var body = (await response.Content.ReadFromJsonAsync<UserResponse>(Ct)).ShouldNotBeNull();
@@ -140,7 +126,9 @@ public sealed partial class UserEndpointTests
         [Fact]
         public async Task GetById_UnknownId_Returns404Problem()
         {
-            using var response = await CreateClient().AsUser().GetAsync(ById(Guid.NewGuid()), Ct);
+            await SeedUsersAsync();
+
+            using var response = await CreateClient().AsUser(TestUsers.Alice).GetAsync(ById(Guid.NewGuid()), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
             var problem = await ReadProblemAsync(response);
@@ -151,7 +139,7 @@ public sealed partial class UserEndpointTests
         [Fact]
         public async Task GetById_NotAGuid_Returns400Problem()
         {
-            using var response = await CreateClient().AsUser().GetAsync(ById("not-a-guid"), Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Alice).GetAsync(ById("not-a-guid"), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             (await ReadProblemAsync(response)).Status.ShouldBe(400);
@@ -160,9 +148,9 @@ public sealed partial class UserEndpointTests
         [Fact]
         public async Task GetById_Anonymous_Returns401()
         {
-            var user = await SeedUserAsync("auth-1");
+            await SeedUsersAsync();
 
-            using var response = await CreateClient().GetAsync(ById(user.Id), Ct);
+            using var response = await CreateClient().GetAsync(ById(TestUsers.Bob.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         }
@@ -172,33 +160,36 @@ public sealed partial class UserEndpointTests
         [Fact]
         public async Task DeleteById_AsAdmin_SoftDeletesUserAndReturns204()
         {
-            var user = await SeedUserAsync("auth-1");
-            var client = CreateClient().AsAdmin();
-            (await client.GetAsync(ById(user.Id), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+            await SeedUsersAsync();
+            var client = CreateClient().AsAdmin(TestUsers.Alice);
+            (await client.GetAsync(ById(TestUsers.Bob.Id), Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
 
-            using var response = await client.DeleteAsync(ById(user.Id), Ct);
+            using var response = await client.DeleteAsync(ById(TestUsers.Bob.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-            (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem().IsDeleted.ShouldBeTrue();
+            (await FindUserIncludingDeletedAsync(TestUsers.Bob.Id)).ShouldNotBeNull().IsDeleted.ShouldBeTrue();
             // The cached user is invalidated.
-            (await client.GetAsync(ById(user.Id), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+            (await client.GetAsync(ById(TestUsers.Bob.Id), Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
         }
 
         [Fact]
         public async Task DeleteById_UnknownId_Returns404Problem()
         {
-            using var response = await CreateClient().AsAdmin().DeleteAsync(ById(Guid.NewGuid()), Ct);
+            await SeedUsersAsync();
+
+            using var response = await CreateClient().AsAdmin(TestUsers.Alice).DeleteAsync(ById(Guid.NewGuid()), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
             (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_not_found);
+            (await WithDbAsync(db => db.Users.CountAsync(Ct))).ShouldBe(TestUsers.Active.Count);
         }
 
         [Fact]
         public async Task DeleteById_AlreadyDeletedUser_Returns400AlreadyDeletedProblem()
         {
-            var user = await SeedUserAsync("auth-1", deleted: true);
+            await SeedUsersAsync();
 
-            using var response = await CreateClient().AsAdmin().DeleteAsync(ById(user.Id), Ct);
+            using var response = await CreateClient().AsAdmin(TestUsers.Alice).DeleteAsync(ById(TestUsers.Dave.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_already_deleted);
@@ -207,34 +198,46 @@ public sealed partial class UserEndpointTests
         [Fact]
         public async Task DeleteById_AdminDeletingOwnAccount_Returns400ProblemAndKeepsUser()
         {
-            var admin = await SeedUserAsync("admin-1");
+            await SeedUsersAsync();
+            var admin = TestUsers.Alice;
 
-            using var response = await CreateClient().AsAdmin("admin-1").DeleteAsync(ById(admin.Id), Ct);
+            using var response = await CreateClient().AsAdmin(admin).DeleteAsync(ById(admin.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             (await ReadProblemAsync(response)).Status.ShouldBe(400);
-            (await FindUsersIncludingDeletedAsync("admin-1")).ShouldHaveSingleItem().IsDeleted.ShouldBeFalse();
+            (await FindUserIncludingDeletedAsync(admin.Id)).ShouldNotBeNull().IsDeleted.ShouldBeFalse();
         }
 
         [Fact]
         public async Task DeleteById_AsUserWithoutAdminRole_Returns403AndKeepsUser()
         {
-            var user = await SeedUserAsync("auth-1");
+            await SeedUsersAsync();
 
-            using var response = await CreateClient().AsUser("auth-2").DeleteAsync(ById(user.Id), Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Alice).DeleteAsync(ById(TestUsers.Bob.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-            (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem().IsDeleted.ShouldBeFalse();
+            (await FindUserIncludingDeletedAsync(TestUsers.Bob.Id)).ShouldNotBeNull().IsDeleted.ShouldBeFalse();
         }
 
         [Fact]
         public async Task DeleteById_Anonymous_Returns401()
         {
-            var user = await SeedUserAsync("auth-1");
+            await SeedUsersAsync();
 
-            using var response = await CreateClient().AsAnonymous().DeleteAsync(ById(user.Id), Ct);
+            using var response = await CreateClient().AsAnonymous().DeleteAsync(ById(TestUsers.Bob.Id), Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        }
+
+        private static string ById(object id) => $"{Route}/{id}";
+
+        private static FilterApiRequest InvalidFilter(
+            string propertyName,
+            FilterApiRequest.Operator @operator = FilterApiRequest.Operator.Equal,
+            FilterApiRequest.Logic logic = FilterApiRequest.Logic.And,
+            IEnumerable<FilterApiRequest>? nested = null)
+        {
+            return new FilterApiRequest(propertyName, @operator, "x", logic, nested);
         }
     }
 }

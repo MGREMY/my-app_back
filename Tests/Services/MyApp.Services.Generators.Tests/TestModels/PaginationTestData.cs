@@ -27,6 +27,7 @@ public static class PaginationTestData
     public static readonly string[] BirthDateOrder = [Bob, Eve, Dave, Carol, Alice];
 
     /// <summary>Rank of each author: the value of the comparable scalars is derived from it.</summary>
+    /// <param name="name">Name of an author of <see cref="All"/>.</param>
     public static int RankOf(string name)
     {
         return Array.IndexOf(All, name) + 1;

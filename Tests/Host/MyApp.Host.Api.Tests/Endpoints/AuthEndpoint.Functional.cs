@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using MyApp.Host.Api.Tests.TestInfrastructure;
 using MyApp.Services.Resources;
 using MyApp.Tests.Shared.Containers;
+using MyApp.Tests.Shared.Data;
 
 namespace MyApp.Host.Api.Tests.Endpoints;
 
@@ -15,13 +16,19 @@ public sealed partial class AuthEndpointTests
         private const string Route = "/auth";
         private const string SyncUserRoute = $"{Route}/sync-user";
 
+        /// <summary>Identity of a first sign-in: not in <see cref="TestUsers"/>.</summary>
+        private const string NewAuthId = "auth-new";
+
         [Fact]
         public async Task SyncUser_NewUser_CreatesUserFromIdentityAndReturns204()
         {
-            using var response = await CreateClient().AsUser("auth-1", "john", "john@example.test").PostAsync(SyncUserRoute, null, Ct);
+            await SeedUsersAsync();
+
+            using var response = await CreateClient().AsUser(NewAuthId, "john", "john@example.test").PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-            var user = (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
+            (await CountUsersIncludingDeletedAsync()).ShouldBe(TestUsers.All.Count + 1);
+            var user = (await FindUsersIncludingDeletedAsync(NewAuthId)).ShouldHaveSingleItem();
             user.UserName.ShouldBe("john");
             user.Email.ShouldBe("john@example.test");
             user.IsDeleted.ShouldBeFalse();
@@ -31,58 +38,62 @@ public sealed partial class AuthEndpointTests
         public async Task SyncUser_ExistingUserWithChangedIdentity_KeepsStoredInfo()
         {
             // sync-user only inserts on the first call: it never updates an existing user.
-            var seeded = await SeedUserAsync("auth-1", userName: "old-name");
+            await SeedUsersAsync();
+            var bob = TestUsers.Bob;
 
-            using var response = await CreateClient().AsUser("auth-1", "new-name", "new@example.test").PostAsync(SyncUserRoute, null, Ct);
+            using var response = await CreateClient().AsUser(bob.AuthId, "new-name", "new@example.test").PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-            var user = (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem();
-            user.UserName.ShouldBe("old-name");
-            user.Email.ShouldBe(seeded.Email);
+            var user = (await FindUsersIncludingDeletedAsync(bob.AuthId)).ShouldHaveSingleItem();
+            user.UserName.ShouldBe(bob.UserName);
+            user.Email.ShouldBe(bob.Email);
             user.UpdatedAtUtc.ShouldBeNull();
         }
 
         [Fact]
         public async Task SyncUser_TokenWithUsernameAndFullName_StoresTheUsername()
         {
-            var identity = new TestUser("auth-1", "jdoe", "jdoe@example.test", [], DisplayName: "John Doe");
+            await SeedUsersAsync();
+            var identity = new TestUser(NewAuthId, "jdoe", "jdoe@example.test", [], DisplayName: "John Doe");
 
             using var response = await CreateClient().As(identity).PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
-            (await FindUsersIncludingDeletedAsync("auth-1")).ShouldHaveSingleItem().UserName.ShouldBe("jdoe");
+            (await FindUsersIncludingDeletedAsync(NewAuthId)).ShouldHaveSingleItem().UserName.ShouldBe("jdoe");
         }
 
         [Fact]
         public async Task SyncUser_TokenWithoutUsername_Returns400ProblemAndCreatesNothing()
         {
-            var identity = new TestUser("auth-1", UserName: null, "jdoe@example.test", [], DisplayName: "John Doe");
+            await SeedUsersAsync();
+            var identity = new TestUser(NewAuthId, UserName: null, "jdoe@example.test", [], DisplayName: "John Doe");
 
             using var response = await CreateClient().As(identity).PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             (await ReadProblemAsync(response)).Status.ShouldBe(400);
-            (await FindUsersIncludingDeletedAsync("auth-1")).ShouldBeEmpty();
+            (await CountUsersIncludingDeletedAsync()).ShouldBe(TestUsers.All.Count);
         }
 
         [Fact]
         public async Task SyncUser_TokenWithoutEmail_Returns400ProblemAndCreatesNothing()
         {
-            var identity = new TestUser("auth-1", "jdoe", Email: null, []);
+            await SeedUsersAsync();
+            var identity = new TestUser(NewAuthId, "jdoe", Email: null, []);
 
             using var response = await CreateClient().As(identity).PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
             (await ReadProblemAsync(response)).Status.ShouldBe(400);
-            (await FindUsersIncludingDeletedAsync("auth-1")).ShouldBeEmpty();
+            (await CountUsersIncludingDeletedAsync()).ShouldBe(TestUsers.All.Count);
         }
 
         [Fact]
         public async Task SyncUser_DeletedUser_Returns403Problem()
         {
-            await SeedUserAsync("auth-1", deleted: true);
+            await SeedUsersAsync();
 
-            using var response = await CreateClient().AsUser("auth-1").PostAsync(SyncUserRoute, null, Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Dave).PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
             (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_already_deleted);
@@ -91,10 +102,12 @@ public sealed partial class AuthEndpointTests
         [Fact]
         public async Task SyncUser_Anonymous_Returns401()
         {
+            await SeedUsersAsync();
+
             using var response = await CreateClient().AsAnonymous().PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
-            (await FindUsersIncludingDeletedAsync("auth-1")).ShouldBeEmpty();
+            (await CountUsersIncludingDeletedAsync()).ShouldBe(TestUsers.All.Count);
         }
     }
 }

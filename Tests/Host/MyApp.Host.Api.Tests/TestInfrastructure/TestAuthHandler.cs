@@ -19,6 +19,9 @@ namespace MyApp.Host.Api.Tests.TestInfrastructure;
 /// <remarks>
 /// BFF switch: only this handler, <see cref="ApiClientAuthExtensions"/> and <see cref="ApiFactory"/> should change.
 /// </remarks>
+/// <param name="options">Options of the scheme, provided by the authentication framework.</param>
+/// <param name="logger">Logger factory, provided by the authentication framework.</param>
+/// <param name="encoder">URL encoder, provided by the authentication framework.</param>
 internal sealed class TestAuthHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
@@ -26,14 +29,14 @@ internal sealed class TestAuthHandler(
 {
     public const string SchemeName = "Test";
 
-    private const string PreferredUserNameClaim = "preferred_username";
-    private const string NameClaim = "name";
-
     internal const string AuthIdHeader = "X-Test-Auth-Id";
     internal const string UserNameHeader = "X-Test-User-Name";
     internal const string DisplayNameHeader = "X-Test-Display-Name";
     internal const string EmailHeader = "X-Test-Email";
     internal const string RolesHeader = "X-Test-Roles";
+
+    private const string PreferredUserNameClaim = "preferred_username";
+    private const string NameClaim = "name";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
