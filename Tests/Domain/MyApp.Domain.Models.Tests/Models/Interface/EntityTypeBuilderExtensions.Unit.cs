@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using MyApp.Domain.Models.Tests.TestModels;
 
 namespace MyApp.Domain.Models.Tests.Models.Interface;

@@ -1,4 +1,3 @@
-using MyApp.Domain.Specifications.Extensions;
 using MyApp.Domain.Specifications.UserSpecifications;
 
 namespace MyApp.Domain.Specifications.Tests.UserSpecifications;

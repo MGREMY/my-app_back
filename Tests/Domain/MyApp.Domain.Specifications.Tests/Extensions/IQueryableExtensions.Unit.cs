@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MyApp.Domain.Models;
 using MyApp.Domain.Specifications.Extensions;

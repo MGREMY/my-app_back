@@ -1,5 +1,3 @@
-using System.Xml;
-
 namespace MyApp.Tests.Shared.Data;
 
 /// <summary>A user of <see cref="TestUsers"/>: plain data, turned into a new entity each time it is seeded.</summary>

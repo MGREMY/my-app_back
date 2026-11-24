@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using System.Net;
-using System.Net.Http.Json;
 using MyApp.Host.Api.Requests;
 using MyApp.Host.Api.Tests.TestInfrastructure;
 using MyApp.Services.Resources;

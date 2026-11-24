@@ -1,5 +1,3 @@
-using System.Net.Http.Json;
-
 namespace MyApp.Host.Api.Tests.TestInfrastructure;
 
 /// <summary>Request options other than identity, expressed as intents (culture, API version, QUERY method).</summary>
