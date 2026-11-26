@@ -67,6 +67,22 @@ public sealed partial class AuthSyncUserTests
         }
 
         [Fact]
+        public async Task ExecuteAsync_NullCachedInAnotherInstanceMemory_OverwritesItThere()
+        {
+            // The other instance reads Bob before he exists (users inserted directly in the database afterwards), so it
+            // keeps a null in its in-memory cache until the backplane tells it the entry changed.
+            var bob = TestUsers.Bob;
+            var otherInstance = CreateProvider();
+            (await GetUserByIdAsync(bob.Id, otherInstance)).Value.ShouldBeServiceError<NotFoundError>();
+            await SeedUsersAsync();
+
+            await SyncAsync(new IAuthSyncUser.Request(bob.AuthId, bob.UserName, bob.Email));
+
+            await EventuallyAsync(async () =>
+                (await GetUserByIdAsync(bob.Id, otherInstance)).Value.ShouldBeOfType<UserServiceResponse>().Id.ShouldBe(bob.Id));
+        }
+
+        [Fact]
         public async Task ExecuteAsync_ConcurrentFirstSyncOfSameAuthId_CreatesOneUserAndReturns409ToOthers()
         {
             const int parallelCalls = 10;

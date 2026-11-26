@@ -1,20 +1,20 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models.Interface;
 using MyApp.Domain.Specifications.Extensions;
 using MyApp.Domain.Specifications.UserSpecifications;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.UserServices;
+using MyApp.Services.Caching;
 
 namespace MyApp.Services.Services.UserServices;
 
 public sealed class UserDeleteById : IUserDeleteById
 {
-    private readonly HybridCache _cacheService;
+    private readonly ICacheService _cacheService;
     private readonly AppDbContext _db;
 
-    public UserDeleteById(AppDbContext db, HybridCache cacheService)
+    public UserDeleteById(AppDbContext db, ICacheService cacheService)
     {
         _db = db;
         _cacheService = cacheService;

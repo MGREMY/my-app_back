@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
-using MyApp.Services.Abstractions;
 
-namespace MyApp.Services.Services;
+namespace MyApp.Services.IO;
 
 /// <summary>
 ///     Stores files under <see cref="ServiceOption.DataPath" />.

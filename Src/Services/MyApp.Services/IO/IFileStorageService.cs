@@ -1,4 +1,4 @@
-namespace MyApp.Services.Abstractions;
+namespace MyApp.Services.IO;
 
 public interface IFileStorageService
 {

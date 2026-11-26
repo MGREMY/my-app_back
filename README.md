@@ -10,7 +10,7 @@ documented in [AGENTS.md](AGENTS.md).
 - **Runtime**: .NET 11, C# 15
 - **API**: ASP.NET Core Minimal API with API versioning
 - **Database**: PostgreSQL through Entity Framework Core
-- **Cache**: HybridCache (in-memory + Redis)
+- **Cache**: FusionCache (in-memory + Redis, with a Redis backplane for multi-instance invalidation)
 - **Authentication**: JWT bearer (Keycloak in development)
 - **Documentation**: OpenAPI with Scalar UI
 - **Observability**: OpenTelemetry, Serilog, health checks
