@@ -9,7 +9,7 @@ public static class ValidationConfiguration
     {
         /// <summary>
         ///     Register every FluentValidation validator of the API assembly.
-        ///     They are run automatically by <c>ValidationFilter</c>, applied to all endpoints in <c>UseAppEndpoints()</c>.
+        ///     They are run automatically by <c>ValidationFilterHelper</c>, added to every endpoint by <c>NewAppVersionedApi</c>.
         /// </summary>
         public TBuilder AddAppValidation()
         {
