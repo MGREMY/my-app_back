@@ -75,7 +75,7 @@ public sealed partial class UserGetByIdTests
         [Fact]
         public async Task ExecuteAsync_CachedNullThenUserSynced_ReturnsUser()
         {
-            // AGENTS.md 6.8: the service that creates the data (AuthSyncUser) must overwrite the cached null. The read
+            // docs/archi/cache.md: the service that creates the data (AuthSyncUser) must overwrite the cached null. The read
             // happens before the users are inserted (directly in the database), so a null is cached for an existing id.
             var bob = TestUsers.Bob;
             (await GetUserByIdAsync(bob.Id)).Value.ShouldBeServiceError<NotFoundError>();

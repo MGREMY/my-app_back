@@ -18,7 +18,7 @@ namespace MyApp.Services.Generators;
 //   1. COMPILE TIME (this file)   The generator runs inside the compiler. It inspects the entities with the Roslyn
 //                                 symbol API (ITypeSymbol, IPropertySymbol...) and produces C# source as strings.
 //   2. GENERATED CODE             Those strings are compiled into MyApp.Services, next to the services. They can be
-//                                 read under Src/Services/MyApp.Services/obj/Debug/net11.0/generated/ (see AGENTS.md).
+//                                 read under Src/Services/MyApp.Services/obj/Debug/net11.0/generated/ (see docs/archi/pagination-generator.md).
 //   3. RUNTIME (generated code)   For each request, the generated code builds a LINQ expression tree
 //                                 (x => x.Role.Name == @value) that EF Core translates into SQL.
 //

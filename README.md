@@ -3,7 +3,7 @@
 Backend API template built with ASP.NET Core Minimal API on .NET 11.
 
 Architecture, conventions and step-by-step recipes (adding an entity, a service, an endpoint, a setting...) are
-documented in [AGENTS.md](AGENTS.md).
+documented in [AGENTS.md](AGENTS.md) and, topic by topic, in [`docs/archi/`](docs/archi).
 
 ## Tech stack
 
@@ -281,7 +281,7 @@ Results are written to `TestResults/` at the repository root: TRX files and cove
 formats (`coverage.cobertura.<timestamp>.xml`, `coverage.opencover.<timestamp>.xml`). Coverage settings are in
 `Tests/testconfig.json`.
 
-Conventions and recipes for writing tests are in [AGENTS.md](AGENTS.md#9-tests).
+Conventions and recipes for writing tests are in [docs/archi/tests.md](docs/archi/tests.md).
 
 ### Continuous integration
 
