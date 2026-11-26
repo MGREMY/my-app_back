@@ -1,11 +1,11 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models;
 using MyApp.Domain.Models.Models.Interface;
 using MyApp.Host.Api.Responses;
+using MyApp.Services.Caching;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Data;
 
@@ -31,7 +31,7 @@ public abstract class ApiFunctionalTest(ContainersFixture containers, ApiFactory
 
         await containers.ResetAsync(Ct);
         // The host is shared by every test: its in-memory (L1) cache survives the Redis flush. "*" invalidates every entry.
-        await factory.Services.GetRequiredService<HybridCache>().RemoveByTagAsync("*", Ct);
+        await factory.Services.GetRequiredService<ICacheService>().RemoveByTagAsync("*", Ct);
     }
 
     public ValueTask DisposeAsync()

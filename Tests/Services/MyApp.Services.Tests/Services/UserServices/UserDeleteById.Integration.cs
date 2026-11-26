@@ -42,6 +42,20 @@ public sealed partial class UserDeleteByIdTests
         }
 
         [Fact]
+        public async Task ExecuteAsync_UserCachedInAnotherInstanceMemory_RemovesItThere()
+        {
+            await SeedUsersAsync();
+            var otherInstance = CreateProvider();
+            await GetUserByIdAsync(TestUsers.Bob.Id, otherInstance);
+
+            await DeleteAsync(TestUsers.Bob.Id);
+
+            // The other instance keeps Bob in its in-memory cache until the backplane tells it to remove him.
+            await EventuallyAsync(async () =>
+                (await GetUserByIdAsync(TestUsers.Bob.Id, otherInstance)).Value.ShouldBeServiceError<NotFoundError>());
+        }
+
+        [Fact]
         public async Task ExecuteAsync_UnknownId_ReturnsNotFound()
         {
             await SeedUsersAsync();

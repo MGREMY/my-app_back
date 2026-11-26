@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models;
 using MyApp.Domain.Models.Models.Interface;
@@ -7,6 +6,7 @@ using MyApp.Domain.Specifications.Extensions;
 using MyApp.Domain.Specifications.UserSpecifications;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.AuthServices;
+using MyApp.Services.Caching;
 using MyApp.Services.ServiceProjections;
 
 namespace MyApp.Services.Services.AuthServices;
@@ -14,9 +14,9 @@ namespace MyApp.Services.Services.AuthServices;
 public sealed class AuthSyncUser : IAuthSyncUser
 {
     private readonly AppDbContext _db;
-    private readonly HybridCache _cacheService;
+    private readonly ICacheService _cacheService;
 
-    public AuthSyncUser(AppDbContext db, HybridCache cacheService)
+    public AuthSyncUser(AppDbContext db, ICacheService cacheService)
     {
         _db = db;
         _cacheService = cacheService;
@@ -52,7 +52,7 @@ public sealed class AuthSyncUser : IAuthSyncUser
             key: ServiceConstant.Cache.UserKey(user.Id),
             value: UserProjection.ToCacheUserFunc(user),
             tags: [ServiceConstant.Cache.UserTag],
-            cancellationToken: ct);
+            ct: ct);
 
         return new ServiceSuccessResponse();
     }

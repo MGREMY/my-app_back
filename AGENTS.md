@@ -13,7 +13,7 @@ Backend API template built with:
 | Runtime           | .NET 11, C# 15 (`LangVersion` default)                                     |
 | API               | ASP.NET Core Minimal API, Asp.Versioning                                   |
 | Database          | PostgreSQL through EF Core (Npgsql provider, lazy loading proxies)         |
-| Cache             | `HybridCache` (in-memory L1 + Redis L2)                                    |
+| Cache             | FusionCache (in-memory L1 + Redis L2 + Redis backplane), behind `ICacheService` |
 | Authentication    | JWT bearer (Keycloak in development)                                       |
 | Validation        | FluentValidation                                                           |
 | Documentation     | OpenAPI + Scalar (development only)                                        |
@@ -188,8 +188,8 @@ Each layer exposes its own registration extension. The host composes them:
 ```csharp
 builder.Services
     .AddMyAppPersistence(config.Database.ConnectionString)   // Domain.Models: DbContext pool, Npgsql
-    .AddMyAppCache(config.Cache.ConnectionString)            // Services: HybridCache + Redis
-    .AddMyAppServices(options => { ... });                   // Services: use cases, options
+    .AddMyAppCache(config.Cache.ConnectionString)            // Services: FusionCache + Redis L2 + Redis backplane
+    .AddMyAppServices(options => { ... });                   // Services: use cases, ICacheService, file storage, options
 ```
 
 A layer never registers infrastructure that belongs to another layer.
@@ -205,6 +205,10 @@ A layer never registers infrastructure that belongs to another layer.
 
 Consequence: do not put an interface in `Services.Abstractions` unless it is a service implemented in `Services`.
 No manual `AddScoped` is needed for a new service.
+
+Infrastructure used by the services is not a use case: its interface lives in `MyApp.Services` next to its
+implementation, out of the scan, and `AddMyAppServices()` registers it explicitly with the lifetime it needs
+(`Caching/ICacheService` as a singleton, `IO/IFileStorageService` as scoped).
 
 ## 6. Recipes
 
@@ -379,7 +383,7 @@ One service is one use case. Naming: `<Entity><Action>` (`UserGetById`, `UserDel
 
 2. Implementation in `Src/Services/MyApp.Services/Services/<Domain>Services/<Entity><Action>.cs`:
    - `public sealed class`, constructor injection into `private readonly` fields;
-   - inject `AppDbContext`, `HybridCache` as needed.
+   - inject `AppDbContext`, `ICacheService` as needed.
 3. Return values use the `ServiceResponse` unions (`Services.Abstractions/ServiceResponse.cs`):
    - success without payload: `new ServiceSuccessResponse()`;
    - success with payload: the `TResult` value itself (implicit conversion);
@@ -612,16 +616,24 @@ compile until the kind is mapped.
 
 ### 6.8 Cache
 
-- Inject `HybridCache` directly (no custom cache abstraction).
+The cache is FusionCache: an in-memory (L1) cache on each instance, Redis as shared (L2) cache, and a Redis backplane
+that propagates every write and removal to the L1 of the other instances. `AddMyAppCache()` configures it (keys
+prefixed with `myApp:`, entries kept 5 minutes), `AddMyAppServices()` registers `ICacheService` on top of it.
+
+- Inject `ICacheService` (`MyApp.Services.Caching`), never `IFusionCache` nor `HybridCache`: services do not depend
+  on the caching library, only `FusionCacheService` does.
 - Keys and tags are defined in `ServiceConstant.Cache` (`UserKey(id)`, `UserTag`).
-- Read with `GetOrCreateAsync`, write with `SetAsync`, invalidate with `RemoveAsync` or `RemoveByTagAsync`.
+- Read with `GetOrSetAsync` (runs the factory once per instance for concurrent calls), or `TryGetAsync` to read
+  without creating (`CacheResult<T>`: `HasValue`, `Value`). Write with `SetAsync`, invalidate with `RemoveAsync` or
+  `RemoveByTagAsync`; `RemoveByTagAsync("*")` removes every entry.
 - Never cache EF entities. Cache a dedicated model from `Src/Services/MyApp.Services/CacheModels/` built with a
   projection (`UserProjection.ToCacheUser`).
 - A given key always stores the same type, whichever service writes it.
-- `GetOrCreateAsync` also caches a `null` result. Make sure the service that creates the data overwrites the key.
+- `GetOrSetAsync` also caches a `null` result. Make sure the service that creates the data overwrites the key.
+- Fail-safe (serving an expired entry when the factory fails) is disabled. It can be enabled for business data, never
+  for security data such as the BFF sessions.
 - Accepted for now: a change made outside of the services (directly in the database) stays invisible until the entry
-  expires, and another API instance can serve its in-memory (L1) copy of an invalidated entry until it expires. Both
-  are planned to be solved by a cache rework (FusionCache backplane), which will also revisit the caching of `null`.
+  expires. The caching of `null` is still to be revisited.
 
 ### 6.9 Add an endpoint
 
@@ -751,7 +763,7 @@ Services never return API types and endpoints never expose service types.
 - **Health checks**: mapped in every environment by `MapDefaultEndpoint`. `/health` runs every check (disk storage,
   PostgreSQL, Redis) and returns a detailed JSON report; `/alive` only runs the checks tagged
   `ServiceDefaultConstant.LiveTag` (the `self` check), for liveness probes.
-- **File storage**: `IFileStorageService` works with file names relative to `Api:Services:DataPath`; every method
+- **File storage**: `IFileStorageService` (`MyApp.Services.IO`) works with file names relative to `Api:Services:DataPath`; every method
   takes and returns such names. Names resolving outside of that folder (absolute paths, `..`) are rejected with an
   `ArgumentException`.
 - **Logging**: Serilog (console, file, OpenTelemetry sink), OTLP export when `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
@@ -878,7 +890,7 @@ What deserves a test:
 - `ContainersFixture.ResetAsync()`: empties every table of the container database except the migration history
   (`DatabaseReset`, Respawn) and flushes Redis. The base classes call it before each test, once the schema exists: the
   tables to empty are read on the first call and reused for the whole run. A host shared by several tests keeps its
-  in-memory (L1) cache: `ApiFunctionalTest` clears it itself (`HybridCache.RemoveByTagAsync("*")`).
+  in-memory (L1) cache: `ApiFunctionalTest` clears it itself (`ICacheService.RemoveByTagAsync("*")`).
 - `TemporaryDatabase`: an empty database created on the container and dropped on dispose, for tests that apply
   migrations.
 
@@ -889,7 +901,8 @@ run in parallel.
 
 Base classes: `ServiceIntegrationTest` (real composition, one service provider per test, `CreateProvider()` for a
 second API instance, optionally with test-only services such as EF Core interceptors: `ReadBarrierInterceptor` makes
-concurrent calls read the same state before any of them writes, so a race happens on every run), `PaginationIntegrationTest` (test database seeded once per run: read only, never write to it),
+concurrent calls read the same state before any of them writes, so a race happens on every run; `EventuallyAsync`
+retries an assertion for up to 5 s, for what the cache backplane propagates to another instance in the background), `PaginationIntegrationTest` (test database seeded once per run: read only, never write to it),
 `ApiFunctionalTest` (API host, `CreateClient()`, `SeedUsersAsync`, problem readers: `ReadProblemWithCodeAsync(response,
 code)` also checks the `code` of the problem, `ReadValidationErrorsAsync(response)` returns the `errors` of a
 validation problem). Service tests reach the kind of error with

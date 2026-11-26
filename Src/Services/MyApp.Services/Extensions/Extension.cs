@@ -1,6 +1,8 @@
-using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using MyApp.Services.Abstractions;
+using MyApp.Services.Caching;
+using MyApp.Services.IO;
+using ZiggyCreatures.Caching.Fusion;
 
 namespace MyApp.Services.Extensions;
 
@@ -21,20 +23,25 @@ public static class Extension
         }
 
         /// <summary>
-        ///     Register the hybrid cache backed by Redis as distributed (L2) cache.
+        ///     Register FusionCache (memory L1 + Redis L2 + Redis backplane).
+        ///     The backplane propagates removals to the L1 of every instance.
         /// </summary>
         /// <param name="redisConnectionString">Redis connection string</param>
         public IServiceCollection AddMyAppCache(string redisConnectionString)
         {
-            services.AddHybridCache(options =>
-            {
-                options.ReportTagMetrics = true;
-                options.DefaultEntryOptions = new HybridCacheEntryOptions
+            services
+                .AddStackExchangeRedisCache(options => { options.Configuration = redisConnectionString; })
+                .AddFusionCacheStackExchangeRedisBackplane(options =>
                 {
-                    Expiration = TimeSpan.FromMinutes(5),
-                    LocalCacheExpiration = TimeSpan.FromMinutes(5)
-                };
-            }).Services.AddStackExchangeRedisCache(options => { options.Configuration = redisConnectionString; });
+                    options.Configuration = redisConnectionString;
+                })
+                .AddFusionCacheSystemTextJsonSerializer()
+                .AddFusionCache()
+                .WithCacheKeyPrefix("myApp:")
+                .WithDefaultEntryOptions(options => { options.Duration = TimeSpan.FromMinutes(5); })
+                .WithRegisteredSerializer()
+                .WithRegisteredDistributedCache()
+                .WithRegisteredBackplane();
 
             return services;
         }
@@ -69,6 +76,10 @@ public static class Extension
                         $"Multiple implementations found for service '{serviceInterface.FullName}': {string.Join(", ", implementations.Select(x => x.FullName))}."),
                 });
             }
+
+            services
+                .AddSingleton<ICacheService, FusionCacheService>()
+                .AddScoped<IFileStorageService, FileStorageService>();
 
             return services.AddHttpClient();
         }

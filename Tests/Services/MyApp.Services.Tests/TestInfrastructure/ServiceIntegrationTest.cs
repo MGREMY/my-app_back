@@ -157,4 +157,29 @@ public abstract class ServiceIntegrationTest(ContainersFixture containers) : IAs
             .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
             .FirstOrDefaultAsync(x => x.Id == id, Ct));
     }
+
+    /// <summary>
+    /// Retries <paramref name="assertion"/> until it passes, for effects propagated in the background (cache
+    /// invalidations sent to the other instances by the backplane). After <paramref name="timeout"/> (5 s by default),
+    /// the last failure is rethrown.
+    /// </summary>
+    /// <param name="assertion">Assertion to retry; only Shouldly failures are retried.</param>
+    /// <param name="timeout">How long to retry.</param>
+    protected static async Task EventuallyAsync(Func<Task> assertion, TimeSpan? timeout = null)
+    {
+        var deadline = DateTimeOffset.UtcNow + (timeout ?? TimeSpan.FromSeconds(5));
+
+        while (true)
+        {
+            try
+            {
+                await assertion();
+                return;
+            }
+            catch (ShouldAssertException) when (DateTimeOffset.UtcNow < deadline)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(50), Ct);
+            }
+        }
+    }
 }

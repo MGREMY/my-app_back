@@ -1,9 +1,9 @@
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
-using MyApp.Services.Abstractions;
 using MyApp.Services.Extensions;
+using MyApp.Services.IO;
 
-namespace MyApp.Services.Tests.Services;
+namespace MyApp.Services.Tests.IO;
 
 public sealed partial class FileStorageServiceTests
 {
