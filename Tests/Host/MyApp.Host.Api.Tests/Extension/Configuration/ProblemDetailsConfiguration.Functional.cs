@@ -7,7 +7,8 @@ namespace MyApp.Host.Api.Tests.Extension.Configuration;
 
 /// <summary>
 ///     Problem details on every error (<c>AddAppProblemDetails</c> / <c>UseAppProblemDetails</c>): responses sent without
-///     body by the framework get one, and every problem identifies its occurrence.
+///     body by the framework get one, every problem identifies its occurrence, and problems stay JSON whatever the
+///     <c>Accept</c> header of the request.
 /// </summary>
 public sealed partial class ProblemDetailsConfigurationTests
 {
@@ -33,21 +34,25 @@ public sealed partial class ProblemDetailsConfigurationTests
             (await ReadProblemAsync(response)).Status.ShouldBe(403);
         }
 
-        [Fact]
-        public async Task Get_UnknownRoute_Returns404Problem()
+        [Theory]
+        [InlineData(null)]
+        [InlineData("application/xml")]
+        public async Task Get_UnknownRoute_Returns404Problem(string? accept)
         {
-            using var response = await CreateClient().AsUser(TestUsers.Alice).GetAsync("/unknown-route", Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Alice).WithAccept(accept).GetAsync("/unknown-route", Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
             (await ReadProblemAsync(response)).Status.ShouldBe(404);
         }
 
-        [Fact]
-        public async Task Get_ServiceError_ReturnsProblemWithInstanceAndTraceId()
+        [Theory]
+        [InlineData(null)]
+        [InlineData("application/xml")]
+        public async Task Get_ServiceError_ReturnsProblemWithInstanceAndTraceId(string? accept)
         {
             var path = $"/users/{Guid.NewGuid()}";
 
-            using var response = await CreateClient().AsUser(TestUsers.Alice).GetAsync(path, Ct);
+            using var response = await CreateClient().AsUser(TestUsers.Alice).WithAccept(accept).GetAsync(path, Ct);
 
             var problem = await ReadProblemAsync(response);
             problem.Instance.ShouldBe(path);

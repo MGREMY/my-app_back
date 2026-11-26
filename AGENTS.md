@@ -734,7 +734,8 @@ Services never return API types and endpoints never expose service types.
 - **Errors**: every error response is an RFC 9457 problem (`application/problem+json`). `AddAppProblemDetails()`
   adds `instance` (the request path) and `traceId` to every problem, and `UseAppProblemDetails()`
   (`UseStatusCodePages`) gives one to the responses sent without body (`401` / `403` from authentication, unknown
-  routes). Unhandled exceptions are logged and returned as `500`. An unparsable route value (a non-GUID `id`) is a
+  routes). Problems are always JSON: `JsonProblemDetailsWriter`, registered after the default writer, writes the
+  ones it declines (an `Accept` header without JSON, such as `application/xml`) with the same content. Unhandled exceptions are logged and returned as `500`. An unparsable route value (a non-GUID `id`) is a
   `400` problem. Validation errors are returned as `400` validation problems (`validation_failed`, section 6.10),
   invalid pagination requests (`InvalidPaginationRequestException`) as `400` problems with the code
   `invalid_pagination_request` (section 6.5). Business errors go through `ServiceErrorResponse` and are returned by
@@ -914,7 +915,7 @@ a user does not break unrelated tests. Rules:
 - JWT bearer is replaced by `TestAuthHandler`, which produces the claims read by `ClaimsPrincipalExtension`.
 - Tests only express who calls, with `ApiClientAuthExtensions`: clients are anonymous by default (`AsAnonymous()`),
   `AsUser(...)`, `AsAdmin(...)` (both also take a `TestUsers` user) or `As(TestUser)`. `await client.WithAntiforgeryTokenAsync()` sends the antiforgery
-  token like a SPA. Other request options are in `ApiClientExtensions` (`WithApiVersionHeader`,
+  token like a SPA. Other request options are in `ApiClientExtensions` (`WithAccept`, `WithApiVersionHeader`,
   `QueryAsJsonAsync`).
 - No test builds tokens, cookies, claims or authentication headers itself. When authentication moves behind the BFF,
   only `ApiFactory`, `TestAuthHandler` and `ApiClientAuthExtensions` change, never the test bodies.

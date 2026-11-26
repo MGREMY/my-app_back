@@ -10,7 +10,7 @@ namespace MyApp.Host.Api.Helpers;
 ///     Minimal APIs never call FluentValidation by themselves. The factory inspects each endpoint once,
 ///     at startup, and only adds the filter when at least one argument has a validator.
 /// </remarks>
-internal static class ValidationFilter
+internal static class ValidationFilterHelper
 {
     public static EndpointFilterDelegate Create(EndpointFilterFactoryContext context, EndpointFilterDelegate next)
     {

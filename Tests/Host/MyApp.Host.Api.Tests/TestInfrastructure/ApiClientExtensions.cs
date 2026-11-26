@@ -1,6 +1,6 @@
 namespace MyApp.Host.Api.Tests.TestInfrastructure;
 
-/// <summary>Request options other than identity, expressed as intents (API version, QUERY method).</summary>
+/// <summary>Request options other than identity, expressed as intents (accepted media types, API version, QUERY method).</summary>
 public static class ApiClientExtensions
 {
     private const string ApiVersionHeader = "X-Api-Version";
@@ -9,6 +9,17 @@ public static class ApiClientExtensions
 
     extension(HttpClient client)
     {
+        /// <summary>Sends <paramref name="accept"/> as <c>Accept</c> header; <c>null</c> sends none (the default).</summary>
+        /// <param name="accept">Media types accepted by the client (<c>application/xml</c>...).</param>
+        public HttpClient WithAccept(string? accept)
+        {
+            client.DefaultRequestHeaders.Accept.Clear();
+            if (accept is not null)
+                client.DefaultRequestHeaders.Accept.ParseAdd(accept);
+
+            return client;
+        }
+
         /// <summary>Asks for <paramref name="version"/> through the <c>X-Api-Version</c> header.</summary>
         /// <param name="version">API version sent in <c>X-Api-Version</c> (<c>1.0</c>...).</param>
         public HttpClient WithApiVersionHeader(string version)

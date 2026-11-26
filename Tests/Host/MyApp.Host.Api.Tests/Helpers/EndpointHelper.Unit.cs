@@ -30,11 +30,12 @@ public sealed partial class EndpointHelperTests
         }
 
         [Fact]
-        public void FormatValidationErrorResponse_FailureAddedByHand_ReturnsNoParams()
+        public void FormatValidationErrorResponse_FailureAddedByHand_ReturnsGenericCodeWithoutParams()
         {
-            // context.AddFailure(new ValidationFailure(...)) in a Custom rule: no placeholder values
-            var error = Format(new ValidationFailure("Name", "message") { ErrorCode = "name_already_taken" });
+            // context.AddFailure(...) in a Custom rule: neither error code nor placeholder values
+            var error = Format(new ValidationFailure("Name", "message"));
 
+            error.Code.ShouldBe("invalid");
             error.Params.ShouldBeNull();
         }
 

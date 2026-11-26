@@ -75,9 +75,11 @@ public static class EndpointHelper
             Detail: failure.ErrorMessage);
     }
 
-    // An unmapped built-in validator gets a generic code; a custom code (WithErrorCode) is the API's own
-    private static string ToCode(string errorCode)
+    // A failure without code (context.AddFailure) or of an unmapped built-in validator gets a generic code; a custom
+    // code (WithErrorCode) is the API's own
+    private static string ToCode(string? errorCode)
     {
+        if (string.IsNullOrEmpty(errorCode)) return "invalid";
         if (ValidatorCodes.TryGetValue(errorCode, out var code)) return code;
         if (errorCode.EndsWith("Validator", StringComparison.Ordinal)) return "invalid";
 

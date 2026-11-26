@@ -9,10 +9,12 @@ public static class ProblemDetailsConfiguration
         {
             builder.Services.AddProblemDetails(options =>
             {
-                // traceId is added by the default writer; instance identifies the occurrence (RFC 9457)
+                // traceId is added by the writers; instance identifies the occurrence (RFC 9457)
                 options.CustomizeProblemDetails = ctx =>
                     ctx.ProblemDetails.Instance ??= ctx.HttpContext.Request.Path.Value;
             });
+            // After the default writer: only used for the requests it declines (Accept without JSON)
+            builder.Services.AddSingleton<IProblemDetailsWriter, JsonProblemDetailsWriter>();
 
             return builder;
         }
