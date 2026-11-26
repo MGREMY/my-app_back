@@ -23,31 +23,6 @@
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="11.0.0"/>
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="11.0.0"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Localization" Version="11.0.0"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Update="Resources\SharedResource.resx">
-            <Generator>PublicResXFileCodeGenerator</Generator>
-            <LastGenOutput>SharedResource.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-        <EmbeddedResource Update="Resources\SharedResource.fr.resx">
-            <Generator>PublicResXFileCodeGenerator</Generator>
-            <LastGenOutput>SharedResource.fr.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Compile Update="Resources\SharedResource.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>SharedResource.resx</DependentUpon>
-        </Compile>
-        <Compile Update="Resources\SharedResource.fr.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>SharedResource.fr.resx</DependentUpon>
-        </Compile>
     </ItemGroup>
 
 </Project>

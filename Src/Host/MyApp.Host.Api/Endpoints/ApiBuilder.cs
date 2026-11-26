@@ -39,6 +39,6 @@ public static class ApiBuilder
     {
         return builder
             .NewVersionedApi(name)
-            .AddEndpointFilterFactory(ValidationFilter.Create);
+            .AddEndpointFilterFactory(ValidationFilterHelper.Create);
     }
 }

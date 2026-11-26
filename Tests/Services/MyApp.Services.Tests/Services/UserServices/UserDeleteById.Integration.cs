@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Services.UserServices;
-using MyApp.Services.Resources;
 using MyApp.Services.Tests.TestInfrastructure;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Data;
@@ -39,32 +38,28 @@ public sealed partial class UserDeleteByIdTests
             await DeleteAsync(TestUsers.Bob.Id);
 
             // Fresh instance: empty in-memory cache, so the answer comes from Redis or the database.
-            (await GetUserByIdAsync(TestUsers.Bob.Id, CreateProvider())).Value.ShouldBeOfType<ServiceErrorResponse>().StatusCode.ShouldBe(404);
+            (await GetUserByIdAsync(TestUsers.Bob.Id, CreateProvider())).Value.ShouldBeServiceError<NotFoundError>();
         }
 
         [Fact]
-        public async Task ExecuteAsync_UnknownId_Returns404()
+        public async Task ExecuteAsync_UnknownId_ReturnsNotFound()
         {
             await SeedUsersAsync();
 
             var result = await DeleteAsync(Guid.NewGuid());
 
-            var error = result.Value.ShouldBeOfType<ServiceErrorResponse>();
-            error.StatusCode.ShouldBe(404);
-            error.Message.ShouldBe(SharedResource.user_not_found);
+            result.Value.ShouldBeServiceError<NotFoundError>().Code.ShouldBe(ServiceConstant.Error.user_not_found);
             (await WithDbAsync(db => db.Users.CountAsync(Ct))).ShouldBe(TestUsers.Active.Count);
         }
 
         [Fact]
-        public async Task ExecuteAsync_AlreadyDeletedUser_Returns400UserAlreadyDeleted()
+        public async Task ExecuteAsync_AlreadyDeletedUser_ReturnsNotFound()
         {
             await SeedUsersAsync();
 
             var result = await DeleteAsync(TestUsers.Dave.Id);
 
-            var error = result.Value.ShouldBeOfType<ServiceErrorResponse>();
-            error.StatusCode.ShouldBe(400);
-            error.Message.ShouldBe(SharedResource.user_already_deleted);
+            result.Value.ShouldBeServiceError<NotFoundError>().Code.ShouldBe(ServiceConstant.Error.user_not_found);
         }
 
         [Fact]

@@ -1,4 +1,3 @@
-using System.Globalization;
 using MyApp.Services.Abstractions.Requests;
 using MyApp.Services.Generators.Tests.TestModels;
 using static MyApp.Services.Abstractions.Requests.FilterServiceRequest;
@@ -115,26 +114,6 @@ public sealed partial class FilterErrorTests
             var request = Page(filters: [Filter(path, Operator.Equal, value)]);
 
             Should.Throw<InvalidPaginationRequestException>(() => Authors.ProcessPaginationRequest(request, out _));
-        }
-
-        [Theory]
-        [InlineData("balance", "3,25")]
-        [InlineData("score", "3,5")]
-        public void ProcessPaginationRequest_DecimalCommaUnderAnotherCulture_ThrowsInvalidPaginationRequestException(string path, string value)
-        {
-            // fr-FR uses "," as decimal separator, but values are parsed with the invariant culture only
-            var culture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
-            try
-            {
-                var request = Page(filters: [Filter(path, Operator.Equal, value)]);
-
-                Should.Throw<InvalidPaginationRequestException>(() => Authors.ProcessPaginationRequest(request, out _));
-            }
-            finally
-            {
-                CultureInfo.CurrentCulture = culture;
-            }
         }
 
         [Fact]

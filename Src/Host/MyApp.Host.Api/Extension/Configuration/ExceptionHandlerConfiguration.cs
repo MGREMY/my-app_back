@@ -55,16 +55,13 @@ public static partial class ExceptionHandlerConfiguration
                     if (exHandlerFeature is not null)
                         switch (exHandlerFeature.Error)
                         {
-                            case ValidationException validationException:
-                                await EndpointHelper.FormatValidationErrorResponse(validationException.Errors)
-                                    .ExecuteAsync(ctx);
-                                break;
                             // Thrown by the generated pagination code: always a client error
                             case InvalidPaginationRequestException paginationException:
                                 await TypedResults.Problem(
                                     statusCode: StatusCodes.Status400BadRequest,
-                                    title: "Invalid pagination request",
-                                    detail: paginationException.Message
+                                    detail: paginationException.Message,
+                                    extensions: new Dictionary<string, object?>
+                                        { ["code"] = ApiConstant.Error.invalid_pagination_request }
                                 ).ExecuteAsync(ctx);
                                 break;
                             default:
@@ -86,7 +83,8 @@ public static partial class ExceptionHandlerConfiguration
                                         reason,
                                         exHandlerFeature.Error.StackTrace);
 
-                                await TypedResults.InternalServerError().ExecuteAsync(ctx);
+                                await TypedResults.Problem(statusCode: StatusCodes.Status500InternalServerError)
+                                    .ExecuteAsync(ctx);
                                 break;
                             }
                         }

@@ -1,6 +1,6 @@
 namespace MyApp.Host.Api.Tests.TestInfrastructure;
 
-/// <summary>Request options other than identity, expressed as intents (culture, API version, QUERY method).</summary>
+/// <summary>Request options other than identity, expressed as intents (accepted media types, API version, QUERY method).</summary>
 public static class ApiClientExtensions
 {
     private const string ApiVersionHeader = "X-Api-Version";
@@ -9,12 +9,13 @@ public static class ApiClientExtensions
 
     extension(HttpClient client)
     {
-        /// <summary>Asks for messages in <paramref name="culture"/> (<c>Accept-Language</c>).</summary>
-        /// <param name="culture">Culture sent in <c>Accept-Language</c> (<c>fr</c>, <c>fr-FR</c>...).</param>
-        public HttpClient WithCulture(string culture)
+        /// <summary>Sends <paramref name="accept"/> as <c>Accept</c> header; <c>null</c> sends none (the default).</summary>
+        /// <param name="accept">Media types accepted by the client (<c>application/xml</c>...).</param>
+        public HttpClient WithAccept(string? accept)
         {
-            client.DefaultRequestHeaders.AcceptLanguage.Clear();
-            client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(culture);
+            client.DefaultRequestHeaders.Accept.Clear();
+            if (accept is not null)
+                client.DefaultRequestHeaders.Accept.ParseAdd(accept);
 
             return client;
         }

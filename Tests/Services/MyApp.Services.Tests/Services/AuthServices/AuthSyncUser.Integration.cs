@@ -4,7 +4,6 @@ using MyApp.Domain.Models;
 using MyApp.Services.Abstractions;
 using MyApp.Services.Abstractions.Responses;
 using MyApp.Services.Abstractions.Services.AuthServices;
-using MyApp.Services.Resources;
 using MyApp.Services.Tests.TestInfrastructure;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Data;
@@ -92,21 +91,19 @@ public sealed partial class AuthSyncUserTests
             outcomes.OfType<Exception>().Select(x => x.GetType().Name).ShouldBeEmpty();
             outcomes.OfType<ServiceSuccessResponse>().ShouldHaveSingleItem();
             outcomes.Where(x => x is not ServiceSuccessResponse)
-                .ShouldAllBe(x => x is ServiceErrorResponse && ((ServiceErrorResponse)x).StatusCode == 409);
+                .ShouldAllBe(x => x is ServiceErrorResponse && ((ServiceErrorResponse)x).Value is ConflictError);
             (await WithDbAsync(db => db.Users.CountAsync(x => x.AuthId == "auth-1", Ct))).ShouldBe(1);
         }
 
         [Fact]
-        public async Task ExecuteAsync_SoftDeletedUser_Returns403WithoutRecreatingUser()
+        public async Task ExecuteAsync_SoftDeletedUser_ReturnsForbiddenWithoutRecreatingUser()
         {
             await SeedUsersAsync();
             var dave = TestUsers.Dave;
 
             var result = await SyncAsync(new IAuthSyncUser.Request(dave.AuthId, dave.UserName, dave.Email));
 
-            var error = result.Value.ShouldBeOfType<ServiceErrorResponse>();
-            error.StatusCode.ShouldBe(403);
-            error.Message.ShouldBe(SharedResource.user_already_deleted);
+            result.Value.ShouldBeServiceError<ForbiddenError>().Code.ShouldBe(ServiceConstant.Error.user_already_deleted);
             var ids = await WithDbAsync(db => db.Users
                 .IgnoreQueryFilters([ModelConstant.SoftDeletionFilter])
                 .Where(x => x.AuthId == dave.AuthId)

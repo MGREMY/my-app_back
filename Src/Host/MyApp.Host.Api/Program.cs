@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder
     .AddServiceDefaults()
+    .AddAppProblemDetails()
     .AddAppAuthorization()
     .AddAppAuthentication()
     .AddAppCors()
@@ -29,8 +30,8 @@ var app = builder.Build();
 
 app
     .UseAppCors()
-    .UseAppLocalization()
     .UseAppDomainExceptionHandler()
+    .UseAppProblemDetails()
     .UseAppAuthentication()
     .UseAppAuthorization()
     .UseAppOpenApi()

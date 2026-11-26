@@ -1,6 +1,6 @@
 using System.Net;
 using MyApp.Host.Api.Tests.TestInfrastructure;
-using MyApp.Services.Resources;
+using MyApp.Services;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Data;
 
@@ -95,7 +95,7 @@ public sealed partial class AuthEndpointTests
             using var response = await CreateClient().AsUser(TestUsers.Dave).PostAsync(SyncUserRoute, null, Ct);
 
             response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-            (await ReadProblemAsync(response)).Title.ShouldBe(SharedResource.user_already_deleted);
+            await ReadProblemWithCodeAsync(response, ServiceConstant.Error.user_already_deleted);
         }
 
         [Fact]

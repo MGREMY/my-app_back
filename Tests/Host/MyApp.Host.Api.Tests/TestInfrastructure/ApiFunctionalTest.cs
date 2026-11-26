@@ -1,9 +1,11 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using MyApp.Domain.Models;
 using MyApp.Domain.Models.Models;
 using MyApp.Domain.Models.Models.Interface;
+using MyApp.Host.Api.Responses;
 using MyApp.Tests.Shared.Containers;
 using MyApp.Tests.Shared.Data;
 
@@ -115,10 +117,26 @@ public abstract class ApiFunctionalTest(ContainersFixture containers, ApiFactory
         return (await response.Content.ReadFromJsonAsync<ProblemDetails>(Ct)).ShouldNotBeNull();
     }
 
-    protected static async Task<HttpValidationProblemDetails> ReadValidationProblemAsync(HttpResponseMessage response)
+    /// <summary>Reads a problem and checks that it identifies <paramref name="code"/>.</summary>
+    /// <param name="response">Response of the call.</param>
+    /// <param name="code">Expected error code (<c>ServiceConstant.Error</c>, <c>ApiConstant.Error</c>).</param>
+    protected static async Task<ProblemDetails> ReadProblemWithCodeAsync(HttpResponseMessage response, string code)
     {
-        response.Content.Headers.ContentType.ShouldNotBeNull().MediaType.ShouldBe("application/problem+json");
+        var problem = await ReadProblemAsync(response);
+        problem.Extensions.ShouldContainKey("code");
+        problem.Extensions["code"].ShouldBeOfType<JsonElement>().GetString().ShouldBe(code);
 
-        return (await response.Content.ReadFromJsonAsync<HttpValidationProblemDetails>(Ct)).ShouldNotBeNull();
+        return problem;
+    }
+
+    /// <summary>Reads a validation problem and returns its invalid fields.</summary>
+    /// <param name="response">Response of the call.</param>
+    protected static async Task<ValidationErrorApiResponse[]> ReadValidationErrorsAsync(HttpResponseMessage response)
+    {
+        var problem = await ReadProblemWithCodeAsync(response, ApiConstant.Error.validation_failed);
+        problem.Extensions.ShouldContainKey("errors");
+
+        return problem.Extensions["errors"].ShouldBeOfType<JsonElement>()
+            .Deserialize<ValidationErrorApiResponse[]>(JsonSerializerOptions.Web).ShouldNotBeNull();
     }
 }
