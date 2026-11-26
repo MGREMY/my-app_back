@@ -46,4 +46,8 @@ internal sealed class FusionCacheService : ICacheService
     /// <inheritdoc />
     public ValueTask RemoveByTagAsync(string tag, CancellationToken ct = default)
         => _cache.RemoveByTagAsync(tag, token: ct);
+
+    /// <inheritdoc />
+    public ValueTask Clear(CancellationToken ct = default)
+        => _cache.ClearAsync(token: ct);
 }

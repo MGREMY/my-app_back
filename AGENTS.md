@@ -625,7 +625,7 @@ prefixed with `myApp:`, entries kept 5 minutes), `AddMyAppServices()` registers 
 - Keys and tags are defined in `ServiceConstant.Cache` (`UserKey(id)`, `UserTag`).
 - Read with `GetOrSetAsync` (runs the factory once per instance for concurrent calls), or `TryGetAsync` to read
   without creating (`CacheResult<T>`: `HasValue`, `Value`). Write with `SetAsync`, invalidate with `RemoveAsync` or
-  `RemoveByTagAsync`; `RemoveByTagAsync("*")` removes every entry.
+  `RemoveByTagAsync`. `Clear` removes every entry.
 - Never cache EF entities. Cache a dedicated model from `Src/Services/MyApp.Services/CacheModels/` built with a
   projection (`UserProjection.ToCacheUser`).
 - A given key always stores the same type, whichever service writes it.

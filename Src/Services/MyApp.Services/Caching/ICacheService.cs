@@ -41,7 +41,12 @@ public interface ICacheService
     ValueTask RemoveAsync(string key, CancellationToken ct = default);
 
     /// <summary>
-    ///     Removes every entry tagged <paramref name="tag"/>; <c>"*"</c> removes every entry.
+    ///     Removes every entry tagged <paramref name="tag"/>.
     /// </summary>
     ValueTask RemoveByTagAsync(string tag, CancellationToken ct = default);
+
+    /// <summary>
+    ///     Removes every entry.
+    /// </summary>
+    ValueTask Clear(CancellationToken ct = default);
 }
