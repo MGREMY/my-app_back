@@ -24,6 +24,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Host\MyApp.Host.Api\MyApp.Host.Api.csproj"/>
+        <ProjectReference Include="..\Host\MyApp.Host.Gateway\MyApp.Host.Gateway.csproj" />
     </ItemGroup>
 
 </Project>

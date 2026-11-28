@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder
     .AddServiceDefaults()
+    .AddAppForwardedHeaders()
     .AddAppProblemDetails()
     .AddAppAuthorization()
     .AddAppAuthentication()
@@ -29,6 +30,7 @@ builder.Services
 var app = builder.Build();
 
 app
+    .UseAppForwardedHeaders()
     .UseAppCors()
     .UseAppDomainExceptionHandler()
     .UseAppProblemDetails()

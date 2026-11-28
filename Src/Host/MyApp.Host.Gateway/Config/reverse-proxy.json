@@ -1,0 +1,52 @@
+{
+  "ReverseProxy": {
+    "Routes": {
+      "api": {
+        "ClusterId": "back",
+        "Order": 1,
+        "Match": {
+          "Path": "/api/{**catch-all}"
+        },
+        "Transforms": [
+          {
+            "PathRemovePrefix": "/api"
+          },
+          {
+            "X-Forwarded": "Set",
+            "For": "Set",
+            "Proto": "Set",
+            "Host": "Set",
+            "Prefix": "Off"
+          },
+          {
+            "RequestHeader": "X-Forwarded-Prefix",
+            "Set": "/api"
+          }
+        ]
+      },
+      "front": {
+        "CLusterId": "front",
+        "Order": 100,
+        "Match": {
+          "Path": "/app/{**catch-all}"
+        }
+      }
+    },
+    "Clusters": {
+      "back": {
+        "Destination": {
+          "d1": {
+            "Address": "http://set-by-gateway-clusters/"
+          }
+        }
+      },
+      "front": {
+        "Destination": {
+          "d1": {
+            "Address": "http://set-by-gateway-clusters/"
+          }
+        }
+      }
+    }
+  }
+}

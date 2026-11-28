@@ -8,6 +8,7 @@
         <Project Path="Src\Domain\MyApp.Domain.Specifications\MyApp.Domain.Specifications.csproj" />
     </Folder>
     <Folder Name="/Src/Host/">
+        <Project Path="Src/Host/MyApp.Host.Gateway/MyApp.Host.Gateway.csproj" />
         <Project Path="Src\Host\MyApp.Host.Api\MyApp.Host.Api.csproj" />
     </Folder>
     <Folder Name="/Src/Services/">

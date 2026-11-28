@@ -9,11 +9,20 @@ public sealed class ApiOption
 {
     public const string SectionKey = "Api";
 
+    public ApiForwardedHeaderOption ForwardedHeaders { get; set; } = new();
     public ApiDatabaseOption Database { get; set; } = new();
     public ApiCacheOption Cache { get; set; } = new();
     public ApiAuthOption Auth { get; set; } = new();
     public ApiCorsOption Cors { get; set; } = new();
     public ServiceOption Services { get; set; } = new();
+}
+
+public sealed class ApiForwardedHeaderOption
+{
+    /// <summary>
+    /// Networks of the truster proxies (the Gateway), CIRD. Loopback is always truster.
+    /// </summary>
+    public string[] KnownNetworks { get; set; } = [];
 }
 
 public sealed class ApiDatabaseOption
