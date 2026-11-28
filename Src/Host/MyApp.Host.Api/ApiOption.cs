@@ -20,7 +20,7 @@ public sealed class ApiOption
 public sealed class ApiForwardedHeaderOption
 {
     /// <summary>
-    /// Networks of the truster proxies (the Gateway), CIRD. Loopback is always truster.
+    /// Networks of the trusted proxies (the Gateway), CIRD Loopback is always truster.
     /// </summary>
     public string[] KnownNetworks { get; set; } = [];
 }

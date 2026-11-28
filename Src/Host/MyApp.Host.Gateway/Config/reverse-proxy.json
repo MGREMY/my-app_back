@@ -25,7 +25,7 @@
         ]
       },
       "front": {
-        "CLusterId": "front",
+        "ClusterId": "front",
         "Order": 100,
         "Match": {
           "Path": "/app/{**catch-all}"
@@ -34,14 +34,14 @@
     },
     "Clusters": {
       "back": {
-        "Destination": {
+        "Destinations": {
           "d1": {
             "Address": "http://set-by-gateway-clusters/"
           }
         }
       },
       "front": {
-        "Destination": {
+        "Destinations": {
           "d1": {
             "Address": "http://set-by-gateway-clusters/"
           }
